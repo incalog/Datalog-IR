@@ -5,23 +5,22 @@ import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
-import inca.ir.{BaseIR, Body, Call, Eq, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
+import sturdy.values.Topped.Top
 
 
-class AnalysisTest extends AnyFunSuiteLike:
+class TypeAnalysisTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module, edb: Seq[TypeRelation] = Seq()): Map[String, TypeRelation] =
+  def interp(mod: Module, edb: Map[String, TypeRelation] = Map()): Map[String, TypeRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    //val abstractInterp = IRConstantAbstractInterpreter()
     val abstractInterp = IRTypeAbstractInterpreter()
-    abstractInterp.evalProgram(Seq(mod))
-    println(mod)
-    println(abstractInterp.idb.getState)
-    abstractInterp.idb.getState.map(kv => kv._1.toString -> kv._2).toMap
+    edb.foreach(abstractInterp.insertEDB)
+    val res = abstractInterp.evalProgram(Seq(mod))
+    abstractInterp.idb.getState.map(kv => kv._1.toString.drop(1) -> kv._2)
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
@@ -34,7 +33,12 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("out"))
+    assert(mainRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(mainRelType.empty)
   }
 
   test("Comparison") {
@@ -59,7 +63,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val numRelType = relTypes("nums")
+    assert(numRelType.cols == Seq("x"))
+    assert(numRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(numRelType.empty)
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("x"))
+    assert(mainRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainRelType.empty)
   }
 
   test("Comparison 2 ") {
@@ -67,25 +81,15 @@ class AnalysisTest extends AnyFunSuiteLike:
       Relation("xs", Seq(
         Param("x", TInt),
       ), Seq(
-        Body(Seq(
-          Eq(Var("x"), IntNum(1)),
-        )),
-        Body(Seq(
-          Eq(Var("x"), IntNum(2)),
-        ))
+        Body(Seq(Eq(Var("x"), IntNum(1)))),
+        Body(Seq(Eq(Var("x"), IntNum(2))))
       )),
       Relation("ys", Seq(
         Param("y", TInt),
       ), Seq(
-        Body(Seq(
-          Eq(Var("y"), IntNum(1)),
-        )),
-        Body(Seq(
-          Eq(Var("y"), IntNum(2)),
-        )),
-        Body(Seq(
-          Eq(Var("y"), IntNum(3)),
-        ))
+        Body(Seq(Eq(Var("y"), IntNum(1)))),
+        Body(Seq(Eq(Var("y"), IntNum(2)))),
+        Body(Seq(Eq(Var("y"), IntNum(3))))
       )),
       Relation("main", Seq(
         Param("x", TInt),
@@ -99,7 +103,22 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val xsRelType = relTypes("xs")
+    assert(xsRelType.cols == Seq("x"))
+    assert(xsRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(xsRelType.empty)
+
+    val ysRelType = relTypes("ys")
+    assert(ysRelType.cols == Seq("y"))
+    assert(ysRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(ysRelType.empty) // Top, since we are dataflow driven
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("x", "y"))
+    assert(mainRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainRelType.empty)
   }
 
   test("Comparison 3") {
@@ -138,10 +157,21 @@ class AnalysisTest extends AnyFunSuiteLike:
     ))
 
     val relTypes = interp(mod)
-    val xsRelType = relTypes("&xs")
+
+    val xsRelType = relTypes("xs")
     assert(xsRelType.cols == Seq("x"))
     assert(xsRelType.rows == Seq(TypeValue.AType(TInt)))
     assertResult(Topped.Top)(xsRelType.empty)
+
+    val ysRelType = relTypes("ys")
+    assert(ysRelType.cols == Seq("y"))
+    assert(ysRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(ysRelType.empty)
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("x", "y"))
+    assert(mainRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainRelType.empty)
   }
 
   test("Two relations") {
@@ -162,7 +192,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val calcRelType = relTypes("calc")
+    assert(calcRelType.cols == Seq("out"))
+    assert(calcRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(calcRelType.empty)
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("res"))
+    assert(mainRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainRelType.empty)
   }
 
   test("Right Recursion") {
@@ -194,7 +234,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
+
+    val pathRelType = relTypes("path")
+    assert(pathRelType.cols == Seq("x", "y"))
+    assert(pathRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(pathRelType.empty)
   }
 
   test("Left Recursion") {
@@ -226,7 +276,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
+
+    val pathRelType = relTypes("path")
+    assert(pathRelType.cols == Seq("x", "y"))
+    assert(pathRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(pathRelType.empty)
   }
 
   test("Left and right Recursion") {
@@ -258,7 +318,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
+
+    val pathRelType = relTypes("path")
+    assert(pathRelType.cols == Seq("x", "y"))
+    assert(pathRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(pathRelType.empty)
   }
 
   test("Left and right Recursion - Start query") {
@@ -297,7 +367,22 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
+
+    val pathRelType = relTypes("path")
+    assert(pathRelType.cols == Seq("x", "y"))
+    assert(pathRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(pathRelType.empty)
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("y"))
+    assert(mainRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainRelType.empty)
   }
 
   test("Factorial") {
@@ -332,7 +417,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val inputRelType = relTypes("input")
+    assert(inputRelType.cols == Seq("n"))
+    assert(inputRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(inputRelType.empty)
+
+    val facRelType = relTypes("fac")
+    assert(facRelType.cols == Seq("n", "r"))
+    assert(facRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(facRelType.empty)
   }
 
   test("Recursive prefix sum") {
@@ -362,7 +457,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val inputRelType = relTypes("input")
+    assert(inputRelType.cols == Seq("n"))
+    assert(inputRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(inputRelType.empty)
+
+    val sumRelType = relTypes("prefixSum")
+    assert(sumRelType.cols == Seq("t", "n"))
+    assert(sumRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(sumRelType.empty)
   }
 
   test("Negative filter") {
@@ -392,7 +497,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val inputRelType = relTypes("input")
+    assert(inputRelType.cols == Seq("n"))
+    assert(inputRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(inputRelType.empty)
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("t", "n"))
+    assert(mainRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainRelType.empty)
   }
 
   test("Failing atom") {
@@ -418,7 +533,12 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
   }
 
   test("Body Failing") {
@@ -440,11 +560,15 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
   }
 
-  // TODO: Add edb support
-  /*test("EDB call") {
+  test("EDB call") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       ExtensionalRelation("input_edge", Seq(
         Param("a", TInt),
@@ -455,14 +579,19 @@ class AnalysisTest extends AnyFunSuiteLike:
         Param("y", TInt)
       ), Seq(
         Body(Seq(
-          ExtensionalCall("input_edge", Seq(Var("x"), Var("y"))),
+          ExtensionalCall("input_edge", Seq(Var("x").arg, Var("y").arg)),
         ))
       )).addHint(MainHint),
     ))
 
-    val res = interp(mod, Seq(
-      execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 4)))
+    val relTypes = interp(mod, Map(
+      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)), Topped.Top)
     ))
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
   }
 
   test("EDB call - Args bound") {
@@ -476,19 +605,20 @@ class AnalysisTest extends AnyFunSuiteLike:
         Param("y", TInt)
       ), Seq(
         Body(Seq(
-          ExtensionalCall("input_edge", Seq(IntNum(1), Var("y"))),
+          ExtensionalCall("input_edge", Seq(IntNum(1).arg, Var("y").arg)),
           Eq(Var("x"), IntNum(5))
         ))
       )).addHint(MainHint),
     ))
 
-    val res = interp(mod, Seq(
-      execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 4)))
+    val relTypes = interp(mod, Map(
+      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)), Topped.Top)
     ))
 
-    val edgeRel = res("edge")
-    assert(edgeRel.size == 1)
-    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(5, 2)))
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
   }
 
   test("EDB call - Negate") {
@@ -532,15 +662,15 @@ class AnalysisTest extends AnyFunSuiteLike:
     // 9	10
     // 11	12
 
-    val res = interp(mod, Seq(
-      execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 2)))
+    val relTypes = interp(mod, Map(
+      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)), Topped.Top)
     ))
 
-    val edgeRel = res("edge")
-    assert(edgeRel.size == 2)
-    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(9, 10)))
-    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(11, 12)))
-  }*/
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
+  }
 
   test("Call - negative") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
@@ -569,7 +699,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(edgeRelType.empty)
+
+    val filterEdgeRelType = relTypes("filterEdge")
+    assert(filterEdgeRelType.cols == Seq("x", "y"))
+    assert(filterEdgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(filterEdgeRelType.empty)
   }
 
   test("ADT - Construct") {
@@ -599,7 +739,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val helperRelType = relTypes("helper")
+    assert(helperRelType.cols == Seq("x"))
+    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(helperRelType.empty)
+
+    val mainEdgeRelType = relTypes("main")
+    assert(mainEdgeRelType.cols == Seq("x"))
+    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
   test("ADT - Deconstruct") {
@@ -630,7 +780,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val helperRelType = relTypes("helper")
+    assert(helperRelType.cols == Seq("x"))
+    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(helperRelType.empty)
+
+    val mainEdgeRelType = relTypes("main")
+    assert(mainEdgeRelType.cols == Seq("x"))
+    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
   test("ADT - Deconstruct as filter") {
@@ -661,7 +821,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val helperRelType = relTypes("helper")
+    assert(helperRelType.cols == Seq("x"))
+    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(helperRelType.empty)
+
+    val mainEdgeRelType = relTypes("main")
+    assert(mainEdgeRelType.cols == Seq("x"))
+    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
   test("ADT - Deconstruct dispatch") {
@@ -685,7 +855,8 @@ class AnalysisTest extends AnyFunSuiteLike:
       )),
 
       Relation("main", Seq(
-        Param("x", TInt),Param("y", TData("TList")),
+        Param("x", TInt),
+        Param("y", TData("TList")),
       ), Seq(
         Body(Seq(
           Call("helper", Seq(Var("y"))),
@@ -699,7 +870,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val helperRelType = relTypes("helper")
+    assert(helperRelType.cols == Seq("x"))
+    assert(helperRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assertResult(Topped.Actual(false))(helperRelType.empty)
+
+    val mainEdgeRelType = relTypes("main")
+    assert(mainEdgeRelType.cols == Seq("x", "y"))
+    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TData("TList"))))
+    assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
   test("ADT - Deconstruct dispatch filter") {
@@ -738,7 +919,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val helperRelType = relTypes("helper")
+    assert(helperRelType.cols == Seq("x"))
+    assert(helperRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assertResult(Topped.Actual(false))(helperRelType.empty)
+
+    val mainEdgeRelType = relTypes("main")
+    assert(mainEdgeRelType.cols == Seq("x", "y"))
+    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TData("TList"))))
+    assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
   test("ADT - Deconstruct negative as filter") {
@@ -769,7 +960,17 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val helperRelType = relTypes("helper")
+    assert(helperRelType.cols == Seq("x"))
+    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Actual(false))(helperRelType.empty)
+
+    val mainEdgeRelType = relTypes("main")
+    assert(mainEdgeRelType.cols == Seq("x"))
+    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
   test("Mutual Recursion, multiple call sites") {
@@ -810,6 +1011,21 @@ class AnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    interp(mod)
+    val relTypes = interp(mod)
+
+    val inputCalcEdgeRelType = relTypes("input_calc")
+    assert(inputCalcEdgeRelType.cols == Seq("x"))
+    assert(inputCalcEdgeRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(inputCalcEdgeRelType.empty)
+
+    val calcRelType = relTypes("calc")
+    assert(calcRelType.cols == Seq("x", "elem"))
+    assert(calcRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(calcRelType.empty)
+
+    val mainEdgeRelType = relTypes("main")
+    assert(mainEdgeRelType.cols == Seq("x"))
+    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt)))
+    assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
