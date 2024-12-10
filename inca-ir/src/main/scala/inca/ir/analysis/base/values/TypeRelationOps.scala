@@ -48,11 +48,8 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
   def map(columnName: String)(f: Seq[TypeValue] => TypeValue): TypeRelation =
     TypeRelation(cols :+ columnName, rows :+ f(rows), empty)
 
-  def flatMap(f: Seq[TypeValue] => TypeRelation): TypeRelation = f(rows) match
-    case tr@TypeRelation(_, _, Topped.Actual(true)) =>
-      TypeRelation((cols ++ tr.cols).distinct, Seq(), Topped.Actual(true))
-    case tr =>
-      naturalJoin(tr)
+  def flatMap(f: Seq[TypeValue] => TypeRelation): TypeRelation =
+    naturalJoin(f(rows))
 
   def filter(f: Seq[TypeValue] => Topped[Boolean]): TypeRelation = f(rows) match
     case Topped.Top => copy(empty = Topped.Top)
@@ -83,28 +80,21 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
     TypeRelation(cols, rows, newEmpty)
 
   def join(other: TypeRelation): TypeRelation =
-    val (newCols, newTypes) = if (cols != other.cols) {
+    if (cols != other.cols)
       throw new IllegalArgumentException("Schemas must match for join")
-      val rvCols = cols.zipWithIndex.toMap
-      val otherCols = other.cols.zipWithIndex.toMap
-      val newCols = cols ++ other.cols.filterNot(cols.contains)
-      val newTypes = for (c <- newCols) yield {
-        (rvCols.get(c), otherCols.get(c)) match
-          case (Some(rvIx), None) => rows(rvIx)
-          case (None, Some(otherIx)) => other.rows(otherIx)
-          case (Some(rvIx), Some(otherIx)) => rows(rvIx).join(other.rows(otherIx))
-          case (None, None) => throw new IllegalStateException()
-      }
-      (newCols, newTypes)
-    } else {
-      (cols, this.rows.zip(other.rows).map(p => p._1.join(p._2)))
-    }
+    val newTypes = rows.zip(other.rows).map(_.join(_))
 
+    // How should this be handled correctly?
+    // if we do this:
+    //  case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
+    //  case _ => Topped.Top
+    // Then we always get `empty` if one branch is failing.
+    // Since a call can almost always fail, we get only empty tables as the end result.
     val newEmpty = (empty, other.empty) match
       case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
       case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
       case _ => Topped.Top
-    TypeRelation(newCols, newTypes, newEmpty)
+    TypeRelation(cols, newTypes, newEmpty)
 
 class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelation]:
   override def isEmpty(rv: TypeRelation): Topped[Boolean] = rv.empty

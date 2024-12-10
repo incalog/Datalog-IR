@@ -73,7 +73,6 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   override val joinV: WithJoin[TypeValue] = implicitly
   override val joinRV: Join[TRV] = implicitly
   
-  // TODO: Do we need widening? If so, how does it look like?
   given Widen[TRV] with {
     override def apply(v1: TRV, v2: TRV): MaybeChanged[TRV] = joinRV(v1, v2)
   }
