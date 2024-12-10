@@ -15,19 +15,21 @@ import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps, ToppedCertainOrde
 import sturdy.data.{MakeJoined, WithJoin}
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
-case class ConstantIntV(value: Int) extends Value
+case class ConstantIntV(value: Int) extends Value:
+  override def toString: String = value.toString
 
-case class ConstantDoubleV(value: Double) extends Value
+case class ConstantDoubleV(value: Double) extends Value:
+  override def toString: String = value.toString
 
-trait ConstantEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
+trait ConstantEqOps extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (ConstantIntV(i1), ConstantIntV(i2)) => boolOps.boolLit(i1 == i2)
-    case (ConstantDoubleV(d1), ConstantDoubleV(d2)) => boolOps.boolLit(d1 == d2)
+    case (ConstantIntV(i1), ConstantIntV(i2)) => Topped.Actual(i1 == i2)
+    case (ConstantDoubleV(d1), ConstantDoubleV(d2)) => Topped.Actual(d1 == d2)
     case _ => super.equ(v1, v2)
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (ConstantIntV(i1), ConstantIntV(i2)) => boolOps.boolLit(i1 != i2)
-    case (ConstantDoubleV(d1), ConstantDoubleV(d2)) => boolOps.boolLit(d1 != d2)
+    case (ConstantIntV(i1), ConstantIntV(i2)) => Topped.Actual(i1 != i2)
+    case (ConstantDoubleV(d1), ConstantDoubleV(d2)) => Topped.Actual(d1 != d2)
     case _ => super.equ(v1, v2)
 
 private def constantIntFromToppedInt(value: Topped[Int]): Value = value match

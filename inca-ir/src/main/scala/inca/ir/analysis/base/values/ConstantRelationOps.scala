@@ -1,19 +1,20 @@
 package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
+import sturdy.values.ordering.EqOps
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Topped, Unchanged, Widen}
 
 import scala.collection
 
 // We can not decide if a table is empty or not.
-// Consider we have a body that contains a comparison such as: Top == ConstInt(4)
+// Consider we have a body that contains a comparison such as: Top == ConstantIntV(4)
 // This could succeed, but it could also fail.
-case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Boolean])(using joinV: Join[Value]):
+case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Boolean])(using joinV: Join[Value], eqOps: EqOps[Value, Topped[Boolean]]):
   override def toString: String =
     if (rows.isEmpty)
-      s"[${cols.mkString(", ")}], $empty"
+      s"[${cols.mkString(", ")}, $empty]"
     else
-      s"[${cols.zip(rows).toMap.mkString(", ")}], $empty"
+      s"[${cols.zip(rows).toMap.mkString(", ")}, $empty]"
 
   def rename(subst: Map[String, String]): ConstantRelation =
     val newColumns = cols.map(c => subst.getOrElse(c, c))
@@ -27,11 +28,8 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
   def map(columnName: String)(f: Seq[Value] => Value): ConstantRelation =
     ConstantRelation(cols :+ columnName, rows :+ f(rows), empty)
 
-  def flatMap(f: Seq[Value] => ConstantRelation): ConstantRelation = f(rows) match
-    case tr@ConstantRelation(_, _, Topped.Actual(true)) =>
-      ConstantRelation((cols ++ tr.cols).distinct, Seq(), Topped.Actual(true))
-    case tr =>
-      naturalJoin(tr)
+  def flatMap(f: Seq[Value] => ConstantRelation): ConstantRelation =
+    naturalJoin(f(rows))
 
   def filter(f: Seq[Value] => Topped[Boolean]): ConstantRelation = f(rows) match
     case Topped.Top => copy(empty = Topped.Top)
@@ -41,18 +39,24 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
   def naturalJoin(other: ConstantRelation): ConstantRelation =
     val rvCols = cols.zipWithIndex.toMap
     val otherCols = other.cols.zipWithIndex.toMap
+    val sharedCols = cols.toSet.intersect(other.cols.toSet)
 
     val newCols = cols ++ other.cols.filterNot(cols.contains)
+    var newEmpty = (empty, other.empty) match
+      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
+      case _ => Topped.Actual(sharedCols.nonEmpty)
+
     val newVals = for (c <- newCols) yield {
       (rvCols.get(c), otherCols.get(c)) match
         case (Some(rvIx), None) => rows(rvIx)
         case (None, Some(otherIx)) => other.rows(otherIx)
-        case (Some(rvIx), Some(otherIx)) => joinV(rows(rvIx), other.rows(otherIx)).get
+        case (Some(rvIx), Some(otherIx)) =>
+          // If both entries are constants, we can decide if the join succeeds
+          if (newEmpty == Topped.Actual(false))
+            newEmpty = eqOps.equ(rows(rvIx), other.rows(otherIx))
+          joinV(rows(rvIx), other.rows(otherIx)).get
         case (None, None) => throw new IllegalStateException()
     }
-    val newEmpty = (empty, other.empty) match
-      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
-      case _ => Topped.Top
     ConstantRelation(newCols, newVals, newEmpty)
 
   def antiJoin(other: ConstantRelation): ConstantRelation =
@@ -62,18 +66,19 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
     ConstantRelation(cols, rows, newEmpty)
 
   def join(other: ConstantRelation): ConstantRelation =
-    // TODO: Probably wrong.
-    if cols != other.cols then
+    if (cols != other.cols)
       throw new IllegalArgumentException("Schemas must match for join")
+    val newRows = rows.zip(other.rows).map((v1, v2) => joinV(v1, v2).get)
 
-    val commonRows = rows.zip(other.rows).map { case (v1, v2) => joinV(v1, v2).get }
     val newEmpty = (empty, other.empty) match
-      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
+      case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
+      case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
       case _ => Topped.Top
-    ConstantRelation(cols, commonRows, newEmpty)
+    val r = ConstantRelation(cols, newRows, newEmpty)
+    println(s"Join: $this -- $other :: $r")
+    r
 
-
-class ConstantRelationOps(using joinV: Join[Value]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
+class ConstantRelationOps(using joinV: Join[Value], eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
   override def isEmpty(rv: ConstantRelation): Topped[Boolean] = rv.empty
 
   override def hasColumn(rv: ConstantRelation, column: String): Boolean = rv.cols.contains(column)

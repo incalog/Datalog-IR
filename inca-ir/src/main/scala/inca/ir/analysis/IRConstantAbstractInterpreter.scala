@@ -1,12 +1,14 @@
 package inca.ir.analysis
 
-import inca.ir.extension.arithmetic.analysis as arith
-import inca.ir.Name
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Top, Value}
-import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Top, TypeValue, Value}
+import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
+import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps
+import inca.ir.extension.arithmetic.analysis as irarith
+import inca.ir.extension.data.analysis as irdata
+import inca.ir.extension.string.analysis as irstr
 import sturdy.data.WithJoin
 import sturdy.values.{Changed, Combine, Finite, Join, MaybeChanged, Powerset, Topped, Widen, Widening, finitely}
 import sturdy.effect.{EffectStack, TrySturdy}
@@ -27,15 +29,16 @@ import sturdy.values.references.given_Finite_AllocationSiteAddr
 import sturdy.data.given 
 import inca.ir.analysis.base.effect.IRFailure
 import inca.ir.analysis.base.values.JoinRV
-//import inca.ir.analysis.base.interpreter.FiniteFixIn
+import inca.ir.analysis.base.interpreter.FiniteFixIn
 import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 import inca.ir.analysis.base.effect.IRException
+import inca.ir.analysis.base.interpreter.CCombineFixOut
 
-private class IRJoinV extends Join[Value]
-  with BaseJoinV
-  with arith.interpreter.ConstantJoinV:
+private class IRJoinV extends Join[Value] with BaseJoinV
+  with irarith.interpreter.ConstantJoinV
+  with irstr.interpreter.ConstantJoinV:
   // TODO: inherit from rest
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
@@ -45,13 +48,15 @@ private class IRJoinV extends Join[Value]
     else
       Changed(joined)
 
-private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
-  with arith.interpreter.ConstantEqOps
+private class IREqOps extends BaseEqOps
+  with irarith.interpreter.ConstantEqOps
+  with irstr.interpreter.ConstantEqOps
   // TODO: inherit from rest
 
-class IRConstantAbstractInterpreter
+class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
-  with arith.interpreter.ConstantAbstractInterpreter:
+  with irarith.interpreter.ConstantAbstractInterpreter
+  with irstr.interpreter.ConstantAbstractInterpreter:
   // TODO: inherit from rest
 
   type RV = ConstantRelation
@@ -76,12 +81,14 @@ class IRConstantAbstractInterpreter
   override val joinRV: Join[RV] = implicitly
   override val joinUnit: WithJoin[Unit] = implicitly
 
-  // I don't think we need to widen tables
+  // I don't think we need to widen tables for a constant analysis
   given Widen[RV] with {
     override def apply(v1: RV, v2: RV): MaybeChanged[RV] = joinRV(v1, v2)
   }
   
-  override lazy val supplementaryTable: SupplementaryTable[ConstantRelation] = ???
+  override lazy val supplementaryTable: SupplementaryTable[ConstantRelation] = new ASupplementaryTable[RV]() {
+    override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
+  }
   override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
 
   given EqOps[Value, Topped[Boolean]] = eqOps
@@ -89,5 +96,35 @@ class IRConstantAbstractInterpreter
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps
 
   override def resetIDB(): Unit = idb.setState(Map())
-  
-  override val fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[Value, RV]] = ???
+
+  class AnalysisAnnotator
+    extends BaseAnalysisAnnotator[Value, RV, Value]
+      with irarith.logger.AnalysisAnnotator[Value, RV, Value]
+      with irdata.logger.AnalysisAnnotator[Value, RV, Value]
+      with irstr.logger.AnalysisAnnotator[Value, RV, Value]:
+
+    override def extractTermValue(supName: SupColumn): Value =
+      val supTable = supplementaryTable.getTable
+      val termTRV = supTable.project(Seq(supName))
+      assert(termTRV.rows.size == 1)
+      termTRV.rows.head
+
+  val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
+
+  fix.Fixpoint.DEBUG = false
+
+  override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
+    val fixPt =
+      fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
+        fix.filter({
+          case _: FixIn.EnterRelation => true
+          case _ => false // important, filter everything out we don't need
+        }, fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](StackedStates()))
+      )
+
+    val analysisFixPt = fix.log(analysisAnnotator, fixPt)
+
+    if (enableLogging)
+      fix.log(new PrintLogger, analysisFixPt).fixpoint
+    else
+      analysisFixPt.fixpoint

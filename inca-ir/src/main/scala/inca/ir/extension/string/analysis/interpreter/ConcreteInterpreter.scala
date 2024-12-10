@@ -15,7 +15,9 @@ case class CStringV(value: String) extends Value:
 private class CStringVOps (using failure: Failure) extends StringOps[Value]:
   override def stringLit(s: String): Value = CStringV(s)
 
-  override def toString(v: Value): Value = CStringV(v.toString)
+  override def toString(v: Value): Value = v match
+    case CStringV(_) => v
+    case _ => CStringV(v.toString)
 
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match
     case (CStringV(s1), CStringV(s2)) => CStringV(s1 + s2)

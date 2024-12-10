@@ -11,7 +11,7 @@ import sturdy.fix.Logger
  An analysis logger is used to annotate Datalog AST notes with the computed analysis results.
  Extensions may choose to override this class to guarantee that all AST nodes are annotated.
  */
-trait BaseAnalysisLogger[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
+trait BaseAnalysisAnnotator[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
   def extractTermValue(col: SupColumn): TV
 
   case object TermKey extends AnalysisKey:

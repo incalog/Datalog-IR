@@ -15,7 +15,7 @@ class TypeIROptimizer extends BaseIROptimizer[TypeValue, TypeRelation, TypeValue
 
   override val abstractInterpreter: IRTypeAbstractInterpreter = new IRTypeAbstractInterpreter()
 
-  import abstractInterpreter.analysisLogger.{ TermKey, RelationKey }
+  import abstractInterpreter.analysisAnnotator.{ TermKey, RelationKey }
 
   override def getTermResult(term: Term): Set[TypeValue] =
     term.getAnalysisResult(TermKey).map(_.value)

@@ -82,10 +82,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   val boolOps: BooleanOps[B]
 
-  lazy val boolTrue: B = boolOps.boolLit(true)
-
-  lazy val boolFalse: B = boolOps.boolLit(false)
-
   val branchOps: BooleanBranching[B, RV]
 
   lazy val eqOps: EqOps[V, B]

@@ -5,7 +5,7 @@ import inca.ir.ExtensionalRelation
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
-import inca.ir.analysis.base.logger.{BaseAnalysisLogger, PrintLogger}
+import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
@@ -91,11 +91,11 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
 
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
 
-  class AnalysisLogger
-    extends BaseAnalysisLogger[TypeValue, TRV, TypeValue]
-    with irarith.logger.AnalysisLogger[TypeValue, TRV, TypeValue]
-    with irdata.logger.AnalysisLogger[TypeValue, TRV, TypeValue]
-    with irstr.logger.AnalysisLogger[TypeValue, TRV, TypeValue]:
+  class AnalysisAnnotator
+    extends BaseAnalysisAnnotator[TypeValue, TRV, TypeValue]
+    with irarith.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]
+    with irdata.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]
+    with irstr.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]:
 
       override def extractTermValue(supName: SupColumn): TypeValue =
         val supTable = supplementaryTable.getTable
@@ -103,9 +103,8 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
         assert(termTRV.rows.size == 1)
         termTRV.rows.head
 
-  val analysisLogger: AnalysisLogger = new AnalysisLogger
-
-
+  val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
+  
   fix.Fixpoint.DEBUG = false
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[TypeValue, TRV]] =
@@ -117,7 +116,7 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
         }, fix.iter.innermost[FixIn, FixOut[TypeValue, TRV], Unit](StackedStates()))
         )
 
-    val analysisFixPt = fix.log(analysisLogger, fixPt)
+    val analysisFixPt = fix.log(analysisAnnotator, fixPt)
 
     if (enableLogging)
       fix.log(new PrintLogger, analysisFixPt).fixpoint
