@@ -18,13 +18,13 @@ trait BaseValueNumbering extends IRVisitor {
   def useFixPointIteration: Boolean = true
   def printVNResults: Boolean = false
 
-  private case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {
+  protected case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {
     override val isConstTerm: Term => Boolean = isConst
     override val isParameter: Term => Boolean = isParam
 
     var definingTerm: Term = _
   }
-  private object CongrClass{
+  protected object CongrClass{
     def apply(valueId: ValueId, leader: Term, definingTerm: Term): CongrClass = {
       val congrCls = CongrClass(valueId, leader)
       congrCls.definingTerm = definingTerm
@@ -93,7 +93,7 @@ trait BaseValueNumbering extends IRVisitor {
     }
   }
 
-  private def updateCongrClassIfNecessary(vn: ValueId, t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
+  protected def updateCongrClassIfNecessary(vn: ValueId, t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
     val isValid = vnTables.updateCongrClassIfNecessary(vn, t)
     validBody = validBody && isValid
   }
@@ -153,7 +153,7 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
-  private var validBody: Boolean = _
+  protected var validBody: Boolean = _
 
 
   private def setTables(body: Body): Unit = phase match {

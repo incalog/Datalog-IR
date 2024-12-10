@@ -63,8 +63,9 @@ class DataTest extends ValueNumberingTestAbstract {
           Body(Seq(
 //            Eq(Var("res"), Construct(Name("Cons"),Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
             Eq(Var("res"), Construct(Name("Cons"),Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
-            Deconstruct(Construct(Name("Cons"),Seq(IntNum(123), Construct(Name("Nil"), Seq()))), RefByName(Name("Cons")), Seq(TermArg(Var("num")), TermArg(Var("tail"))), false),
-//            Eq(Var("num"), Var("head"))
+            Deconstruct(Construct(Name("Cons"),Seq(IntNum(123), Construct(Name("Nil"), Seq()))), RefByName(Name("Cons")),
+              Seq(TermArg(IntNum(123)), TermArg(Construct(Name("Nil"), Seq()))), false),
+            Eq(Var("num"), IntNum(123))
           ))
         ))
       ))
@@ -95,7 +96,8 @@ class DataTest extends ValueNumberingTestAbstract {
           Body(Seq(
 //            Eq(Var("tempRes"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
             Eq(Var("res"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
-            Deconstruct(Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq()))), RefByName(Name("Cons")), Seq(TermArg(Var("num")), TermArg(Var("tail"))), false),
+            Deconstruct(Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq()))), RefByName(Name("Cons")),
+              Seq(TermArg(Var("num")), TermArg(Construct(Name("Nil"), Seq()))), false),
             Eq(Var("num"), IntNum(123))
           ))
         ))
@@ -127,7 +129,8 @@ class DataTest extends ValueNumberingTestAbstract {
           Body(Seq(
 //            Eq(Var("tempRes"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
             Eq(Var("res"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
-            Deconstruct(Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq()))), RefByName(Name("Cons")), Seq(TermArg(Var("num1")), TermArg(Var("tail"))), false),
+            Deconstruct(Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq()))), RefByName(Name("Cons")),
+              Seq(TermArg(Var("num1")), TermArg(Construct(Name("Nil"), Seq()))), false),
             Eq(Var("num2"), Var("num1"))
           ))
         ))
