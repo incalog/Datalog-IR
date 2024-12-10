@@ -163,7 +163,7 @@ trait BaseValueNumbering extends IRVisitor {
       VNs_Atoms = ValueIds[Atom]()
     case Phase.repetition =>
       vnTables = new VNTables(body.congruenceClasses, body.VNs)
-      VNs_Atoms = ValueIds[Atom]() // TODO
+      VNs_Atoms = ValueIds[Atom]() // no need to propagate old analysis results -> remove duplicates again
   }
 
 

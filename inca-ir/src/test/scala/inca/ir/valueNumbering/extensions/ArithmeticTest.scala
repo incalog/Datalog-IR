@@ -171,7 +171,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var(Name("X")), IntNum(2)),
 //            Eq(Var(Name("H1")), Sub(IntNum(1), Var(Name("X")))),
 //            Eq(Var(Name("H2")), Sub(Var(Name("X")), IntNum(1))),
-            Eq(IntNum(-1), IntNum(1), true),
+//            Eq(IntNum(-1), IntNum(1), true),
 //            Eq(Var(Name("Y")), Add(Var("H1"), Var("H2"))),
             Eq(Var(Name("param$0")), IntNum(2)),
             Eq(Var(Name("param$1")), IntNum(0))
@@ -774,7 +774,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var(Name("H1")), Add(IntNum(2), Var("X"))),
             //Eq(Var(Name("H2")), Var(Name("H1"))),
 //            Eq(Var(Name("Z")), IntNum(6)),
-            GT(IntNum(6),IntNum(1)),    // TODO can be concluded that true -> could be removed
+//            GT(IntNum(6),IntNum(1)),    // concluded that true -> removed
             Eq(Var(Name("param$0")), IntNum(1)),
             Eq(Var(Name("param$1")), IntNum(3)),
             Eq(Var(Name("param$2")), IntNum(6))
@@ -1631,7 +1631,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var(Name("H2")), Mul(IntNum(-1), Var("b"))),
 //            Eq(Var("H3"), IntNum(2)),
 //            Eq(Var("a"), IntNum(2)),
-            GT(Var("c"), IntNum(-4)),
+            LE(IntNum(-4), Var("c")),
             Eq(Var("H4"), Add(IntNum(-4), Add(Var("b"), Add(Mul(IntNum(-1), Var("c")), Mul(IntNum(2), Var("a")))))),
 //            Eq(Var("H5"), Add(Add(Neg(IntNum(4)), Add(Var("a"), Var("b"))), Add(Var("a"), Mul(IntNum(-1), Var("c"))))),
             Eq(Var("H6"), Add(Var("a"), Mul(IntNum(-1), Var("c")))),
@@ -1982,7 +1982,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("S2"), Seq(TermArg(Var("b")))),
             Eq(Var("H2"), Add(IntNum(2),Var("b"))),
 //            Eq(Var("b"), Var("b")),
-            Eq(Var("H2"), Add(IntNum(2),Var("b"))),
+//            Eq(Var("H2"), Add(IntNum(2),Var("b"))), // removed by VN for Atoms
             Eq(Var("result"),IntNum(0))
           ))
         )),
@@ -2405,7 +2405,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
             Call(Name("S1"), Seq(TermArg(Var("param$0")))),
-            Call(Name("S1"), Seq(TermArg(Var("param$0")))),
+//            Call(Name("S1"), Seq(TermArg(Var("param$0")))), // removed by VN for Atoms
             Eq(Var("param$1"), IntNum(0)),
           ))
         )),
@@ -2462,8 +2462,8 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
             Call(Name("S1"), Seq(TermArg(Var("c")))),
             Call(Name("S2"), Seq(TermArg(Var("c")))),
             Eq(Var("H1"), Add(IntNum(2), Var("c"))),
-            Eq(Var("H1"), Add(IntNum(2), Var("c"))),
-            Call(Name("S2"), Seq(TermArg(Var("c")))),
+//            Eq(Var("H1"), Add(IntNum(2), Var("c"))),  // removed by VN for Atoms
+//            Call(Name("S2"), Seq(TermArg(Var("c")))), // removed by VN for Atoms
             //            Eq(Var("c"), Var("c")),
 //            Eq(Var("H2"), Add(IntNum(2), Var("b"))),  // this gets removed in 1st phase since a == b already known
             Eq(Var("result"), IntNum(0))
@@ -2530,7 +2530,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var("H0"), Sub(Var("a"), Var("b"))),
             Eq(Var("H2"), Add(IntNum(2), Var("b"))),
 //            Eq(Var("a"), Var("b")),
-            Eq(Var("H2"), Add(IntNum(2), Var("b"))),
+//            Eq(Var("H2"), Add(IntNum(2), Var("b"))),  // removed by VN for Atoms
             Eq(Var("result"), Mul(IntNum(2), Var("H2"))),
             Eq(Var("result"), IntNum(0))
           ))
