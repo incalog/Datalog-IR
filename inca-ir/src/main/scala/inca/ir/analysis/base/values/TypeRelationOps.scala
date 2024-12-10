@@ -90,6 +90,10 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
     //  case _ => Topped.Top
     // Then we always get `empty` if one branch is failing.
     // Since a call can almost always fail, we get only empty tables as the end result.
+
+    // The idea behind the current approach is:
+    //   Only if we know that both branches are empty or both are non-empty, we can make an
+    //   assumption about the state after the branch ops.
     val newEmpty = (empty, other.empty) match
       case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
       case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
