@@ -1,6 +1,6 @@
 package inca.ir.analysis.base.logger
 
-import inca.ir.{Arg, Atom, Call, Eq, ExtensionalCall, Relation, Term, TermArg, Var, WildcardArg}
+import inca.ir.{Arg, Atom, Body, Call, Eq, ExtensionalCall, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
 import inca.util.Color
@@ -23,6 +23,16 @@ trait BaseAnalysisAnnotator[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
     val result: TermResult = this
     override val akey: TermKey.type = TermKey
     override def toString: String = value.toString
+
+  case object BodyKey extends AnalysisKey:
+    override val key: String = "Body"
+    override val color: Color = Color.Yellow
+    override type Result = RelationResult
+
+  case class BodyResult(res: RV) extends AnalysisResult:
+    val result: BodyResult = this
+    override val akey: BodyKey.type = BodyKey
+    override def toString: String = res.toString
 
   case object RelationKey extends AnalysisKey:
     override val key: String = "Relation"
@@ -63,8 +73,12 @@ trait BaseAnalysisAnnotator[V, RV, TV] extends Logger[FixIn, FixOut[V, RV]]:
   def storeRelationResult(rel: Relation, value: RV): Unit =
     rel.storeAnalysisResult(RelationResult(value))
 
+  def storeBodyResult(body: Body, value: RV): Unit =
+    body.storeAnalysisResult(BodyResult(value))
+
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) => storeTermResult(t, extractTermValue(supName))
     case (FixIn.Atom(at), Some(FixOut.Atom())) => storeAtomResult(at)
+    case (FixIn.Body(b, _), Some(FixOut.Body(rv))) => storeBodyResult(b, rv)
     case (FixIn.EnterRelation(r, _), Some(FixOut.Relation(rv))) => storeRelationResult(r, rv)
     case  _ => // nothing

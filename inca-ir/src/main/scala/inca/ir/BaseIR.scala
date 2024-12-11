@@ -229,8 +229,8 @@ case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEnt
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
   override def toString: String = s"$name: $ty"
 
-case class Body(atoms: Seq[Atom]) extends Hints:
-  override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
+case class Body(atoms: Seq[Atom]) extends Analyzable, Hints:
+  override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}" + analysisString
 
   def vars: Seq[Var] = atoms.flatMap(_.vars)
 
