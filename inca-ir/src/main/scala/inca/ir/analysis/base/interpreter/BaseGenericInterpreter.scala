@@ -213,6 +213,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val edbRV = relationOps.rename(rv, cols.zip(paramNames).toMap)
 
     // filter edb rows based on current supplementary 
+    println("Natural join: ")
     relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
   }}
 

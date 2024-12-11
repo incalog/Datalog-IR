@@ -2,7 +2,7 @@ package inca.ir.analysis
 
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Top, TypeValue, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, ConstantRelationOps, FiniteV, Top, TypeValue, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps
@@ -35,6 +35,10 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.CCombineFixOut
+
+private class IRMeetV extends BaseMeetV
+  with irarith.interpreter.ConstantMeetV
+  with irstr.interpreter.ConstantMeetV
 
 private class IRJoinV extends Join[Value] with BaseJoinV
   with irarith.interpreter.ConstantJoinV
@@ -93,6 +97,8 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
 
   given EqOps[Value, Topped[Boolean]] = eqOps
 
+  given BaseMeetV = IRMeetV()
+
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps
 
   override def resetIDB(): Unit = idb.setState(Map())
@@ -105,13 +111,13 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
 
     override def extractTermValue(supName: SupColumn): Value =
       val supTable = supplementaryTable.getTable
-      val termTRV = supTable.project(Seq(supName))
+      val termTRV = relationOps.project(supTable, Seq(supName))
       assert(termTRV.rows.size == 1)
       termTRV.rows.head
 
   val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
 
-  fix.Fixpoint.DEBUG = true
+  fix.Fixpoint.DEBUG = false
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     val fixPt =

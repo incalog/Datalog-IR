@@ -8,6 +8,12 @@ trait BaseJoinV:
     case (_, Bottom) => lhs
     case _ => Top
 
+trait BaseMeetV:
+  def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+    case (Top, _) => rhs
+    case (_, Top) => lhs
+    case _ => Bottom
+
 class FiniteV extends Finite[Value]
 
 trait Value

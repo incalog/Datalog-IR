@@ -9,88 +9,14 @@ import scala.collection
 // We can not decide if a table is empty or not.
 // Consider we have a body that contains a comparison such as: Top == ConstantIntV(4)
 // This could succeed, but it could also fail.
-case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Boolean])(using joinV: Join[Value], eqOps: EqOps[Value, Topped[Boolean]]):
+case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Boolean]):
   override def toString: String =
     if (rows.isEmpty)
       s"[${cols.mkString(", ")}, $empty]"
     else
       s"[${cols.zip(rows).toMap.mkString(", ")}, $empty]"
 
-  def rename(subst: Map[String, String]): ConstantRelation =
-    val newColumns = cols.map(c => subst.getOrElse(c, c))
-    ConstantRelation(newColumns, rows, empty)
-
-  def project(newColumns: Seq[String]): ConstantRelation =
-    val colsIndex = newColumns.map(cols.indexOf)
-    val newRows = colsIndex.map(rows)
-    ConstantRelation(newColumns, newRows, empty)
-
-  def map(columnName: String)(f: Seq[Value] => Value): ConstantRelation =
-    ConstantRelation(cols :+ columnName, rows :+ f(rows), empty)
-
-  def flatMap(f: Seq[Value] => ConstantRelation): ConstantRelation =
-    naturalJoin(f(rows))
-
-  def filter(f: Seq[Value] => Topped[Boolean]): ConstantRelation = f(rows) match
-    case Topped.Top => copy(empty = Topped.Top)
-    case Topped.Actual(true) => this // unchanged
-    case Topped.Actual(false) => copy(empty = Topped.Actual(true)) // definitely empty
-
-  def naturalJoin(other: ConstantRelation): ConstantRelation =
-    def or(t1: Topped[Boolean], t2: Topped[Boolean]) = (t1, t2) match
-      case (Topped.Actual(false), _) | (_, Topped.Actual(false)) => Topped.Actual(false)
-      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
-      case _ => Topped.Top
-
-    val rvCols = cols.zipWithIndex.toMap
-    val otherCols = other.cols.zipWithIndex.toMap
-
-    val newCols = cols ++ other.cols.filterNot(cols.contains)
-    var newEmpty = (empty, other.empty) match
-      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true) // definitely empty
-      case (Topped.Top, _) | (_, Topped.Top) => Topped.Top // we don't know
-      case _ => Topped.Actual(false) // we need to refine the result
-
-    //println(s"New empty: $this -- $other -- $sharedCols :: $newEmpty")
-
-    val newVals = for (c <- newCols) yield {
-      (rvCols.get(c), otherCols.get(c)) match
-        case (Some(rvIx), None) => rows(rvIx)
-        case (None, Some(otherIx)) => other.rows(otherIx)
-        case (Some(rvIx), Some(otherIx)) =>
-          // If both entries are constants, we can decide if the join succeeds
-          val compare = eqOps.equ(rows(rvIx), other.rows(otherIx))
-          newEmpty = compare match
-            case Topped.Actual(b) => or(newEmpty, Topped.Actual(!b))
-            case _ => or(newEmpty, compare)
-          //println(s"Join: ${rows(rvIx)} -- ${other.rows(otherIx)} -- New empty: $newEmpty")
-          joinV(rows(rvIx), other.rows(otherIx)).get
-        case (None, None) => throw new IllegalStateException()
-    }
-    val r = ConstantRelation(newCols, newVals, newEmpty)
-    println(s"Natural Join: $this -- $other :: $r")
-    r
-
-  def antiJoin(other: ConstantRelation): ConstantRelation =
-    val newEmpty = other.empty match
-      case Topped.Actual(true) => empty
-      case _ => Topped.Top
-    ConstantRelation(cols, rows, newEmpty)
-
-  def join(other: ConstantRelation): ConstantRelation =
-    if (cols != other.cols)
-      throw new IllegalArgumentException("Schemas must match for join")
-    val newRows = rows.zip(other.rows).map((v1, v2) => joinV(v1, v2).get)
-
-    val newEmpty = (empty, other.empty) match
-      case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
-      case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
-      case _ => Topped.Top
-    val r = ConstantRelation(cols, newRows, newEmpty)
-    //println(s"Join: $this -- $other :: $r")
-    r
-
-class ConstantRelationOps(using joinV: Join[Value], eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
+class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
   override def isEmpty(rv: ConstantRelation): Topped[Boolean] = rv.empty
 
   override def hasColumn(rv: ConstantRelation, column: String): Boolean = rv.cols.contains(column)
@@ -102,27 +28,78 @@ class ConstantRelationOps(using joinV: Join[Value], eqOps: EqOps[Value, Topped[B
     ConstantRelation(cols, joinedVals, Topped.Actual(vals.isEmpty))
 
   override def rename(rv: ConstantRelation, subst: Map[String, String]): ConstantRelation =
-    rv.rename(subst)
+    val newColumns = rv.cols.map(c => subst.getOrElse(c, c))
+    ConstantRelation(newColumns, rv.rows, rv.empty)
 
   override def project(rv: ConstantRelation, newColumns: Seq[String]): ConstantRelation =
-    rv.project(newColumns)
+    val colsIndex = newColumns.map(rv.cols.indexOf)
+    val newRows = colsIndex.map(rv.rows)
+    ConstantRelation(newColumns, newRows, rv.empty)
 
-  override def map(rv: ConstantRelation, columnName: String)(f: Row => Value): ConstantRelation =
-    rv.map(columnName)(f)
+  override def map(rv: ConstantRelation, columnName: String)(f: Seq[Value] => Value): ConstantRelation =
+    ConstantRelation(rv.cols :+ columnName, rv.rows :+ f(rv.rows), rv.empty)
 
-  override def flatMap(rv: ConstantRelation)(f: Row => ConstantRelation): ConstantRelation =
-    rv.flatMap(f)
+  override def flatMap(rv: ConstantRelation)(f: Seq[Value] => ConstantRelation): ConstantRelation =
+    naturalJoin(rv, f(rv.rows))
 
-  override def filter(rv: ConstantRelation)(f: Row => Topped[Boolean]): ConstantRelation =
-    rv.filter(f)
+  override def filter(rv: ConstantRelation)(f: Seq[Value] => Topped[Boolean]): ConstantRelation = f(rv.rows) match
+    case Topped.Top => rv.copy(empty = Topped.Top)
+    case Topped.Actual(true) => rv // unchanged
+    case Topped.Actual(false) => rv.copy(empty = Topped.Actual(true)) // definitely empty
 
   override def naturalJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
-    rv.naturalJoin(other)
+    def or(t1: Topped[Boolean], t2: Topped[Boolean]) = (t1, t2) match
+      case (Topped.Top, _) | (_, Topped.Top) => Topped.Top
+      case (Topped.Actual(false), _) => t2
+      case (_, Topped.Actual(false)) => t1
+      case (Topped.Actual(true), _) => t1
+
+    val rvCols = rv.cols.zipWithIndex.toMap
+    val otherCols = other.cols.zipWithIndex.toMap
+
+    val newCols = rv.cols ++ other.cols.filterNot(rv.cols.contains)
+    var newEmpty = (rv.empty, other.empty) match
+      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true) // definitely empty
+      case (Topped.Top, _) | (_, Topped.Top) => Topped.Top // we don't know
+      case _ => Topped.Actual(false) // we need to refine the result
+
+    val newVals = for (c <- newCols) yield {
+      (rvCols.get(c), otherCols.get(c)) match
+        case (Some(rvIx), None) => rv.rows(rvIx)
+        case (None, Some(otherIx)) => other.rows(otherIx)
+        case (Some(rvIx), Some(otherIx)) =>
+          // If both entries are constants, we can decide if the join succeeds
+          val compare = eqOps.equ(rv.rows(rvIx), other.rows(otherIx))
+          newEmpty = compare match
+            case Topped.Actual(b) => or(newEmpty, Topped.Actual(!b))
+            case _ => or(newEmpty, compare)
+          meetV.meet(rv.rows(rvIx), other.rows(otherIx))
+        case (None, None) => throw new IllegalStateException()
+    }
+    ConstantRelation(newCols, newVals, newEmpty)
 
   override def antiJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
-    rv.antiJoin(other)
+    // TODO: We can actually get a more precise result here
+
+    val newEmpty = other.empty match
+      case Topped.Actual(true) => rv.empty
+      case _ => Topped.Top
+    val r = ConstantRelation(rv.cols, rv.rows, newEmpty)
+    println(s"Anti Join: $rv -- $other :: $r")
+    r
 
 
-class JoinRV[Value](using joinValue: Join[Value]) extends Join[ConstantRelation]:
+class JoinRV(using joinV: Join[Value]) extends Join[ConstantRelation]:
+  def join(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
+    if (rv.cols != other.cols)
+      throw new IllegalArgumentException("Schemas must match for join")
+    val newRows = rv.rows.zip(other.rows).map((v1, v2) => joinV(v1, v2).get)
+
+    val newEmpty = (rv.empty, other.empty) match
+      case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
+      case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
+      case _ => Topped.Top
+    ConstantRelation(rv.cols, newRows, newEmpty)
+
   override def apply(v1: ConstantRelation, v2: ConstantRelation): MaybeChanged[ConstantRelation] =
-    MaybeChanged(v1.join(v2), v1)
+    MaybeChanged(join(v1, v2), v1)

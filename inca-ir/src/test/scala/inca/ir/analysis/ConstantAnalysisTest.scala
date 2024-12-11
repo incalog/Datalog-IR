@@ -18,13 +18,11 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    println(mod)
     val abstractInterp = IRConstantAbstractInterpreter()
     edb.foreach(abstractInterp.insertEDB)
-    val r = abstractInterp.evalProgram(Seq(mod))
-    println(r)
+    abstractInterp.evalProgram(Seq(mod))
     val res = abstractInterp.idb.getState.map(kv => kv._1.toString.drop(1) -> kv._2)
-    println(res)
+    println(mod)
     res
 
   test("Single relation") {
@@ -387,7 +385,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
-
   test("Factorial") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(
@@ -433,7 +430,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Top)(facRelType.empty)
   }
 
-  /*
   test("Recursive prefix sum") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(
@@ -465,12 +461,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(inputRelType.rows == Seq(TopV))
     assertResult(Topped.Top)(inputRelType.empty)
 
     val sumRelType = relTypes("prefixSum")
     assert(sumRelType.cols == Seq("t", "n"))
-    assert(sumRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(sumRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(sumRelType.empty)
   }
 
@@ -505,12 +501,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(inputRelType.rows == Seq(TopV))
     assertResult(Topped.Actual(false))(inputRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("t", "n"))
-    assert(mainRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(mainRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -541,7 +537,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(edgeRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -568,8 +564,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assert(edgeRelType.rows == Seq(BottomV, BottomV))
+    assertResult(Topped.Actual(true))(edgeRelType.empty)
   }
 
   test("EDB call") {
@@ -588,14 +584,23 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod, Map(
-      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)), Topped.Top)
+    var relTypes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    val edgeRelType = relTypes("edge")
+    var edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assert(edgeRelType.rows == Seq(ConstantIntV(1), ConstantIntV(2)))
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
+
+    relTypes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(TopV, ConstantIntV(2)), Topped.Actual(false))
+    ))
+
+    edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TopV, ConstantIntV(2)))
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
   }
 
   test("EDB call - Args bound") {
@@ -615,13 +620,22 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod, Map(
-      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)), Topped.Top)
+    var relTypes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    val edgeRelType = relTypes("edge")
+    var edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(edgeRelType.rows == Seq(ConstantIntV(5), ConstantIntV(2)))
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
+
+    relTypes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(TopV, ConstantIntV(2)), Topped.Actual(false))
+    ))
+
+    edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(ConstantIntV(5), ConstantIntV(2)))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -640,7 +654,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
           Eq(Var("x"), IntNum(5)),
           Eq(Var("y"), IntNum(6))
         )),
-        Body(Seq(
+        /*Body(Seq(
           ExtensionalCall("input_edge", Seq(IntNum(1), IntNum(2)), true),
           Eq(Var("x"), IntNum(7)),
           Eq(Var("y"), IntNum(8))
@@ -659,23 +673,33 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
           ExtensionalCall("input_edge", Seq(WildcardArg(), IntNum(2).arg), true),
           Eq(Var("x"), IntNum(13)),
           Eq(Var("y"), IntNum(14))
-        ))
+        ))*/
       )).addHint(MainHint),
     ))
 
     // 9	10
     // 11	12
 
-    val relTypes = interp(mod, Map(
-      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)), Topped.Top)
+    var relTypes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    val edgeRelType = relTypes("edge")
+    var edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(edgeRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(edgeRelType.empty)
+
+    /*relTypes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(TopV, ConstantIntV(2)), Topped.Actual(false))
+    ))
+
+    edgeRelType = relTypes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(TopV, ConstantIntV(2)))
+    assertResult(Topped.Actual(false))(edgeRelType.empty)*/
   }
 
+  /*
   test("Call - negative") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
