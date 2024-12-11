@@ -72,11 +72,11 @@ trait ConstantJoinV extends BaseJoinV:
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) if d1 == d2 => lhs
     case _ => super.join(lhs, rhs)
 
-trait ConstantMeetV extends BaseMeetV:
+/*trait ConstantMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (ConstantIntV(i1), ConstantIntV(i2)) if i1 == i2 => lhs
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) if d1 == d2 => lhs
-    case _ => super.meet(lhs, rhs)
+    case _ => super.meet(lhs, rhs)*/
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects)

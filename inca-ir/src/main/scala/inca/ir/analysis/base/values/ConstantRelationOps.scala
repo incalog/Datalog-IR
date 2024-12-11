@@ -3,7 +3,7 @@ package inca.ir.analysis.base.values
 import inca.ir.analysis.RelationOps
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.EqOps
-import sturdy.values.{Changed, Finite, Join, MaybeChanged, Topped, Unchanged, Widen}
+import sturdy.values.{Join, MaybeChanged, Topped}
 
 import scala.collection
 
@@ -17,7 +17,7 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
     else
       s"[${cols.zip(rows).toMap.mkString(", ")}, $empty]"
 
-class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
+class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
   override def isEmpty(rv: ConstantRelation): Topped[Boolean] = rv.empty
 
   override def hasColumn(rv: ConstantRelation, column: String): Boolean = rv.cols.contains(column)
@@ -49,12 +49,6 @@ class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, boolOps: B
     case Topped.Actual(false) => rv.copy(empty = Topped.Actual(true)) // definitely empty
 
   override def naturalJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
-    /*def or(t1: Topped[Boolean], t2: Topped[Boolean]) = (t1, t2) match
-      case (Topped.Top, _) | (_, Topped.Top) => Topped.Top
-      case (Topped.Actual(false), _) => t2
-      case (_, Topped.Actual(false)) => t1
-      case (Topped.Actual(true), _) => t1*/
-
     val rvCols = rv.cols.zipWithIndex.toMap
     val otherCols = other.cols.zipWithIndex.toMap
 
@@ -74,7 +68,7 @@ class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, boolOps: B
           newEmpty = compare match
             case Topped.Actual(b) => boolOps.or(newEmpty, Topped.Actual(!b))
             case _ => boolOps.or(newEmpty, compare)
-          meetV.meet(rv.rows(rvIx), other.rows(otherIx))
+          joinV(rv.rows(rvIx), other.rows(otherIx)).get
         case (None, None) => throw new IllegalStateException()
     }
     ConstantRelation(newCols, newVals, newEmpty)
