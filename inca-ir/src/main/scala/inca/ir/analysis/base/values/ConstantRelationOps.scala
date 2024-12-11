@@ -91,22 +91,20 @@ class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[B
           case Topped.Actual(true) => (Seq(), isEmpty)
           case _ => (rv.rows, isEmpty)
       case _ => (rv.rows, Topped.Top)
-    val r = ConstantRelation(rv.cols, newRows, newEmpty)
-    println(s"Anti Join: $rv -- $other :: $r")
-    r
+    ConstantRelation(rv.cols, newRows, newEmpty)
 
-
-class JoinRV(using joinV: Join[Value]) extends Join[ConstantRelation]:
+given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]): Join[ConstantRelation] with {
   def join(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
     if (rv.cols != other.cols)
       throw new IllegalArgumentException("Schemas must match for join")
-    val newRows = rv.rows.zip(other.rows).map((v1, v2) => joinV(v1, v2).get)
+    val newRows = rv.rows.zip(other.rows).map { (v1, v2) => joinV(v1, v2).get }
 
-    val newEmpty = (rv.empty, other.empty) match
-      case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
-      case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
-      case _ => Topped.Top
+    // Is this correct? What this should do is guarantee that a join over multiple bodies produces the
+    // correct emptiness result. e.g R(x) :- { x == 1 } or { x == 2, x == 1 } should produce a non-empty table.
+    // However, here we join [x -> 1, false] with [x -> Bottom, true].
+    val newEmpty = boolOps.and(rv.empty, other.empty)
     ConstantRelation(rv.cols, newRows, newEmpty)
 
   override def apply(v1: ConstantRelation, v2: ConstantRelation): MaybeChanged[ConstantRelation] =
     MaybeChanged(join(v1, v2), v1)
+}

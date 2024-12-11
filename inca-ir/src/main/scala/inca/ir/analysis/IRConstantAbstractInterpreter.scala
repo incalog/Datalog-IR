@@ -35,6 +35,7 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.CCombineFixOut
+import scala.language.future
 
 /*private class IRMeetV extends BaseMeetV
   with irarith.interpreter.ConstantMeetV
@@ -71,15 +72,15 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
-  override val boolOps: BooleanOps[Topped[Boolean]] = new ToppedBooleanOps
+  override lazy val boolOps: BooleanOps[Topped[Boolean]] = new ToppedBooleanOps
 
   given BooleanOps[Topped[Boolean]] = boolOps
 
   override lazy val eqOps: BaseEqOps = new IREqOps
 
-  given Join[Value] = new IRJoinV
+  given EqOps[Value, Topped[Boolean]] = eqOps
 
-  given Join[RV] = new JoinRV
+  given Join[Value] = new IRJoinV
 
   override val joinV: WithJoin[Value] = implicitly
   override val joinRV: Join[RV] = implicitly
@@ -94,8 +95,6 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
     override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
   }
   override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
-
-  given EqOps[Value, Topped[Boolean]] = eqOps
 
   //given BaseMeetV = IRMeetV()
 

@@ -538,7 +538,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(TopV, TopV))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
   }
 
   test("Body Failing") {
@@ -687,19 +687,19 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     var edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(TopV, TopV))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
 
-    /*relTypes = interp(mod, Map(
+    relTypes = interp(mod, Map(
       "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(TopV, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, ConstantIntV(2)))
-    assertResult(Topped.Actual(false))(edgeRelType.empty)*/
+    assert(edgeRelType.rows == Seq(TopV, TopV))
+    assertResult(Topped.Top)(edgeRelType.empty)
   }
 
-  /*
+
   test("Call - negative") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
@@ -731,15 +731,16 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assert(edgeRelType.rows == Seq(BottomV, BottomV))
+    assertResult(Topped.Actual(true))(edgeRelType.empty)
 
     val filterEdgeRelType = relTypes("filterEdge")
     assert(filterEdgeRelType.cols == Seq("x", "y"))
-    assert(filterEdgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
-    assertResult(Topped.Top)(filterEdgeRelType.empty)
+    assert(filterEdgeRelType.rows == Seq(ConstantIntV(4), ConstantIntV(5)))
+    assertResult(Topped.Actual(false))(filterEdgeRelType.empty)
   }
 
+  /*
   test("ADT - Construct") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       DataDefinition("TList"),

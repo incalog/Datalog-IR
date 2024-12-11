@@ -18,15 +18,15 @@ import sturdy.effect.store.AStoreThreaded
 import sturdy.fix
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.*
-import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ToppedBooleanBranching}
+import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.{AllocationSiteAddr, given_Finite_AllocationSiteAddr}
 
 // Implicits
+import sturdy.values.booleans.ConcreteBooleanOps
 import inca.ir.analysis.base.effect.{IRException, IRFailure}
 import inca.ir.analysis.base.interpreter.FiniteFixIn
-import inca.ir.analysis.base.values.JoinTRV
-import inca.ir.analysis.base.values.JoinTV
+import inca.ir.analysis.base.values.{ JoinTV, JoinTRV }
 import sturdy.data.{MakeJoined, given}
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
@@ -42,9 +42,9 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
-  override val boolOps: BooleanOps[Topped[Boolean]] = implicitly
-
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
+
+  override lazy val boolOps: BooleanOps[Topped[Boolean]] = new ToppedBooleanOps
 
   given BooleanOps[Topped[Boolean]] = boolOps
 
@@ -69,6 +69,8 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
       case (TypeValue.Top, _) => Topped.Top
       case (_, TypeValue.Top) => Topped.Top
   }
+
+  given EqOps[TypeValue, Topped[Boolean]] = eqOps
   
   override val joinV: WithJoin[TypeValue] = implicitly
   override val joinRV: Join[TRV] = implicitly
@@ -86,8 +88,6 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   override val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, TRV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, TRV](Map())
 
   override def resetIDB(): Unit = idb.setState(Map())
-
-  given EqOps[TypeValue, Topped[Boolean]] = eqOps
 
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
 

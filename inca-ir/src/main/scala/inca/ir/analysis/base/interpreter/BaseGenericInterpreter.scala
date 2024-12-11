@@ -80,7 +80,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   // Ops & Helper
   val relationOps: RelationOps[V, B, RV]
 
-  val boolOps: BooleanOps[B]
+  lazy val boolOps: BooleanOps[B]
 
   val branchOps: BooleanBranching[B, RV]
 
@@ -180,15 +180,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     gensym.register(r.bodies.flatMap(_.vars.map(_.name.name)))
 
     val paramNames = r.params.map(p => p.name.name)
-    val emptyRes = relationOps.make(paramNames, Seq())
 
     val relRes = mapJoin(r.bodies, { b =>
-      except.tryCatch {
-        evalBody(b, paramNames)
-      } /*catch*/ {
-        exc =>
-          emptyRes
-      }
+      evalBody(b, paramNames)
     })
 
     insertIDB(r.name, relRes)
@@ -221,8 +215,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => throw new IllegalStateException()
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): RV = supplementaryTable.scoped {
-    b.atoms.foreach(a => evalAtom(a))
-    relationOps.project(supplementaryTable.getTable, paramNames)
+    except.tryCatch {
+      b.atoms.foreach(a => evalAtom(a))
+      relationOps.project(supplementaryTable.getTable, paramNames)
+    } /*catch*/ { exc =>
+      relationOps.make(paramNames, Seq())
+    }
   }
 
   inline def evalAtom(at: ir.Atom)(using rec: Fixed): Unit = rec(FixIn.Atom(at)) match

@@ -6,6 +6,7 @@ import sturdy.data.CombineEquiSeq
 import sturdy.values
 import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.*
+import sturdy.values.booleans.BooleanOps
 
 enum TypeValue:
   case Bottom
@@ -79,27 +80,6 @@ case class TypeRelation(cols: Seq[String], rows: Seq[TypeValue], empty: Topped[B
       case _ => Topped.Top
     TypeRelation(cols, rows, newEmpty)
 
-  def join(other: TypeRelation): TypeRelation =
-    if (cols != other.cols)
-      throw new IllegalArgumentException("Schemas must match for join")
-    val newTypes = rows.zip(other.rows).map(_.join(_))
-
-    // How should this be handled correctly?
-    // if we do this:
-    //  case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
-    //  case _ => Topped.Top
-    // Then we always get `empty` if one branch is failing.
-    // Since a call can almost always fail, we get only empty tables as the end result.
-
-    // The idea behind the current approach is:
-    //   Only if we know that both branches are empty or both are non-empty, we can make an
-    //   assumption about the state after the branch ops.
-    val newEmpty = (empty, other.empty) match
-      case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
-      case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
-      case _ => Topped.Top
-    TypeRelation(cols, newTypes, newEmpty)
-
 class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelation]:
   override def isEmpty(rv: TypeRelation): Topped[Boolean] = rv.empty
 
@@ -137,8 +117,15 @@ given JoinTV: Join[TypeValue] with {
     MaybeChanged(v1.join(v2), v1)
 }
 
-given JoinTRV: Join[TypeRelation] with {
+given JoinTRV(using boolOps: BooleanOps[Topped[Boolean]]): Join[TypeRelation] with {
+  def join(rv: TypeRelation, other: TypeRelation): TypeRelation =
+    if (rv.cols != other.cols)
+      throw new IllegalArgumentException("Schemas must match for join")
+    val newTypes = rv.rows.zip(other.rows).map(_.join(_))
+    val newEmpty = boolOps.and(rv.empty, other.empty)
+    TypeRelation(rv.cols, newTypes, newEmpty)
+
   override def apply(v1: TypeRelation, v2: TypeRelation): MaybeChanged[TypeRelation] =
     // natural join with same columns is an intersection
-    MaybeChanged(v1.join(v2), v1)
+    MaybeChanged(join(v1, v2), v1)
 }

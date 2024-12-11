@@ -44,7 +44,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
-  override val boolOps: BooleanOps[Boolean] = ConcreteBooleanOps
+  override lazy val boolOps: BooleanOps[Boolean] = ConcreteBooleanOps
 
   // TODO: Which kind of ExcV should we use here?
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
