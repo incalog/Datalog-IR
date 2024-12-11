@@ -212,8 +212,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     // rename column according to parameters
     val edbRV = relationOps.rename(rv, cols.zip(paramNames).toMap)
 
-    // filter edb rows based on current supplementary 
-    println("Natural join: ")
+    // filter edb rows based on current supplementary
     relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
   }}
 

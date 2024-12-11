@@ -1,6 +1,7 @@
 package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
+import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.EqOps
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Topped, Unchanged, Widen}
 
@@ -16,7 +17,7 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
     else
       s"[${cols.zip(rows).toMap.mkString(", ")}, $empty]"
 
-class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
+class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
   override def isEmpty(rv: ConstantRelation): Topped[Boolean] = rv.empty
 
   override def hasColumn(rv: ConstantRelation, column: String): Boolean = rv.cols.contains(column)
@@ -48,11 +49,11 @@ class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, eqOps: EqO
     case Topped.Actual(false) => rv.copy(empty = Topped.Actual(true)) // definitely empty
 
   override def naturalJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
-    def or(t1: Topped[Boolean], t2: Topped[Boolean]) = (t1, t2) match
+    /*def or(t1: Topped[Boolean], t2: Topped[Boolean]) = (t1, t2) match
       case (Topped.Top, _) | (_, Topped.Top) => Topped.Top
       case (Topped.Actual(false), _) => t2
       case (_, Topped.Actual(false)) => t1
-      case (Topped.Actual(true), _) => t1
+      case (Topped.Actual(true), _) => t1*/
 
     val rvCols = rv.cols.zipWithIndex.toMap
     val otherCols = other.cols.zipWithIndex.toMap
@@ -71,20 +72,32 @@ class ConstantRelationOps(using joinV: Join[Value], meetV: BaseMeetV, eqOps: EqO
           // If both entries are constants, we can decide if the join succeeds
           val compare = eqOps.equ(rv.rows(rvIx), other.rows(otherIx))
           newEmpty = compare match
-            case Topped.Actual(b) => or(newEmpty, Topped.Actual(!b))
-            case _ => or(newEmpty, compare)
+            case Topped.Actual(b) => boolOps.or(newEmpty, Topped.Actual(!b))
+            case _ => boolOps.or(newEmpty, compare)
           meetV.meet(rv.rows(rvIx), other.rows(otherIx))
         case (None, None) => throw new IllegalStateException()
     }
     ConstantRelation(newCols, newVals, newEmpty)
 
   override def antiJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
-    // TODO: We can actually get a more precise result here
-
-    val newEmpty = other.empty match
-      case Topped.Actual(true) => rv.empty
-      case _ => Topped.Top
-    val r = ConstantRelation(rv.cols, rv.rows, newEmpty)
+    val sharedCols = rv.cols.intersect(other.cols)
+    if (sharedCols.isEmpty)
+      throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: ${rv.cols} <-> ${other.cols}")
+    val (newRows, newEmpty) = (rv.empty, other.empty) match
+      case (Topped.Actual(true), Topped.Actual(true)) => (Seq(), Topped.Actual(true))
+      case (Topped.Actual(false), Topped.Actual(true)) => (rv.rows, Topped.Actual(false))
+      case (Topped.Actual(false), Topped.Actual(false)) =>
+        val sameColsIndices = sharedCols.map(rv.cols.indexOf)
+        val sameOtherColsIndices = sharedCols.map(other.cols.indexOf)
+        val comparison = sameColsIndices.zip(sameOtherColsIndices).map { (rvIx, oIx) =>
+           eqOps.equ(rv.rows(rvIx), other.rows(oIx))
+        }
+        val isEmpty = comparison.foldLeft(Topped.Actual(true))((acc, b) => boolOps.and(acc, b))
+        isEmpty match
+          case Topped.Actual(true) => (Seq(), isEmpty)
+          case _ => (rv.rows, isEmpty)
+      case _ => (rv.rows, Topped.Top)
+    val r = ConstantRelation(rv.cols, newRows, newEmpty)
     println(s"Anti Join: $rv -- $other :: $r")
     r
 

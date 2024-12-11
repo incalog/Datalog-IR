@@ -654,7 +654,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
           Eq(Var("x"), IntNum(5)),
           Eq(Var("y"), IntNum(6))
         )),
-        /*Body(Seq(
+        Body(Seq(
           ExtensionalCall("input_edge", Seq(IntNum(1), IntNum(2)), true),
           Eq(Var("x"), IntNum(7)),
           Eq(Var("y"), IntNum(8))
@@ -673,7 +673,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
           ExtensionalCall("input_edge", Seq(WildcardArg(), IntNum(2).arg), true),
           Eq(Var("x"), IntNum(13)),
           Eq(Var("y"), IntNum(14))
-        ))*/
+        ))
       )).addHint(MainHint),
     ))
 

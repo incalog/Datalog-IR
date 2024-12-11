@@ -20,7 +20,7 @@ import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint, Logger}
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.MaybeChanged.Unchanged
-import sturdy.values.booleans.{BooleanBranching, BooleanOps, ToppedBooleanBranching}
+import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.AllocationSiteAddr
 import sturdy.values.references.given_Finite_AllocationSiteAddr
@@ -71,7 +71,7 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
-  override val boolOps: BooleanOps[Topped[Boolean]] = implicitly
+  override val boolOps: BooleanOps[Topped[Boolean]] = new ToppedBooleanOps
 
   given BooleanOps[Topped[Boolean]] = boolOps
 
