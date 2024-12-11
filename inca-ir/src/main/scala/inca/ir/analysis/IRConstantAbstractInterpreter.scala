@@ -111,7 +111,7 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
 
   val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
 
-  fix.Fixpoint.DEBUG = false
+  fix.Fixpoint.DEBUG = true
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     val fixPt =

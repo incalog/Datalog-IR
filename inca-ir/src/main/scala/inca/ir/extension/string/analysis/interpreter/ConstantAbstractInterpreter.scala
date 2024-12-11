@@ -25,7 +25,7 @@ trait ConstantEqOps extends BaseEqOps:
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
     case (ConstantStringV(s1), ConstantStringV(s2)) => Topped.Actual(s1 != s2)
-    case _ => super.equ(v1, v2)
+    case _ => super.neq(v1, v2)
 
 trait ConstantJoinV extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match

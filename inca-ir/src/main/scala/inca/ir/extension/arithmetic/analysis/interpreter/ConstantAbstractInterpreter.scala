@@ -30,7 +30,7 @@ trait ConstantEqOps extends BaseEqOps:
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
     case (ConstantIntV(i1), ConstantIntV(i2)) => Topped.Actual(i1 != i2)
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) => Topped.Actual(d1 != d2)
-    case _ => super.equ(v1, v2)
+    case _ => super.neq(v1, v2)
 
 private def constantIntFromToppedInt(value: Topped[Int]): Value = value match
     case Topped.Top => Top

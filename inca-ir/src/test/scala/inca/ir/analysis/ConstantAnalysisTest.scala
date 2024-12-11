@@ -21,7 +21,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     println(mod)
     val abstractInterp = IRConstantAbstractInterpreter()
     edb.foreach(abstractInterp.insertEDB)
-    abstractInterp.evalProgram(Seq(mod))
+    val r = abstractInterp.evalProgram(Seq(mod))
+    println(r)
     val res = abstractInterp.idb.getState.map(kv => kv._1.toString.drop(1) -> kv._2)
     println(res)
     res
@@ -240,15 +241,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(TopV, TopV))
-    assertResult(Topped.Actual(false))(edgeRelType.empty)
+    assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(TopV, TopV))
-    assertResult(Topped.Actual(false))(pathRelType.empty)
+    assertResult(Topped.Top)(pathRelType.empty)
   }
 
-  /*
   test("Left Recursion") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
@@ -282,12 +282,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(edgeRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(pathRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -324,12 +324,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(edgeRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(pathRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -373,19 +373,20 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(edgeRelType.rows == Seq(TopV, TopV)) // we are demand driven
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(pathRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(pathRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("y"))
-    assert(mainRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(mainRelType.rows == Seq(TopV))
     assertResult(Topped.Top)(mainRelType.empty)
   }
+
 
   test("Factorial") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
@@ -423,15 +424,16 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(inputRelType.rows == Seq(TopV))
     assertResult(Topped.Top)(inputRelType.empty)
 
     val facRelType = relTypes("fac")
     assert(facRelType.cols == Seq("n", "r"))
-    assert(facRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(facRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(facRelType.empty)
   }
 
+  /*
   test("Recursive prefix sum") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(

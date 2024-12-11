@@ -10,7 +10,7 @@ import inca.ir.typing.IRTypechecker
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 
-class SimpleTest extends AnyFunSuiteLike:
+class ConcreteInterpreterTest extends AnyFunSuiteLike:
 
   def interp(mod: Module, edb: Seq[execution.Relation] = Seq()): Map[String, execution.Relation] =
     println(mod)

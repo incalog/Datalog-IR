@@ -182,18 +182,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val paramNames = r.params.map(p => p.name.name)
     val emptyRes = relationOps.make(paramNames, Seq())
 
-    var allBodiesFailed: Boolean = true
     val relRes = mapJoin(r.bodies, { b =>
       except.tryCatch {
-        val res = relationOps.project(evalBody(b), paramNames)
-        allBodiesFailed = false
-        res
+        relationOps.project(evalBody(b), paramNames)
       } /*catch*/ {
         exc =>
           emptyRes
       }
     })
-    
+
     insertIDB(r.name, relRes)
     relRes
   }}

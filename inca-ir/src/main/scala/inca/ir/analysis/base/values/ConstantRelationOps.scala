@@ -37,14 +37,21 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
     case Topped.Actual(false) => copy(empty = Topped.Actual(true)) // definitely empty
 
   def naturalJoin(other: ConstantRelation): ConstantRelation =
+    def or(t1: Topped[Boolean], t2: Topped[Boolean]) = (t1, t2) match
+      case (Topped.Actual(false), _) | (_, Topped.Actual(false)) => Topped.Actual(false)
+      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
+      case _ => Topped.Top
+
     val rvCols = cols.zipWithIndex.toMap
     val otherCols = other.cols.zipWithIndex.toMap
-    val sharedCols = cols.toSet.intersect(other.cols.toSet)
 
     val newCols = cols ++ other.cols.filterNot(cols.contains)
     var newEmpty = (empty, other.empty) match
-      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true)
-      case _ => Topped.Actual(sharedCols.nonEmpty)
+      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true) // definitely empty
+      case (Topped.Top, _) | (_, Topped.Top) => Topped.Top // we don't know
+      case _ => Topped.Actual(false) // we need to refine the result
+
+    //println(s"New empty: $this -- $other -- $sharedCols :: $newEmpty")
 
     val newVals = for (c <- newCols) yield {
       (rvCols.get(c), otherCols.get(c)) match
@@ -52,12 +59,17 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
         case (None, Some(otherIx)) => other.rows(otherIx)
         case (Some(rvIx), Some(otherIx)) =>
           // If both entries are constants, we can decide if the join succeeds
-          if (newEmpty == Topped.Actual(false))
-            newEmpty = eqOps.equ(rows(rvIx), other.rows(otherIx))
+          val compare = eqOps.equ(rows(rvIx), other.rows(otherIx))
+          newEmpty = compare match
+            case Topped.Actual(b) => or(newEmpty, Topped.Actual(!b))
+            case _ => or(newEmpty, compare)
+          //println(s"Join: ${rows(rvIx)} -- ${other.rows(otherIx)} -- New empty: $newEmpty")
           joinV(rows(rvIx), other.rows(otherIx)).get
         case (None, None) => throw new IllegalStateException()
     }
-    ConstantRelation(newCols, newVals, newEmpty)
+    val r = ConstantRelation(newCols, newVals, newEmpty)
+    println(s"Natural Join: $this -- $other :: $r")
+    r
 
   def antiJoin(other: ConstantRelation): ConstantRelation =
     val newEmpty = other.empty match
@@ -75,7 +87,7 @@ case class ConstantRelation(cols: Seq[String], rows:Seq[Value], empty: Topped[Bo
       case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
       case _ => Topped.Top
     val r = ConstantRelation(cols, newRows, newEmpty)
-    println(s"Join: $this -- $other :: $r")
+    //println(s"Join: $this -- $other :: $r")
     r
 
 class ConstantRelationOps(using joinV: Join[Value], eqOps: EqOps[Value, Topped[Boolean]]) extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
