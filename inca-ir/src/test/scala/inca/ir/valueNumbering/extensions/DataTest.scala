@@ -138,5 +138,104 @@ class DataTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Deconstruct 4: non constant arg of construct") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num", TInt)), Seq(
+          Body(Seq(
+            Call("b", Seq(TermArg(Var("var")))),
+            Eq(Var("res"), Construct(Name("Cons"), Seq(Var("var"), Construct(Name("Nil"), Seq())))),
+            Deconstruct(Var("res"), RefByName(Name("Cons")), Seq(TermArg(Var("num2")), TermArg(Var("tail"))), false),
+            Eq(Var("num"), Add(IntNum(2), Var("num2")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("param"), IntNum(123))
+          )),
+          Body(Seq(
+            Eq(Var("param"), IntNum(0))
+          )),
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num", TInt)), Seq(
+          Body(Seq(
+            Call("b", Seq(TermArg(Var("var")))),
+            Eq(Var("res"), Construct(Name("Cons"), Seq(Var("var"), Construct(Name("Nil"), Seq())))),
+            Deconstruct(Var("res"), RefByName(Name("Cons")), Seq(TermArg(Var("var")), TermArg(Construct(Name("Nil"), Seq()))), false),
+            Eq(Var("num"), Add(IntNum(2), Var("var")))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("param"), IntNum(123))
+          )),
+          Body(Seq(
+            Eq(Var("param"), IntNum(0))
+          )),
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Deconstruct 5: non constant arg of construct with parameter") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num1", TInt), Param("num2", TInt)), Seq(
+          Body(Seq(
+            Call("b", Seq(TermArg(Var("var")))),
+            Eq(Var("tempRes"), Construct(Name("Cons"), Seq(Var("var"), Construct(Name("Nil"), Seq())))),
+            Eq(Var("res"), Var("tempRes")),
+            Deconstruct(Var("tempRes"), RefByName(Name("Cons")), Seq(TermArg(Var("num1")), TermArg(Var("tail"))), false),
+            Eq(Var("num1"), Var("num2"))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("param"), IntNum(123))
+          )),
+          Body(Seq(
+            Eq(Var("param"), IntNum(0))
+          )),
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num1", TInt), Param("num2", TInt)), Seq(
+          Body(Seq(
+            Call("b", Seq(TermArg(Var("num1")))),
+            Eq(Var("res"), Construct(Name("Cons"), Seq(Var("num1"), Construct(Name("Nil"), Seq())))),
+            //            Eq(Var("res"), Var("tempRes")),
+            Deconstruct(Var("res"), RefByName(Name("Cons")),
+              Seq(TermArg(Var("num1")), TermArg(Construct(Name("Nil"), Seq()))), false),
+            Eq(Var("num2"), Var("num1"))
+          ))
+        )),
+        Relation(Name("b"), Seq(Param("param", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("param"), IntNum(123))
+          )),
+          Body(Seq(
+            Eq(Var("param"), IntNum(0))
+          )),
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 
 }

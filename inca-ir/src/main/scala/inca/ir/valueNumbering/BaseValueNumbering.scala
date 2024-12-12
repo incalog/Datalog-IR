@@ -307,39 +307,53 @@ trait BaseValueNumbering extends IRVisitor {
 
 
   private def treatBindingsInCall(call: Call): Seq[Atom] = {
-
-    /** helper method for [[treatBindingsInCall]] */
-    def treatBinding(vari: Var, paramIndex: Int, refName: Name): Term = {
-      val relation = relations(refName)
-      val paramName = relation.params(paramIndex).name
-
-      if (relation.paramLeaders.contains(paramName)) {
-          val leader = relation.paramLeaders(paramName)
-          val id = getIdOf(leader)
-
-          if (vnTables.isCongrClassContained(id)) {
-            updateCongrClassIfNecessary(id, leader)
-          }
-          else {
-            vnTables.addCongrClass(CongrClass(id, leader, leader))
-          }
-
-          validBody &= vnTables.updateValueNumbersAndCongrClasses(vari, id)
-          if (!isParam(vari)) return leader
-          else return vari
-      }
-
-      return conservativeBinding(vari)
-    }
-
     val Call(ref, args, neg) = call
     val newArgs: Seq[Arg] = args.zipWithIndex.map {
       case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
-        val newArg = treatBinding(vari, idx, ref.name)
+        val relation = relations(ref.name)
+        val paramName = relation.params(idx).name
+        val newArg = if (relation.paramLeaders.contains(paramName)) {
+          treatBinding(vari, relation.paramLeaders(paramName))
+        } else {
+          conservativeBinding(vari)
+        }
         TermArg(newArg)
       case (arg,_) => visitArg(arg).head
     }
     return Seq(Call(ref, newArgs, neg))
+  }
+
+
+  protected def treatBindingsWithIndex(args: Seq[Arg], terms: Seq[Term]): Seq[Arg] = args.zipWithIndex.map {
+    case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
+      val newArg = treatBinding(vari, terms(idx))
+      TermArg(newArg)
+    case (arg, _) => visitArg(arg).head
+  }
+  
+  
+  /** treats equality of variable and term (discovered for example in a Call)   
+   * 
+   * Makes sure given variable and all terms with its value number get same value number as given term.
+   * Also, makes sure corresponding congruence class is updated if necessary. 
+   * Returns replacement for given variable.
+   *
+   * @param vari [[Var]] to give value number
+   * @param term [[Term]] that is equal to [[vari]]
+   * @return [[Term]] with which [[vari]] is replaced
+   */
+  protected def treatBinding(vari: Var, term: Term): Term = {
+    val vn = getIdOf(term)
+    if (vnTables.isCongrClassContained(vn)) {
+      updateCongrClassIfNecessary(vn, vari)
+    }
+    else {
+      vnTables.addCongrClass(CongrClass(vn, vari, term))
+      updateCongrClassIfNecessary(vn, term)
+    }
+    validBody &= vnTables.updateValueNumbersAndCongrClasses(vari, vn)
+    if (!isParam(vari)) return vnTables.getReplacement(vari)
+    else return vari
   }
 
 

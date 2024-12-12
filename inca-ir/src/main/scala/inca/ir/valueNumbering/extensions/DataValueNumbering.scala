@@ -19,40 +19,42 @@ trait DataValueNumbering extends BaseValueNumbering {
     case Deconstruct(t, caseRef, args, false) => treatBindingsInDeconstruct(t, caseRef, args)
     case _ => super.visitAtom(atom)
   }
+  
 
-  // TODO refactor & cover more cases ?
-  def treatBindingsInDeconstruct(t: Term, caseRef: Ref[_ <: CaseDefinitionReference], args: Seq[Arg]): Seq[Deconstruct] = {
+  private def treatBindingsInDeconstruct(t: Term, caseRef: Ref[_ <: CaseDefinitionReference], args: Seq[Arg]): Seq[Deconstruct] = {
+    val newTerm = visitTerm(t).head
 
-    def treatBinding(vari: Var, term: Term): Term = {
-      val vn = getIdOf(term)
-      if (vnTables.isCongrClassContained(vn)){
-        updateCongrClassIfNecessary(vn, vari)
-      }
-      else{
-        vnTables.addCongrClass(CongrClass(vn, vari, term))
-        updateCongrClassIfNecessary(vn,term)
-      }
-      validBody &= vnTables.updateValueNumbersAndCongrClasses(vari, vn)
-      if (!isParam(vari)) return vnTables.getReplacement(vari)
-      else return vari
-    }
-
-    val construct = visitTerm(t).head
-    construct match {
-      case Construct(caseRef: Ref[_ <: CaseDefinitionReference], args_constr: Seq[Term]) =>
-        val newArgs: Seq[Arg] = args.zipWithIndex.map {
-          case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
-            val newArg = treatBinding(vari, args_constr(idx))
-            TermArg(newArg)
-          case (arg,_) => visitArg(arg).head
+    newTerm match {
+      case Construct(caseRef, args_constr) =>
+        val newArgs: Seq[Arg] = treatBindingsWithIndex(args, args_constr)
+        Seq(Deconstruct(newTerm, caseRef.name, newArgs))
+      case _ =>
+        vnTables.getConstruct(getIdOf(newTerm)) match {  // TODO search terms with vn of term for construct ?
+          case Some(Construct(caseRef, args_constr)) =>
+            val newArgs: Seq[Arg] = treatBindingsWithIndex(args, args_constr)
+            Seq(Deconstruct(newTerm, caseRef.name, newArgs))
+          case None =>
+            val newArgs: Seq[Arg] = args.flatMap(visitArg)
+            Seq(Deconstruct(newTerm, caseRef.name, newArgs))
         }
-        Seq(Deconstruct(construct, caseRef.name, newArgs))
-
-      case _ => {
-        val newArgs: Seq[Arg] = args.flatMap(visitArg)
-        Seq(Deconstruct(construct, caseRef.name, newArgs))
-      }
     }
+
+
+//    newTerm match {
+//      case Construct(caseRef, args_constr) =>
+//        val newArgs: Seq[Arg] = args.zipWithIndex.map {
+//          case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
+//            val newArg = treatBinding(vari, args_constr(idx))
+//            TermArg(newArg)
+//          case (arg,_) => visitArg(arg).head
+//        }
+//        Seq(Deconstruct(newTerm, caseRef.name, newArgs))
+//
+//      case _ => {
+//        val newArgs: Seq[Arg] = args.flatMap(visitArg)
+//        Seq(Deconstruct(newTerm, caseRef.name, newArgs))
+//      }
+//    }
 
   }
 

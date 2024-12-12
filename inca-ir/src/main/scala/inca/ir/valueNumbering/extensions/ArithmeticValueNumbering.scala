@@ -318,8 +318,8 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case BinCompare(IntNum(lhs), IntNum(rhs), ">=") if lhs >= rhs => Seq()
     case BinCompare(DoubleNum(lhs), DoubleNum(rhs), ">=") if lhs >= rhs => Seq()
 
-    case BinCompare(lhs, rhs, "<") => Seq(BinCompare(rhs, lhs, ">="))
-    case BinCompare(lhs, rhs, ">") => Seq(BinCompare(rhs, lhs, "<="))
+    case BinCompare(lhs, rhs, ">") => Seq(BinCompare(rhs, lhs, "<"))
+    case BinCompare(lhs, rhs, ">=") => Seq(BinCompare(rhs, lhs, "<="))
 
     case _ => super.normalizeAtom(atom)
   }

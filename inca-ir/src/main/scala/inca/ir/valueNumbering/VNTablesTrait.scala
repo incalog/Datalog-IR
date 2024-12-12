@@ -1,5 +1,6 @@
 package inca.ir.valueNumbering
 
+import inca.ir.extension.data.Construct
 import inca.ir.{Name, RefByName, Term, TermType, Var}
 
 
@@ -136,7 +137,12 @@ trait VNTablesTerms extends VNTablesTrait[Term] {
     congrClasses.remove(fromId)
     return isValid
   }
-
+  
+  // TODO 
+  def getConstruct(id: ValueId): Option[Term] = this.valueNumbers.getAllWithId(id).find {
+    case _: Construct => true
+    case _ => false
+  }
   
 }
 

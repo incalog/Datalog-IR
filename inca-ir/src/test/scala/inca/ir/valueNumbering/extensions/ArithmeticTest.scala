@@ -5,6 +5,7 @@ import inca.ir.extension.{arithmetic, string}
 import inca.ir.{BaseIR, Body, Eq, Language, Name, Param, Relation, Var, Module as IRModule}
 import inca.ir.extension.arithmetic.*
 import inca.ir.*
+import inca.ir.extension.impure.MainHint
 import inca.ir.valueNumbering.ValueNumberingTestAbstract
 
 
@@ -1631,7 +1632,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
 //            Eq(Var(Name("H2")), Mul(IntNum(-1), Var("b"))),
 //            Eq(Var("H3"), IntNum(2)),
 //            Eq(Var("a"), IntNum(2)),
-            LE(IntNum(-4), Var("c")),
+            LT(IntNum(-4), Var("c")),
             Eq(Var("H4"), Add(IntNum(-4), Add(Var("b"), Add(Mul(IntNum(-1), Var("c")), Mul(IntNum(2), Var("a")))))),
 //            Eq(Var("H5"), Add(Add(Neg(IntNum(4)), Add(Var("a"), Var("b"))), Add(Var("a"), Mul(IntNum(-1), Var("c"))))),
             Eq(Var("H6"), Add(Var("a"), Mul(IntNum(-1), Var("c")))),
@@ -3263,6 +3264,76 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-
+  test("Path Example") {
+    val input = IRModule("Test3", Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})), Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        ))
+      )),
+      Relation("path", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+        Body(Seq(
+          Call("path", Seq(Var("x"), Var("z"))),
+          Call("path", Seq(Var("z"), Var("y"))),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("path", Seq(IntNum(1), Var("y")))
+        )),
+      )).addHint(MainHint),
+    ))
+    val expected = IRModule("Test3", Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})), Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        ))
+      )),
+      Relation("path", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+        Body(Seq(
+          Call("path", Seq(Var("x"), Var("z"))),
+          Call("path", Seq(Var("z"), Var("y"))),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("path", Seq(IntNum(1), Var("y")))
+        )),
+      )).addHint(MainHint),
+    ))
+    performTest(expected, input)
+  }
 
 }
