@@ -148,6 +148,7 @@ trait BaseValueNumbering extends IRVisitor {
 
     val result = super.visitRelation(relation).head
     saveResultsFromRelation(relation, result)
+    VNs_Bodies = ValueIds[Body]()
 
     Seq(result)
   }
@@ -184,7 +185,7 @@ trait BaseValueNumbering extends IRVisitor {
     newBody.VNs = vnTables.getValueNumbers
     newBody.congruenceClasses = vnTables.getCongrClasses
 
-    return Seq(newBody)
+    return valueNumberBodies(newBody)
   }
 
 
@@ -330,12 +331,12 @@ trait BaseValueNumbering extends IRVisitor {
       TermArg(newArg)
     case (arg, _) => visitArg(arg).head
   }
-  
-  
-  /** treats equality of variable and term (discovered for example in a Call)   
-   * 
+
+
+  /** treats equality of variable and term (discovered for example in a Call)
+   *
    * Makes sure given variable and all terms with its value number get same value number as given term.
-   * Also, makes sure corresponding congruence class is updated if necessary. 
+   * Also, makes sure corresponding congruence class is updated if necessary.
    * Returns replacement for given variable.
    *
    * @param vari [[Var]] to give value number
@@ -382,6 +383,8 @@ trait BaseValueNumbering extends IRVisitor {
 
 
 
+  // +++ VN of Atoms +++
+
   private var VNs_Atoms = ValueIds[Atom]()
 
   
@@ -408,6 +411,29 @@ trait BaseValueNumbering extends IRVisitor {
     else {
       val vn = VNs_Atoms.getIdOf(atom)
       return Seq(atom)
+    }
+  }
+
+
+  // +++ VN of Bodies +++
+
+  private var VNs_Bodies = ValueIds[Body]()
+
+
+  protected def normalizeBody(body: Body): Seq[Body] = Seq(body) // TODO
+
+  private def valueNumberBodies(bodyInput: Body): Seq[Body] = {
+    val body = normalizeBody(bodyInput) match {
+      case h :: _ => h
+      case _ => return Seq()
+    }
+
+    if (VNs_Bodies.contains(body)) {
+      return Seq()
+    }
+    else {
+      val vn = VNs_Bodies.getIdOf(body)
+      return Seq(body)
     }
   }
 
