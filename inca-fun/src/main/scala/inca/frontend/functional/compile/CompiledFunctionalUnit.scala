@@ -145,5 +145,7 @@ object CompiledFunctionalUnit:
   ) // arith + string + data
 
   val optimizationPipeline: List[() => BaseIRVisitor] = List(
-    () => new optimize.TypeIROptimizer {}
+    //() => new optimize.TypeIROptimizer {},
+    () => new optimize.ConstantIROptimizer {},
+    () => new optimize.AliasElimination {}
   )

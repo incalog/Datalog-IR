@@ -2,10 +2,9 @@ package inca.ir.analysis
 
 import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
-import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
-import inca.ir.extension.impure.MainHint
 import inca.ir.typing.IRTypechecker
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -401,6 +400,55 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
+  }
+
+  test("Factorial - Main method") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("ext_main$input", Seq(Param("n", TInt))),
+      Relation("fact", Seq(
+        Param("n", TInt),
+        Param("fact_result$0", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("fact$input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(1)),
+          Eq(Var("fact_result$0"), IntNum(1))
+        )),
+        Body(Seq(
+          Call("fact$input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(1), true),
+          Call("fact", Seq(Sub(Var("n"), IntNum(1)), Var("fact_call$0"))),
+          Eq(Var("fact_result$0"), Mul(Var("n"), Var("fact_call$0")))
+        )),
+      )),
+      Relation("main", Seq(
+        Param("n", TInt),
+        Param("main_result$0", TInt)
+      ), Seq(
+        Body(Seq(
+          ExtensionalCall("ext_main$input", Seq(Var("n"))),
+          Call("fact", Seq(Var("n"), Var("main_result$0")))
+        )),
+      )).addHint(MainHint),
+      Relation("fact$input", Seq(
+        Param("n$0", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("fact$input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(1), true),
+          Eq(Var("n$0"), Sub(Var("n"), IntNum(1)))
+        )),
+        Body(Seq(
+          //Eq(Var("n"), IntNum(5)),
+          ExtensionalCall("ext_main$input", Seq(Var("n$0"))),
+        ))
+      ))
+    ))
+
+    val res = interp(mod, Seq(execution.Relation1("ext_main$input", Seq("param_0"), Seq(Seq(5)))))
+    val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(5, 120)))
   }
 
   test("Fibonacci") {

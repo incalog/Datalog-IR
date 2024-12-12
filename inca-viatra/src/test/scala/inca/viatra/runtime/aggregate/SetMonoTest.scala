@@ -9,7 +9,7 @@ import inca.ir.extension.arithmetic.*
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.impure.{Impure, MainHint}
+import inca.ir.extension.impure.Impure
 import inca.ir.extension.mono.*
 import inca.ir.extension.set.{IR, *}
 import inca.ir.extension.string.{StringLit, TString}
@@ -18,7 +18,7 @@ import inca.ir.extension.{block, bool, demand, disjunction, foreign, impure, map
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
@@ -117,7 +117,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         WriteMono(Var("m"), IntNum(17), Seq()),
         Eq(Var("s"), ReadMono(Var("m")))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -138,7 +138,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         WriteMono(Var("m"), IntNum(17)),
         SetMember(Var("s"), ReadMono(Var("m")))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -159,7 +159,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         Eq(Var("s2"), SetUnion(Var("s1"), SetLit(Seq(IntNum(2))))),
         SetMember(Var("elem"), Var("s2"))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -181,7 +181,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         Eq(Var("s2"), SetIntersection(Var("s1"), SetLit(Seq(IntNum(2), IntNum(3))))),
         SetMember(Var("elem"), Var("s2"))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -203,7 +203,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         Eq(Var("s2"), SetComprehension(Add(Var("i"), IntNum(1)), Seq(SetMember(Var("i"), Var("s1"))))),
         SetMember(Var("elem"), Var("s2"))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -422,7 +422,7 @@ class SetMonoTest extends AnyFunSuiteLike:
         SetMember(Var("s"), ReadMono(Var("m"))),
         SetMember(Var("x"), Var("s"))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(DRedReteBackendFactory.INSTANCE, relation)
     //engine.readAll().foreach(res => println(res.asTable))

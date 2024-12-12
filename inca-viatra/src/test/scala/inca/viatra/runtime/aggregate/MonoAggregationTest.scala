@@ -8,11 +8,11 @@ import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation1, Relation2, Rela
 import inca.ir.extension.arithmetic.{IntNum, TDouble, TInt}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.ConvertForeignIR
-import inca.ir.extension.impure.{Impure, MainHint}
+import inca.ir.extension.impure.Impure
 import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, map, mono, not, set, string, tuple}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringConcatMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
@@ -124,7 +124,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       WriteMono(Var("m"), IntNum(1), Seq(StringLit("A"))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.MainHint)
+    )))).addHint(MainHint)
 
   test("Test case 2") {
     val engine = compile(relation3)
@@ -144,7 +144,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Eq(Var("m"), NewMono(SumInt, Seq(TString), Seq())),
       Call("size", Seq(Var("t"), Var("m"))),
       Eq(Var("b"), ReadMono(Var("m")))
-    )))).addHint(impure.MainHint)
+    )))).addHint(MainHint)
 
   private lazy val relation5: Relation = Relation(
     "size",
@@ -250,7 +250,7 @@ class MonoAggregationTest extends AnyFunSuiteLike {
       Call("size", Seq(Var("t"), Var("m2"))),
       Eq(Var("b1"), ReadMono(Var("m1"))),
       Eq(Var("b2"), ReadMono(Var("m2")))
-    )))).addHint(impure.MainHint)
+    )))).addHint(MainHint)
 
   test("Test case 6") {
     val engine = compile(relation8, relation7, extLeaf, extBTree)

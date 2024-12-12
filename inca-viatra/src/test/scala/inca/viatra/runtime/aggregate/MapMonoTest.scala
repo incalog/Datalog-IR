@@ -9,8 +9,8 @@ import inca.ir.extension.arithmetic.{Add, GT, IntNum, Max, Mul, Sub, TInt}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
-import inca.ir.extension.impure.{Impure, MainHint}
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Var, WildcardArg, string2name}
+import inca.ir.extension.impure.Impure
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, TAny, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.mono.ArithmeticMonoDefinition.SumInt
 import inca.ir.extension.mono.{ArithmeticMonoDefinition, DisjMonoDefinition, MapMonoDefinition, MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}

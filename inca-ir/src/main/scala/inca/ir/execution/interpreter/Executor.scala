@@ -64,9 +64,7 @@ class Executor extends IRExecutor:
       System.nanoTime() - start
 
     override def read(rel: Relation): Relation =
-      val res = interp(mods)
-      //println(res.map(_._2.asTable).mkString("\n\n"))
-      filter(res, rel)
+      filter(interp(mods), rel)
 
     override def readAll(): Seq[Relation] =
       interp(mods).values.toSeq

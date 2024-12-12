@@ -2,7 +2,6 @@ package inca.viatra.simple
 
 import inca.ir.*
 import inca.ir.extension.arithmetic.{IntNum, TInt, IR as arithIR}
-import inca.ir.extension.impure.MainHint
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite

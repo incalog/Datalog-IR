@@ -4,7 +4,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, Name, RefByName, TermArg, name2string, string2name}
+import inca.ir.{ExtensionalRelation, Language, MainHint, Name, RefByName, TermArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -82,7 +82,7 @@ class GenerateIR {
         ir.Eq(ir.Var(Name(result)), compileExp(f.body))
       ) ++ setMember
     )))
-    parametric(f.tyVars, rel)
+    parametric(f.tyVars, rel).addHint(MainHint)
 
   def compileFun(f: FunctionDef): ir.ModuleEntry =
     val result = gensym.fresh(f.name.name + "_result")

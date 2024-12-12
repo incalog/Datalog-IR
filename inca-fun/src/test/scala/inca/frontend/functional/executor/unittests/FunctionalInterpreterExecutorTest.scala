@@ -27,6 +27,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/Fact.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    //compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(5))
     assertResult(120)(res.entries.head)
@@ -36,6 +37,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/Fib.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(7))
     assertResult(13)(res.entries.head)
@@ -158,6 +160,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/SetConst.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    //compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
     var setAdt = res.entries.head
@@ -198,7 +201,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3, 4))(res.toSet)
 
-    /*res = loaded.execute("main2", Seq())
+    res = loaded.execute("main2", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
@@ -227,7 +230,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
     res = loaded.engine.read(query).project(1)
     assertResult(Set(3, 4, 5))(res.toSet)
-    */
+
     /*res = loaded.execute("main7", Seq())
     setAdt = res.entries.head
     query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))

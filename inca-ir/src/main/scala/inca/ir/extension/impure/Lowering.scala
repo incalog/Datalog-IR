@@ -6,7 +6,7 @@ import inca.ir.extension.arithmetic
 import inca.ir.extension.demand
 import inca.ir.lowering.BaseLowering
 import inca.ir.visitors.IRVisitor
-import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, Var, WildcardArg}
+import inca.ir.{Atom, BaseIR, Body, Call, Eq, MainHint, Name, Param, RefByName, Relation, Var, WildcardArg}
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.util.SourceLocation
 import inca.util.Gensym

@@ -33,7 +33,7 @@ import inca.foreign.scala.ir.{arithmetic as scalaArith, data as scalaData, strin
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.Link.Parent
-import inca.ir.extension.impure.{Impure, MainHint}
+import inca.ir.extension.impure.Impure
 import inca.util.CSVUtil.csvToString
 import inca.util.FileUtil
 import inca.viatra.backend.Executor

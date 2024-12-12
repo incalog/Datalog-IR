@@ -1,7 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir
-import inca.ir.{ExtensionalRelation, Relation, Term}
+import inca.ir.{Body, ExtensionalRelation, Relation, Term}
 import inca.ir.analysis.IRTypeAbstractInterpreter
 import inca.ir.analysis.base.values.{TypeRelation, TypeValue}
 import sturdy.values.Topped
@@ -15,10 +15,13 @@ class TypeIROptimizer extends BaseIROptimizer[TypeValue, TypeRelation, TypeValue
 
   override val abstractInterpreter: IRTypeAbstractInterpreter = new IRTypeAbstractInterpreter()
 
-  import abstractInterpreter.analysisAnnotator.{ TermKey, RelationKey }
+  import abstractInterpreter.analysisAnnotator.{ TermKey, RelationKey, BodyKey }
 
   override def getTermResult(term: Term): Set[TypeValue] =
     term.getAnalysisResult(TermKey).map(_.value)
+
+  override def getBodyResult(body: Body): Set[TypeRelation] =
+    body.getAnalysisResult(BodyKey).map(_.res)
 
   override def getRelationResult(relation: Relation): Set[TypeRelation] =
     relation.getAnalysisResult(RelationKey).map(_.res)

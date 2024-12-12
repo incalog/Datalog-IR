@@ -11,6 +11,8 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
   
   def getTermResult(term: Term): Set[TV]
 
+  def getBodyResult(body: Body): Set[RV]
+
   def getRelationResult(relation: Relation): Set[RV]
 
   var params: Set[Ref[Var.Target]] = Set()

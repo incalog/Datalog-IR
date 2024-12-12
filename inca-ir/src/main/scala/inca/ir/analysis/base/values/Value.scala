@@ -16,7 +16,11 @@ trait BaseJoinV:
 
 class FiniteV extends Finite[Value]
 
-trait Value
+trait Value:
+  def isActual: Boolean = true
 
-case object Top extends Value
-case object Bottom extends Value
+case object Top extends Value:
+  override val isActual = false
+
+case object Bottom extends Value:
+  override val isActual = false

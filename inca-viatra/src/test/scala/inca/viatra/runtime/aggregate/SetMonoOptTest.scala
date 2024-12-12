@@ -8,7 +8,7 @@ import inca.ir.extension.arithmetic.*
 import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, TData}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.impure.{Impure, MainHint}
+import inca.ir.extension.impure.Impure
 import inca.ir.extension.mono.{IR, *}
 import inca.ir.extension.set.*
 import inca.ir.extension.string.{StringLit, TString}
@@ -17,7 +17,7 @@ import inca.ir.extension.{aggregate, block, demand, disjunction, impure, mono, a
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -102,7 +102,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
         WriteMono(Var("m"), IntNum(17)),
         SetMember(Var("s"), ReadMono(Var("m")))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -123,7 +123,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
         Eq(Var("s1"), ReadMono(Var("m"))),
         SetMember(Var("i"), SetUnion(Var("s1"), SetLit(Seq(IntNum(2)))))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -144,7 +144,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
         Eq(Var("s1"), ReadMono(Var("m"))),
         SetMember(Var("i"), SetIntersection(Var("s1"), SetLit(Seq(IntNum(2), IntNum(3)))))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -166,7 +166,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
         Eq(Var("s1"), ReadMono(Var("m"))),
         SetMember(Var("elem"), SetComprehension(Add(Var("i"), IntNum(1)), Seq(SetMember(Var("i"), Var("s1")))))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))
@@ -382,7 +382,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
         SetMember(Var("s"), ReadMono(Var("m"))),
         SetMember(Var("x"), Var("s"))
       )))
-    ).addHint(impure.MainHint)
+    ).addHint(MainHint)
 
     val engine = compile(relation)
     //engine.readAll().foreach(res => println(res.asTable))

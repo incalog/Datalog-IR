@@ -131,7 +131,6 @@ trait CompiledUnit:
     else
       p1
 
-
   def optimize(p: Seq[Module]): Seq[Module] =
     val irLogging = compilerOptions.irLogging
     val logOptimizations = irLogging.logOptimizations

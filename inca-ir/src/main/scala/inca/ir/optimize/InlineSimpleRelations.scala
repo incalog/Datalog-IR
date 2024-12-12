@@ -3,8 +3,7 @@ package inca.ir.optimize
 import inca.ir
 import inca.ir.Hint.Key
 import inca.ir.extension.aggregate.Aggregate
-import inca.ir.{Atom, Body, Call, Hint, ModuleEntry, Name, Relation, Term, TermArg, Var, WildcardArg}
-import inca.ir.extension.impure.MainHint
+import inca.ir.{Atom, Body, Call, Hint, MainHint, ModuleEntry, Name, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.visitors.IRVisitor
 import inca.util.Gensym
 

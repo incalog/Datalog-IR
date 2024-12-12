@@ -3,7 +3,7 @@ package inca.ir.analysis.base.interpreter
 import inca.ir
 import inca.ir.analysis.base.effect.*
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
-import inca.ir.extension.impure.MainHint
+import inca.ir.MainHint
 import inca.ir.typing.Mode
 import inca.ir.{ModuleEntry, TermType}
 import inca.util.Gensym
@@ -94,7 +94,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   val joinV: J[V]
 
-  private var edb: Map[String, RV] = Map()
+  var edb: Map[String, RV] = Map()
 
   implicit val joinRV: Join[RV]
 
@@ -201,6 +201,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     // Make sure we have an edb entry for each column. We have no guarantee that the column names match.
     val cols = relationOps.columns(rv)
     if (cols.size != paramNames.size)
+      println(s"EDB Rel: $relName :: failed")
       failure(InvalidBindings, s"Invalid bindings for EDB relation $relName")
 
     // rename column according to parameters
