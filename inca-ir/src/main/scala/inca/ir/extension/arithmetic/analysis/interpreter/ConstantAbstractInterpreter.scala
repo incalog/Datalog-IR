@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Top, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}

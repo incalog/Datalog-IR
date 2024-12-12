@@ -100,7 +100,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   val effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
     // FIXME: The idb is not really effecting the output of the EnterRelation call. As such, it should probably not be an input?
-    case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb)
+    case _: FixIn.EnterRelation => EffectList(supplementaryTable)
   }, {
     case _: FixIn.EnterRelation => EffectList(except, failure, idb)
   })

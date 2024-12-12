@@ -9,7 +9,8 @@ import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
-import inca.ir.analysis.base.values.{ Top => TopV, Bottom => BottomV }
+import inca.ir.analysis.base.values.{Bottom as BottomV, Top as TopV}
+import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 
 
 class ConstantAnalysisTest extends AnyFunSuiteLike:
@@ -17,6 +18,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
   def interp(mod: Module, edb: Map[String, ConstantRelation] = Map()): Map[String, ConstantRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
+
+    println(mod)
 
     val abstractInterp = IRConstantAbstractInterpreter()
     edb.foreach(abstractInterp.insertEDB)
@@ -699,7 +702,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
-
   test("Call - negative") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
@@ -740,7 +742,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(filterEdgeRelType.empty)
   }
 
-  /*
   test("ADT - Construct") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       DataDefinition("TList"),
@@ -772,13 +773,13 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(helperRelType.rows == Seq(TopV))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TData("TList"))))
-    assertResult(Topped.Top)(mainEdgeRelType.empty)
+    assert(mainEdgeRelType.rows.head.toString == "TCons(Top,TNil())")
+    assertResult(Topped.Actual(false))(mainEdgeRelType.empty)
   }
 
   test("ADT - Deconstruct") {
@@ -813,12 +814,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(helperRelType.rows == Seq(TopV))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(mainEdgeRelType.rows ==  Seq(TopV))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -854,12 +855,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(helperRelType.rows == Seq(TopV))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assert(mainEdgeRelType.rows.head.toString == "TCons(Top,TNil())")
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -903,12 +904,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assert(helperRelType.rows == Seq(TopV))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
-    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TData("TList"))))
+    assert(mainEdgeRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -952,12 +953,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assert(helperRelType.rows == Seq(TopV))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
-    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TData("TList"))))
+    assert(mainEdgeRelType.rows == Seq(TopV, TopV))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -993,12 +994,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(helperRelType.rows == Seq(TopV))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TData("TList"))))
+    assert(mainEdgeRelType.rows.head.toString == "TCons(Top,TNil())")
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -1044,17 +1045,17 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputCalcEdgeRelType = relTypes("input_calc")
     assert(inputCalcEdgeRelType.cols == Seq("x"))
-    assert(inputCalcEdgeRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(inputCalcEdgeRelType.rows == Seq(TopV))
     assertResult(Topped.Top)(inputCalcEdgeRelType.empty)
 
     val calcRelType = relTypes("calc")
     assert(calcRelType.cols == Seq("x", "elem"))
-    assert(calcRelType.rows == Seq(TypeValue.AType(TInt), TypeValue.AType(TInt)))
+    assert(calcRelType.rows == Seq(TopV, ConstantIntV(3)))
     assertResult(Topped.Top)(calcRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(TypeValue.AType(TInt)))
+    assert(mainEdgeRelType.rows == Seq(ConstantIntV(3)))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
-  }*/
+  }
 

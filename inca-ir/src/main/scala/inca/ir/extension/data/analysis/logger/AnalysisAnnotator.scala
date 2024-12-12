@@ -7,9 +7,9 @@ import inca.ir.extension.data.Deconstruct
 trait AnalysisAnnotator[V, RV, TV] extends BaseAnalysisAnnotator[V, RV, TV]:
 
   // Not all AST-term nodes are visited. Handle the missing cases explicitly in this method.
-  override def storeAtomResult(at: Atom): Unit = at match
+  override def updateAtomResult(at: Atom): Unit = at match
     case Deconstruct(t, caseRef, args, neg) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        storeTermResult(term, extractTermValue(varName))
+        updateTermResult(term, extractTermValue(varName))
       }
-    case _ => super.storeAtomResult(at)
+    case _ => super.updateAtomResult(at)

@@ -39,12 +39,13 @@ import scala.language.future
 
 /*private class IRMeetV extends BaseMeetV
   with irarith.interpreter.ConstantMeetV
-  with irstr.interpreter.ConstantMeetV*/
+  with irstr.interpreter.ConstantMeetV
+  with irdata.interpreter.ConstantMeetV*/
 
 private class IRJoinV extends Join[Value] with BaseJoinV
   with irarith.interpreter.ConstantJoinV
-  with irstr.interpreter.ConstantJoinV:
-  // TODO: inherit from rest
+  with irstr.interpreter.ConstantJoinV
+  with irdata.interpreter.ConstantJoinV:
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
     val joined = join(v1, v2)
@@ -56,13 +57,13 @@ private class IRJoinV extends Join[Value] with BaseJoinV
 private class IREqOps extends BaseEqOps
   with irarith.interpreter.ConstantEqOps
   with irstr.interpreter.ConstantEqOps
-  // TODO: inherit from rest
+  with irdata.interpreter.ConstantEqOps
 
 class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.ConstantAbstractInterpreter
-  with irstr.interpreter.ConstantAbstractInterpreter:
-  // TODO: inherit from rest
+  with irstr.interpreter.ConstantAbstractInterpreter
+  with irdata.interpreter.ConstantAbstractInterpreter:
 
   type RV = ConstantRelation
 
