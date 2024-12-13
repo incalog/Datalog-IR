@@ -36,7 +36,8 @@ class Executor extends IRExecutor:
               InterpreterRelation(rel.name.name, emptyTable)
           rel.name.name -> out
         }.toMap
-        
+
+        inputDirty = false
         cachedResult = Some(res)
       }
       cachedResult.get
