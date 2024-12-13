@@ -79,7 +79,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   override val relationOps: RelationOps[Value, Boolean, CRV] = new ConcreteRelationOps[Value]
 
 
-  fix.Fixpoint.DEBUG = true
+  fix.Fixpoint.DEBUG = false
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
     /*val fixPt =
@@ -108,7 +108,13 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
       fix.filter({
         case _: FixIn.EnterRelation => true
         case _ => false // important, filter everything out we don't need
-      }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Parameters[String, Seq[Value]]](StackedStates()))
+      }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Parameters[String, Seq[Value]]](
+        // TODO: Why is it incorrect to read prior output?
+        //   Why this complex set intersection not terminate anymore with this set to true?
+        StackedStates(readPriorOutput = false)
+        //StackedStates()
+        //StackedCfgNodes()
+      ))
     )
 
     if (enableLogging)

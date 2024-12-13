@@ -100,7 +100,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   val effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
     // FIXME: The idb is not really effecting the output of the EnterRelation call. As such, it should probably not be an input?
-    case _: FixIn.EnterRelation => EffectList(supplementaryTable)
+    case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb) // idb
   }, {
     case _: FixIn.EnterRelation => EffectList(except, failure, idb)
   })
@@ -181,9 +181,18 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     val paramNames = r.params.map(p => p.name.name)
 
-    val relRes = mapJoin(r.bodies, { b =>
+    var relRes = mapJoin(r.bodies, { b =>
       evalBody(b, paramNames)
     })
+
+    /*val supCols = relationOps.columns(supplementaryTable.getTable)
+    val boundCols = paramNames.intersect(supCols)
+
+    val relName = AllocationSiteAddr.Variable(r.name.name)(true)
+    val emptyRes = relationOps.make(paramNames, Seq())
+    val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
+    val idbRes = relationOps.naturalJoin(idb.readOrElse(relName, emptyRes), boundSup)
+    relRes = mapJoin(Seq(relRes, idbRes), identity)*/
 
     insertIDB(r.name, relRes)
     relRes
@@ -201,7 +210,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     // Make sure we have an edb entry for each column. We have no guarantee that the column names match.
     val cols = relationOps.columns(rv)
     if (cols.size != paramNames.size)
-      println(s"EDB Rel: $relName :: failed")
       failure(InvalidBindings, s"Invalid bindings for EDB relation $relName")
 
     // rename column according to parameters
