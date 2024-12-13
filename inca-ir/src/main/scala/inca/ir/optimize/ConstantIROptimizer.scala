@@ -12,15 +12,11 @@ import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import sturdy.values.Topped
 
-/*
-  TODO: This class is currently pretty hacky. I'm just using it for debugging an error in my interpreter.
- */
-class ConstantIROptimizer extends BaseIROptimizer[Value, ConstantRelation, Value]:
+
+class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends BaseIROptimizer[Value, ConstantRelation, Value]:
   override def name: String = "Constant Optimizer"
 
   override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter()
-
-  private lazy val eqOps = abstractInterpreter.eqOps
 
   import abstractInterpreter.analysisAnnotator.{RelationKey, TermKey, BodyKey}
 
@@ -39,23 +35,36 @@ class ConstantIROptimizer extends BaseIROptimizer[Value, ConstantRelation, Value
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
           val (paramNames, args) = params.map(p => (p.name.name, TopV)).unzip
-          abstractInterpreter.insertEDB(n.name, ConstantRelation(paramNames, args, Topped.Top))
+          val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
+          abstractInterpreter.insertEDB(n.name, ConstantRelation(paramNames, args, empty))
         case _ => // nothing
       }
     }
 
     super.visitProgram(modules, dependencies)
 
-  private def valueToTerm(value: Value): Option[Term] = value match
-    case ConstantIntV(v1) => Some(irarith.IntNum(v1))
-    case ConstantDoubleV(v1) => Some(irarith.DoubleNum(v1))
-    case ConstantStringV(v1) => Some(irstr.StringLit(v1))
-    // Not sure if we want to replace ADTs
-    case _ => None
+  private var valueCache: Map[Value, Term] = Map()
 
+  private def valueToTerm(value: Value): Option[Term] = valueCache.get(value) match
+    case Some(res) => Some(res)
+    case _ =>
+      val result = value match
+        case ConstantIntV(v1) => Some(irarith.IntNum(v1))
+        case ConstantDoubleV(v1) => Some(irarith.DoubleNum(v1))
+        case ConstantStringV(v1) => Some(irstr.StringLit(v1))
+        case ConstantDataV(dataDef, caseDef, args) =>
+          val argsV = args.flatMap(valueToTerm)
+          if (argsV.size != args.size)
+            None
+          else
+            Some(irdata.Construct(caseDef.name, argsV))
+        case _ => None
+      if (result.isDefined)
+        valueCache += value -> result.get
+      result
 
   override def visitRelation(relation: Relation): Seq[Relation] =
-    // TODO: Remove empty relations
+    // TODO: Remove empty relations and everything that is transitively effected
     /*val isEmpty = getRelationResult(relation).map(_.empty).forall {
       case Topped.Actual(v) => v
       case Topped.Top => false
@@ -63,36 +72,35 @@ class ConstantIROptimizer extends BaseIROptimizer[Value, ConstantRelation, Value
     super.visitRelation(relation)
 
   override def visitBody(body: Body): Seq[Body] =
-    // remove empty bodies
     getBodyResult(body).headOption match
-      case Some(res: ConstantRelation) if res.empty == Topped.Actual(true) => Seq()
+      case Some(res: ConstantRelation) if res.empty == Topped.Actual(true) =>
+        // remove empty bodies
+        Seq()
       case Some(res: ConstantRelation) =>
-        val paramConstraints = res.cols.zip(res.rows).flatMap { (c, r) =>
-          if (r.isActual)
-            valueToTerm(r).map(t => Eq(Var(Name(c)), t))
-          else
-            None
-        }
-        super.visitBody(body).map { b =>
-          Body(paramConstraints ++ b.atoms)
-        }
+        // We might have removed equality constraints for parameters, add them back
+        val paramConstraints = res.cols.zip(res.rows).flatMap((c, r) => valueToTerm(r).map(t => Eq(Var(Name(c)), t)))
+        println(s"Param constraints: $paramConstraints")
+        super.visitBody(body).map(b => Body(paramConstraints ++ b.atoms))
       case _ => super.visitBody(body)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     // Remove unnecessary equality constraints
     case Eq(lhs, rhs, neg) =>
       (getTermResult(lhs).headOption, getTermResult(rhs).headOption) match
-        // TODO: Probably problematic for ADTs
-        case (Some(v1), Some(v2)) if eqOps.equ(v1, v2) == Topped.Actual(true) => Seq()
+        case (Some(v1), Some(v2)) => (valueToTerm(v1), valueToTerm(v2)) match
+          case (Some(t1), Some(t2)) if t1 == t2 => Seq()
+          case _ => super.visitAtom(atom)
         case _ => super.visitAtom(atom)
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    case Var(ref) => getTermResult(term).headOption match
-      case Some(v) => valueToTerm(v) match
-        case Some(value) => Seq(value)
-        case _ => super.visitTerm(term)
-      case _ => super.visitTerm(term)
+    // Replace variables with their constants
+    case Var(ref) =>
+      getTermResult(term)
+        .headOption
+        .flatMap(valueToTerm)
+        .map(Seq(_))
+        .getOrElse(super.visitTerm(term))
     case _ => super.visitTerm(term)
 
 

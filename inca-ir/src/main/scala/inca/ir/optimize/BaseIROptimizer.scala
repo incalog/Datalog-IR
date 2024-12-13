@@ -28,13 +28,3 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
     params = relation.params.map(p => RefByName(p.name)).toSet
     super.visitRelation(relation)
 
-  var boundBodyVars: Set[Ref[Var.Target]] = Set()
-
-  override def visitBody(body: Body): Seq[Body] =
-    boundBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
-    super.visitBody(body)
-
-  private def atomBindsRelevantVar(atom: Atom): Boolean =
-    val boundVars = atom.vars.filter(_.mode.isBinding)
-    boundVars.exists(bind => boundBodyVars.contains(bind.ref) || params.contains(bind.ref))
-
