@@ -71,9 +71,9 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
         updateTermResult(term, extractTermValue(varName))
       }
     case Eq(lhs@Var(ref), rhs, false) if lhs.typ.get.mode.isBinding =>
-      updateTermResult(lhs, extractTermValue(ref.name.name))
+      //updateTermResult(lhs, extractTermValue(ref.name.name))
     case Eq(lhs, rhs@Var(ref), false) if rhs.typ.get.mode.isBinding =>
-      updateTermResult(rhs, extractTermValue(ref.name.name))
+      //updateTermResult(rhs, extractTermValue(ref.name.name))
     case _ => // nothing
 
   def updateRelationResult(rel: Relation, value: RV): Unit =
@@ -90,7 +90,7 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) => updateTermResult(t, extractTermValue(supName))
-    case (FixIn.Atom(at), Some(FixOut.Atom())) => updateAtomResult(at)
-    case (FixIn.Body(b, _), Some(FixOut.Body(rv))) => updateBodyResult(b, rv)
+    case (FixIn.Atom(at, _), Some(FixOut.Atom())) => updateAtomResult(at)
+    case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv))) => updateBodyResult(rel.bodies(ix), rv)
     case (FixIn.EnterRelation(r, _), Some(FixOut.Relation(rv))) => updateRelationResult(r, rv)
     case  _ => // nothing

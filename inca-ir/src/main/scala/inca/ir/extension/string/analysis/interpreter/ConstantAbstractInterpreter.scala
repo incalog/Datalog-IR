@@ -1,8 +1,8 @@
 package inca.ir.extension.string.analysis.interpreter
 
-import inca.ir.analysis.base.effect.BaseIRException
+import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, Bottom, ConstantRelation, Top, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -13,6 +13,7 @@ import sturdy.values.booleans.BooleanOps
 import sturdy.values.integer.{ConcreteIntegerOps, IntegerOps, LiftedIntegerOps, ToppedIntegerOps}
 import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps, ToppedCertainOrderingOps}
 import sturdy.data.{MakeJoined, WithJoin}
+import sturdy.effect.except.Except
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
 case class ConstantStringV(value: String) extends Value:
@@ -37,15 +38,16 @@ trait ConstantJoinV extends BaseJoinV:
     case (ConstantStringV(s1), ConstantStringV(s2)) if s1 == s2 => lhs
     case _ => super.meet(lhs, rhs)*/
 
-class ConstantStringVOps(using failure: Failure) extends StringOps[Value]:
+class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?]) extends StringOps[Value]:
   override def stringLit(s: String): Value = ConstantStringV(s)
 
   override def toString(v: Value): Value = ConstantStringV(v.toString)
 
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match
     case (CStringV(s1), CStringV(s2)) => ConstantStringV(s1 ++ s2)
+    case (Bottom, _) | (_, Bottom) => except.throws(AtomFailed("Can not concat bottom"))
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  val stringOps: StringOps[Value] = ConstantStringVOps(using failure)
+  val stringOps: StringOps[Value] = ConstantStringVOps(using failure, except)

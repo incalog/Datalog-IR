@@ -4,15 +4,16 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Top, TypeValue, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
-import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
+import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
+import sturdy.control.{ControlEventGraphBuilder, PrintingControlObserver}
 import sturdy.data.WithJoin
 import sturdy.values.{Changed, Combine, Finite, Join, MaybeChanged, Powerset, Topped, Widen, Widening, finitely}
 import sturdy.effect.{EffectStack, TrySturdy}
-import sturdy.effect.failure.{CollectedFailures, Failure}
+import sturdy.effect.failure.{CollectedFailures, Failure, ObservableFailure}
 import sturdy.effect.store.{AStoreThreaded, Store}
 import sturdy.fix
 import sturdy.data.finiteUnit
@@ -63,7 +64,8 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.ConstantAbstractInterpreter
   with irstr.interpreter.ConstantAbstractInterpreter
-  with irdata.interpreter.ConstantAbstractInterpreter:
+  with irdata.interpreter.ConstantAbstractInterpreter
+  with DatalogControlObservable:
 
   type RV = ConstantRelation
 
@@ -71,7 +73,7 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
 
   override val branchOps: BooleanBranching[Topped[Boolean], RV] = new ToppedBooleanBranching[Boolean, RV]
 
-  override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
+  override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures with ObservableFailure(this)
 
   override lazy val boolOps: BooleanOps[Topped[Boolean]] = new ToppedBooleanOps
 
@@ -115,22 +117,29 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
       assert(termTRV.rows.size == 1)
       termTRV.rows.head
 
-  val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
+  // annotate information about constants
+  val analysisAnnotator = new AnalysisAnnotator
+  // log the control-flow graph
+  val cfgLogger = new ControlEventLogger[Value, RV](this)
 
   fix.Fixpoint.DEBUG = false
 
+  //(new PrintingControlObserver()(println))
+  val graphBuilder = addControlObserver(new ControlEventGraphBuilder)
+
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     val fixPt =
-      fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
-        fix.filter({
-          case _: FixIn.EnterRelation => true
-          case _ => false // important, filter everything out we don't need
-        }, fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](StackedStates()))
+      fix.log(cfgLogger,
+        fix.log(analysisAnnotator,
+          fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
+            fix.filter(_.isInstanceOf[FixIn.EnterRelation],
+              fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](StackedStates().withObservers(Seq(triggerControlEvent)))
+            )
+          )
+        )
       )
 
-    val analysisFixPt = fix.log(analysisAnnotator, fixPt)
-
     if (enableLogging)
-      fix.log(new PrintLogger, analysisFixPt).fixpoint
+      fix.log(new PrintLogger, fixPt).fixpoint
     else
-      analysisFixPt.fixpoint
+      fixPt.fixpoint

@@ -187,9 +187,9 @@ case class WildcardArg() extends Arg with Typeable[TermType] with Analyzable:
 
   override def toString: String =
     if (typ.isEmpty)
-      s"_" + analysisString
+      s"_" //+ analysisString
     else
-      s"_: ${typ.get}" + analysisString
+      s"_: ${typ.get}" //+ analysisString
 
 case class TermType(ty: Type, mode: Mode):
   override def toString: String =
@@ -208,9 +208,9 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
     if (bodies.isEmpty)
-      s"$prefix = nil" + analysisString
+      s"$prefix = nil" //+ analysisString
     else
-      s"$prefix ${bodies.mkString("{\n", "\n} or {\n", "\n}")}" + analysisString
+      s"$prefix ${bodies.mkString("{\n", "\n} or {\n", "\n}")}" //+ analysisString
   }
 
   def signature: Seq[Type] = params.map(_.ty)
@@ -222,7 +222,7 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
 case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationBase:
   def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
 
-  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}" + analysisString
+  override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}" //+ analysisString
 
   def signature: Seq[Type] = params.map(_.ty)
 
@@ -230,7 +230,7 @@ case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target wi
   override def toString: String = s"$name: $ty"
 
 case class Body(atoms: Seq[Atom]) extends Analyzable, Hints:
-  override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}" + analysisString
+  override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}" //+ analysisString
 
   def vars: Seq[Var] = atoms.flatMap(_.vars)
 
@@ -239,9 +239,9 @@ case class Var(ref: Ref[Var.Target]) extends Term with Var.Target:
 
   override def toString: String =
     if (typ.isEmpty)
-      s"$ref" + analysisString
+      s"$ref" //+ analysisString
     else
-      s"$ref: ${typ.get}" + analysisString
+      s"$ref: ${typ.get}" //+ analysisString
 
   override def vars: Seq[Var] = Seq(this)
 
@@ -264,7 +264,7 @@ trait RelationBase extends ModuleEntry
 case class Call(ref: Ref[? <: RelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
-    s"$negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
+    s"$negPrefix$ref${args.mkString("(", ", ", ")")}" //+ analysisString
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
@@ -292,7 +292,7 @@ trait ExtensionalRelationBase extends ModuleEntry
 case class ExtensionalCall(ref: Ref[? <: ExtensionalRelationBase], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val negPrefix = if (neg) "~" else ""
-    s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}" + analysisString
+    s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}" //+ analysisString
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
@@ -303,7 +303,7 @@ object ExtensionalCall:
 case class Eq(lhs: Term, rhs: Term, neg: Boolean = false) extends Atom:
   override def toString: String =
     val op = if (neg) "!=" else "=="
-    s"$lhs $op $rhs" + analysisString
+    s"$lhs $op $rhs" //+ analysisString
 
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 

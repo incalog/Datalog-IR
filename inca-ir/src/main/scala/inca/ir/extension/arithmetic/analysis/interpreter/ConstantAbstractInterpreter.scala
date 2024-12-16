@@ -1,8 +1,8 @@
 package inca.ir.extension.arithmetic.analysis.interpreter
 
-import inca.ir.analysis.base.effect.BaseIRException
+import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, Bottom, ConstantRelation, Top, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -13,6 +13,7 @@ import sturdy.values.booleans.BooleanOps
 import sturdy.values.integer.{ConcreteIntegerOps, IntegerOps, LiftedIntegerOps, ToppedIntegerOps}
 import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps, ToppedCertainOrderingOps}
 import sturdy.data.{MakeJoined, WithJoin}
+import sturdy.effect.except.Except
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
 case class ConstantIntV(value: Int) extends Value:
@@ -40,30 +41,32 @@ private def constantDoubleFromToppedDouble(value: Topped[Double]): Value = value
     case Topped.Top => Top
     case Topped.Actual(d) => ConstantDoubleV(d)
 
-private def toppedIntAsConstantInt(v: Value): Topped[Int] = v match
+private def toppedIntAsConstantInt(v: Value)(using except: Except[BaseIRException, ?, ?]): Topped[Int] = v match
     case ConstantIntV(i) => Topped.Actual(i)
     case Top => Topped.Top
+    case Bottom => except.throws(AtomFailed("Can not compare with bottom"))
     case _ => throw IllegalArgumentException(s"Can not convert $v to int")
 
-private def toppedDoubleAsConstantDouble(v: Value): Topped[Double] = v match
+private def toppedDoubleAsConstantDouble(v: Value)(using except: Except[BaseIRException, ?, ?]): Topped[Double] = v match
     case ConstantDoubleV(d) => Topped.Actual(d)
     case Top => Topped.Top
+    case Bottom => except.throws(AtomFailed("Can not compare with bottom"))
     case _ => throw IllegalArgumentException(s"Can not convert $v to double")
 
-private class ConstantDoubleVOps (using failure: Failure, effects: EffectStack) 
+private class ConstantDoubleVOps (using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
   extends LiftedFloatOps[Double, Value, Topped[Double]] (toppedDoubleAsConstantDouble, constantDoubleFromToppedDouble) (
     using ToppedFloatOps[Double, Double] (using implicitly) //  failure and effects are not needed... why?
   )
 
-private class ConstantIntVOps (using failure: Failure, effects: EffectStack) 
-  extends LiftedIntegerOps[Int, Value, Topped[Int]] (toppedIntAsConstantInt, constantIntFromToppedInt) (
-    using ToppedIntegerOps[Int, Int] (using implicitly, failure, effects)
+private class ConstantIntVOps (using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
+  extends LiftedIntegerOps[Int, Value, Topped[Int]](toppedIntAsConstantInt, constantIntFromToppedInt) (
+    using ToppedIntegerOps[Int, Int](using implicitly, failure, effects)
   )
 
-private class ConstantIntVOrderingOps 
+private class ConstantIntVOrderingOps(using except: Except[BaseIRException, ?, ?])
   extends LiftedOrderingOps[Value, Topped[Boolean], Topped[Int], Topped[Boolean]](toppedIntAsConstantInt, identity)
 
-private class ConstantDoubleVOrderingOps 
+private class ConstantDoubleVOrderingOps(using except: Except[BaseIRException, ?, ?])
   extends LiftedOrderingOps[Value, Topped[Boolean], Topped[Double], Topped[Boolean]](toppedDoubleAsConstantDouble, identity)
 
 trait ConstantJoinV extends BaseJoinV:
@@ -79,7 +82,7 @@ trait ConstantJoinV extends BaseJoinV:
     case _ => super.meet(lhs, rhs)*/
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects)
-  val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects)
-  val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantIntVOrderingOps()
-  val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantDoubleVOrderingOps()
+  val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects, except)
+  val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects, except)
+  val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantIntVOrderingOps(using except)
+  val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantDoubleVOrderingOps(using except)

@@ -39,14 +39,14 @@ case class Adornment(as: Seq[Adorn]):
 
 enum FixIn:
   case Term(term: ir.Term)
-  case Atom(atom: ir.Atom)
-  case Body(body: ir.Body, paramNames: Seq[String])
+  case Atom(atom: ir.Atom, body: ir.Body)
+  case Body(rel: ir.Relation, ruleIx: Int, paramNames: Seq[String])
   case EnterRelation(rel: ir.Relation, adornment: Adornment)
 
   override def toString: String = this match
     case FixIn.Term(t) => t.toString
-    case FixIn.Atom(a) => a.toString
-    case FixIn.Body(b, _) => s"Body: ${b.hashCode()}" //b.toString
+    case FixIn.Atom(a, _) => a.toString
+    case FixIn.Body(rel, ix, _) => s"${rel.name}: $ix" //b.toString
     case FixIn.EnterRelation(rel: ir.Relation, adornment: Adornment) => s"${rel.name.name}_$adornment"
 
 type SupColumn = String
@@ -129,8 +129,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
-    case FixIn.Atom(atom) => evalAtomOpen(atom); FixOut.Atom()
-    case FixIn.Body(body, paramNames) => FixOut.Body(evalBodyOpen(body, paramNames))
+    case FixIn.Atom(atom, _) => evalAtomOpen(atom); FixOut.Atom()
+    case FixIn.Body(rel, ix, paramNames) => FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
     case FixIn.EnterRelation(rel, adornment) => FixOut.Relation(enterRelationOpen(rel))
   }
 
@@ -181,8 +181,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     val paramNames = r.params.map(p => p.name.name)
 
-    var relRes = mapJoin(r.bodies, { b =>
-      evalBody(b, paramNames)
+    var relRes = mapJoin(r.bodies.indices, { ix =>
+      evalBody(r, ix, paramNames)
     })
 
     /*val supCols = relationOps.columns(supplementaryTable.getTable)
@@ -219,20 +219,20 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
   }}
 
-  inline def evalBody(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): RV = rec(FixIn.Body(b, paramNames)) match
+  inline def evalBody(rel: ir.Relation, ix: Int, paramNames: Seq[String])(using rec: Fixed): RV = rec(FixIn.Body(rel, ix, paramNames)) match
     case FixOut.Body(rv) => rv
     case _ => throw new IllegalStateException()
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): RV = supplementaryTable.scoped {
     except.tryCatch {
-      b.atoms.foreach(a => evalAtom(a))
+      b.atoms.foreach(a => evalAtom(a, b))
       relationOps.project(supplementaryTable.getTable, paramNames)
     } /*catch*/ { exc =>
       relationOps.make(paramNames, Seq())
     }
   }
 
-  inline def evalAtom(at: ir.Atom)(using rec: Fixed): Unit = rec(FixIn.Atom(at)) match
+  inline def evalAtom(at: ir.Atom, body: ir.Body)(using rec: Fixed): Unit = rec(FixIn.Atom(at, body)) match
     case FixOut.Atom() => ()
     case _ => throw new IllegalStateException()
 

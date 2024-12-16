@@ -94,7 +94,7 @@ case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends Case
   override def toString: String = s"""case $name(${args.mkString(",")}): $data"""
 
 case class Construct(caseRef: Ref[_ <: CaseDefinitionReference], args: Seq[Term]) extends Term:
-  override def toString: String = s"!$caseRef(${args.mkString(", ")})" + analysisString
+  override def toString: String = s"!$caseRef(${args.mkString(", ")})" //+ analysisString
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
@@ -111,7 +111,7 @@ case class Deconstruct(t: Term, caseRef: Ref[_ <: CaseDefinitionReference], args
   override def toString: String =
     val ifArgs = if (args.isEmpty) "" else ", "
     val negPrefix = if (neg) "~" else ""
-    s"$negPrefix?$caseRef($t$ifArgs${args.mkString(", ")})" + analysisString
+    s"$negPrefix?$caseRef($t$ifArgs${args.mkString(", ")})" //+ analysisString
 
   override def vars: Seq[Var] = t.vars ++ args.flatMap(_.vars)
 

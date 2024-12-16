@@ -3,8 +3,8 @@ package inca.ir.optimize
 import inca.ir
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.values.{ConstantRelation, Value, Top as TopV}
-import inca.ir.{Atom, Body, ExtensionalRelation, Relation, Term, Eq, Var, Name}
-import inca.ir.extension.arithmetic.analysis.interpreter.{ConstantIntV, ConstantDoubleV}
+import inca.ir.{Atom, Body, Call, Eq, ExtensionalRelation, Name, Relation, Term, Var}
+import inca.ir.extension.arithmetic.analysis.interpreter.{ConstantDoubleV, ConstantIntV}
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.arithmetic as irarith
@@ -12,7 +12,10 @@ import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import sturdy.values.Topped
 
+//import java.awt.Toolkit
+//import java.awt.datatransfer.StringSelection
 
+// Currently this optimizer only works with arith + string + data
 class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends BaseIROptimizer[Value, ConstantRelation, Value]:
   override def name: String = "Constant Optimizer"
 
@@ -29,6 +32,21 @@ class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends Base
   override def getRelationResult(relation: Relation): Set[ConstantRelation] =
     relation.getAnalysisResult(RelationKey).map(_.res)
 
+  private def relationAlwaysFails(relation: Relation): Boolean =
+    getRelationResult(relation)
+      .map(_.empty).forall {
+        case Topped.Actual(v) => v
+        case Topped.Top => false
+      }
+
+  /*private def relationAlwaysSucceeds(relation: Relation): Boolean =
+    getRelationResult(relation)
+      .map(_.empty).forall {
+        case Topped.Actual(v) => !v
+        case Topped.Top => false
+      }*/
+
+
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
     // We could make this more precise, by setting the `empty` flag correctly
     modules.foreach { m =>
@@ -41,7 +59,13 @@ class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends Base
       }
     }
 
-    super.visitProgram(modules, dependencies)
+    val r = super.visitProgram(modules, dependencies)
+
+    /*val stringSelection = new StringSelection(s"digraph G {${abstractInterpreter.graphBuilder.get.toGraphViz}\n}")
+    val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+    clipboard.setContents(stringSelection, null)*/
+
+    r
 
   private var valueCache: Map[Value, Term] = Map()
 
@@ -64,44 +88,48 @@ class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends Base
       result
 
   override def visitRelation(relation: Relation): Seq[Relation] =
-    // TODO: Remove empty relations and everything that is transitively effected
-    /*val isEmpty = getRelationResult(relation).map(_.empty).forall {
-      case Topped.Actual(v) => v
-      case Topped.Top => false
-    }*/
-    super.visitRelation(relation)
+    // Remove empty relations. We know that there can not be any call site for these relations, because a failing
+    // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
+    // always succeeds.
+    if (relationAlwaysFails(relation))
+      Seq()
+    else
+      super.visitRelation(relation)
 
   override def visitBody(body: Body): Seq[Body] =
     getBodyResult(body).headOption match
       case Some(res: ConstantRelation) if res.empty == Topped.Actual(true) =>
-        // remove empty bodies
+        // Remove failing bodies
         Seq()
       case Some(res: ConstantRelation) =>
         // We might have removed equality constraints for parameters, add them back
+        // This also constraints the body if we have information about the parameters
         val paramConstraints = res.cols.zip(res.rows).flatMap((c, r) => valueToTerm(r).map(t => Eq(Var(Name(c)), t)))
-        println(s"Param constraints: $paramConstraints")
         super.visitBody(body).map(b => Body(paramConstraints ++ b.atoms))
       case _ => super.visitBody(body)
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    // Remove unnecessary equality constraints
+    // Remove equality constraints that always hold
     case Eq(lhs, rhs, neg) =>
       (getTermResult(lhs).headOption, getTermResult(rhs).headOption) match
         case (Some(v1), Some(v2)) => (valueToTerm(v1), valueToTerm(v2)) match
-          case (Some(t1), Some(t2)) if t1 == t2 => Seq()
+          case (Some(t1), Some(t2)) if !neg && (t1 == t2) => Seq()
+          case (Some(t1), Some(t2)) if neg && (t1 != t2) => Seq()
           case _ => super.visitAtom(atom)
+        case _ => super.visitAtom(atom)
+    // A negative call to a failing relation always succeeds
+    case Call(ref, args, true) =>
+      ref.target match
+        case Some(r: Relation) if relationAlwaysFails(r) => Seq()
         case _ => super.visitAtom(atom)
     case _ => super.visitAtom(atom)
 
-  override def visitTerm(term: Term): Seq[Term] = term match
-    // Replace variables with their constants
-    case Var(ref) =>
-      getTermResult(term)
-        .headOption
-        .flatMap(valueToTerm)
-        .map(Seq(_))
-        .getOrElse(super.visitTerm(term))
-    case _ => super.visitTerm(term)
+  // Replace all terms with their constants if possible
+  override def visitTerm(term: Term): Seq[Term] = getTermResult(term)
+    .headOption
+    .flatMap(valueToTerm)
+    .map(Seq(_))
+    .getOrElse(super.visitTerm(term))
 
 
 
