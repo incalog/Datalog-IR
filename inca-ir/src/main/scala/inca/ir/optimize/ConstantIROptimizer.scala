@@ -15,6 +15,7 @@ import sturdy.values.Topped
 //import java.awt.Toolkit
 //import java.awt.datatransfer.StringSelection
 
+// TODO: This is still wrong. Fix this tomorrow
 // Currently this optimizer only works with arith + string + data
 class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends BaseIROptimizer[Value, ConstantRelation, Value]:
   override def name: String = "Constant Optimizer"
@@ -48,7 +49,7 @@ class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends Base
 
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
-    // We could make this more precise, by setting the `empty` flag correctly
+    // We could make this more precise, by setting the `empty` flag correctly on edb relations
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
@@ -104,6 +105,7 @@ class ConstantIROptimizer(val assumeEdbIsNotEmpty: Boolean = false) extends Base
       case Some(res: ConstantRelation) =>
         // We might have removed equality constraints for parameters, add them back
         // This also constraints the body if we have information about the parameters
+        // TODO: res.cols are not the parameter names!
         val paramConstraints = res.cols.zip(res.rows).flatMap((c, r) => valueToTerm(r).map(t => Eq(Var(Name(c)), t)))
         super.visitBody(body).map(b => Body(paramConstraints ++ b.atoms))
       case _ => super.visitBody(body)
