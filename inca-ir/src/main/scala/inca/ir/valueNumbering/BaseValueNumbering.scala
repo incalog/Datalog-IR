@@ -17,6 +17,7 @@ trait BaseValueNumbering extends IRVisitor {
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
   def printVNResults: Boolean = false
+  def printVNStatistics: Boolean = true
 
   protected case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {
     override val isConstTerm: Term => Boolean = isConst
@@ -60,6 +61,12 @@ trait BaseValueNumbering extends IRVisitor {
     vnTables.printResults()
   }
 
+  def printStatistics(input: Module, output: Module): Unit = {
+    if (!printVNStatistics) return
+    val stats = VNStatistics(input, output)
+    stats.printStatistics()
+  }
+
 
   private var relations: Map[String,Relation] = _  // used to access analysis results of params of other relations
 
@@ -77,6 +84,8 @@ trait BaseValueNumbering extends IRVisitor {
     val result = repetitionPhase(tempResult)
 
     if (printVNResults) println(s"after VN: \n$result")
+
+    printStatistics(module, result)
     result
   }
 
