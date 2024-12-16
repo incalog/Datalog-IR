@@ -133,19 +133,26 @@ trait BaseValueNumbering extends IRVisitor {
   private def joinParams(relation: Relation): Unit = {
     val leaders = relation.params.flatMap { param =>
       val leaders_param = relation.bodies.map { body =>
-        val vn = body.VNs(Var(param.name))
-        body.congruenceClasses(vn).leader
+        val bodyVNTables = body.getAnalysisResult(BodyVNKey).get.vnTables
+        val vn = bodyVNTables.getIdOf(Var(param.name))
+        bodyVNTables.getCongrClassOf(vn).leader
       }
       leaders_param match {
         case t::tail if (leaders_param.forall(_ == t) && isConst(t)) => Seq(param.name -> leaders_param.head)
         case _ => Seq()
       }
     }
-    relation.paramLeaders = relation.paramLeaders ++ leaders
+    relation.storeAnalysisResult(ParamVNResults(getResultsFromRelation(relation) ++ leaders))
   }
 
+
+  private def getResultsFromRelation(relation: Relation): Map[ParamName, Term] = {
+    relation.getAnalysisResult(ParamVNKey).getOrElse(ParamVNResults(Map())).paramLeaders
+  }
+  
+
   private def saveResultsFromRelation(oldRelation: Relation, newRelation: Relation): Unit = {
-    newRelation.paramLeaders = oldRelation.paramLeaders
+    newRelation.storeAnalysisResult(ParamVNResults(getResultsFromRelation(oldRelation)))
     relations = relations + (currentRelationName.name -> newRelation)
     joinParams(newRelation)
   }
@@ -172,7 +179,8 @@ trait BaseValueNumbering extends IRVisitor {
       vnTables = VNTables()
       VNs_Atoms = ValueIds[Atom]()
     case Phase.repetition =>
-      vnTables = new VNTables(body.congruenceClasses, body.VNs)
+      val bodyVNTables = body.getAnalysisResult(BodyVNKey).get.vnTables
+      vnTables = bodyVNTables.asInstanceOf[VNTables]
       VNs_Atoms = ValueIds[Atom]() // no need to propagate old analysis results -> remove duplicates again
   }
 
@@ -191,8 +199,7 @@ trait BaseValueNumbering extends IRVisitor {
     printResults()
 
     // remember analysis results in body
-    newBody.VNs = vnTables.getValueNumbers
-    newBody.congruenceClasses = vnTables.getCongrClasses
+    newBody.storeAnalysisResult(BodyVNResults(vnTables))
 
     return valueNumberBodies(newBody)
   }
@@ -322,8 +329,9 @@ trait BaseValueNumbering extends IRVisitor {
       case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
         val relation = relations(ref.name)
         val paramName = relation.params(idx).name
-        val newArg = if (relation.paramLeaders.contains(paramName)) {
-          treatBinding(vari, relation.paramLeaders(paramName))
+        val paramLeaders = getResultsFromRelation(relation)
+        val newArg = if (paramLeaders.contains(paramName)) {
+          treatBinding(vari, paramLeaders(paramName))
         } else {
           conservativeBinding(vari)
         }

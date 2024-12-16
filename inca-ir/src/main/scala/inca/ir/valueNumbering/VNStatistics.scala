@@ -47,7 +47,7 @@ class VNStatistics(input: Module, output: Module) {
       def countTerms(module: Module): Int = {
         count = 0
         visitModule(module)
-        return count
+        count
       }
     }
     val counter = TermCounter()
