@@ -325,15 +325,15 @@ trait BaseValueNumbering extends IRVisitor {
 
   private def treatBindingsInCall(call: Call): Seq[Atom] = {
     val Call(ref, args, neg) = call
+    val relation = relations(ref.name)
     val newArgs: Seq[Arg] = args.zipWithIndex.map {
-      case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
-        val relation = relations(ref.name)
+      case (TermArg(arg), idx) =>
         val paramName = relation.params(idx).name
         val paramLeaders = getResultsFromRelation(relation)
         val newArg = if (paramLeaders.contains(paramName)) {
-          treatBinding(vari, paramLeaders(paramName))
+          treatBinding(arg, paramLeaders(paramName))
         } else {
-          conservativeBinding(vari)
+          conservativeBinding(arg)
         }
         TermArg(newArg)
       case (arg,_) => visitArg(arg).head
@@ -343,35 +343,35 @@ trait BaseValueNumbering extends IRVisitor {
 
 
   protected def treatBindingsWithIndex(args: Seq[Arg], terms: Seq[Term]): Seq[Arg] = args.zipWithIndex.map {
-    case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
-      val newArg = treatBinding(vari, terms(idx))
+    case (TermArg(arg), idx) =>
+      val newArg = treatBinding(arg, terms(idx))
       TermArg(newArg)
     case (arg, _) => visitArg(arg).head
   }
 
 
-  /** treats equality of variable and term (discovered for example in a Call)
+  /** treats equality of a term passed as am argument (to for example a Call) and another term 
    *
-   * Makes sure given variable and all terms with its value number get same value number as given term.
+   * Makes sure given argument term and all terms with its value number get same value number as the other given term.
    * Also, makes sure corresponding congruence class is updated if necessary.
-   * Returns replacement for given variable.
+   * Returns replacement for given argument term.
    *
-   * @param vari [[Var]] to give value number
-   * @param term [[Term]] that is equal to [[vari]]
-   * @return [[Term]] with which [[vari]] is replaced
+   * @param arg [[Term]] to give value number
+   * @param term [[Term]] that is equal to [[arg]]
+   * @return [[Term]] with which [[arg]] is replaced
    */
-  protected def treatBinding(vari: Var, term: Term): Term = {
+  protected def treatBinding(arg: Term, term: Term): Term = {
     val vn = getIdOf(term)
     if (vnTables.isCongrClassContained(vn)) {
-      updateCongrClassIfNecessary(vn, vari)
+      updateCongrClassIfNecessary(vn, arg)
     }
     else {
-      vnTables.addCongrClass(CongrClass(vn, vari, term))
+      vnTables.addCongrClass(CongrClass(vn, arg, term))
       updateCongrClassIfNecessary(vn, term)
     }
-    validBody &= vnTables.updateValueNumbersAndCongrClasses(vari, vn)
-    if (!isParam(vari)) return vnTables.getReplacement(vari)
-    else return vari
+    validBody &= vnTables.updateValueNumbersAndCongrClasses(arg, vn)
+    if (!isParam(arg) && isAllowedToReplace(arg)) return vnTables.getReplacement(arg)
+    else return arg
   }
 
 
@@ -389,13 +389,13 @@ trait BaseValueNumbering extends IRVisitor {
     case _ => super.visitArg(arg)
   }
 
-  protected def conservativeBinding(vari: Var): Term = { // conservative assumption that not equal to any known terms
-    val newVari = if (isParam(vari)) vari else visitTerm(vari).head
-    val id = getIdOf(newVari)
+  protected def conservativeBinding(term: Term): Term = { // conservative assumption that not equal to any known terms
+    val newTerm = if (isParam(term)) term else visitTerm(term).head
+    val id = getIdOf(newTerm)
     // in the 1st pass: binding var becomes leader of its new congr class;
-    // in 2nd pass: vari was replaced with leader -> newVari that was leader becomes new leader
-    vnTables.addCongrClass(CongrClass(id, newVari, newVari))
-    newVari
+    // in 2nd pass: vari was replaced with leader -> newTerm that was leader becomes new leader
+    vnTables.addCongrClass(CongrClass(id, newTerm, newTerm)) // TODO now congrClass for non variable term
+    newTerm
   }
 
 
@@ -437,7 +437,7 @@ trait BaseValueNumbering extends IRVisitor {
   private var VNs_Bodies = ValueIds[Body]()
 
 
-  protected def normalizeBody(body: Body): Seq[Body] = Seq(body) // TODO
+  protected def normalizeBody(body: Body): Seq[Body] = Seq(body) // TODO normalize order of atoms
 
   private def valueNumberBodies(bodyInput: Body): Seq[Body] = {
     val body = normalizeBody(bodyInput) match {

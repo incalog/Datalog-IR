@@ -3163,6 +3163,63 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("Global propagation of leader (invalid body with constant argument)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(IntNum(1)))), // 1 not in Relation S
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Global propagation of leader (invalid body 3)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("b")))),
+            Call("S", Seq(TermArg(Add(Var("b"), IntNum(2))))), // not in Relation S
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
   test("Global propagation of leader (circular dependence)") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(

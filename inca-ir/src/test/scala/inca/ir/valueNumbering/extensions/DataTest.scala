@@ -237,5 +237,38 @@ class DataTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Deconstruct 6: Invalid Body") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("res"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
+            Deconstruct(Var("res"), RefByName(Name("Cons")), Seq(TermArg(IntNum(0)), TermArg(Var("tail"))), false),
+            Eq(Var("num"), IntNum(123)),
+//            Eq(IntNum(0), Var("head")),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num", TInt)), Seq(
+//          Body(Seq(
+//            //            Eq(Var("res"), Construct(Name("Cons"),Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
+//            Eq(Var("res"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
+//            Deconstruct(Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq()))), RefByName(Name("Cons")),
+//              Seq(TermArg(IntNum(123)), TermArg(Construct(Name("Nil"), Seq()))), false),
+//            Eq(Var("num"), IntNum(123))
+//          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 
 }
