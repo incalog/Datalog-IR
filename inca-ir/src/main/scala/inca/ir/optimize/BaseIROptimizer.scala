@@ -1,6 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir.*
+import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.visitors.IRVisitor
 import inca.util.printStep
@@ -28,10 +29,12 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
     if (logAnalysis)
       printStep(s"Analysis: $name", modules)
 
-  override def visitRelation(relation: Relation): Seq[Relation] =
+  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     params = relation.params.map(p => RefByName(p.name)).toSet
     super.visitRelation(relation)
+  }
 
-  override def visitBody(body: Body): Seq[Body] =
+  override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
     boundBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
     super.visitBody(body)
+  }

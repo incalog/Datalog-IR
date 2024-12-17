@@ -1,6 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir
+import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{ConstantRelation, Value, Top as TopV}
@@ -65,13 +66,7 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
     // Analyse the program
     evalProgram(modules)
 
-    // Repeat multiple times
-    /*val r = 0.until(2).foldLeft(modules) { (mods, _) =>
-      val m = super.visitProgram(mods, dependencies)
-      println(m)
-      m
-    }*/
-
+    // Optimize the program
     val r = super.visitProgram(modules, dependencies)
 
     /*val stringSelection = new StringSelection(s"digraph G {${abstractInterpreter.graphBuilder.get.toGraphViz}\n}")
@@ -80,25 +75,15 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
 
     r
 
-  private var valueCache: Map[Value, Term] = Map()
 
   // Override this in a child
   def valueToTerm(value: Value): Option[Term] =
     None
 
   private def transformTerm(term: Term): Option[Term] =
-    val annotatedValue = getTermResult(term).headOption
-    val cachedTerm = annotatedValue.flatMap(valueCache.get)
-    (annotatedValue, cachedTerm) match
-      case (_, Some(transformedTerm)) => Some(transformedTerm)
-      case (Some(value), _) => valueToTerm(value) match
-        case Some(newTerm) =>
-          valueCache += value -> newTerm
-          Some(newTerm)
-        case None => None
-      case _ => None
+    getTermResult(term).headOption.flatMap(valueToTerm)
 
-  override def visitRelation(relation: Relation): Seq[Relation] =
+  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
     // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
     // always succeeds.
@@ -106,36 +91,40 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
       Seq()
     else
       super.visitRelation(relation)
+  }
 
-  override def visitBody(body: Body): Seq[Body] =
+  override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
     getBodyResult(body).headOption match
       case Some(res: ConstantRelation) if res.empty.isTrue =>
         // Remove failing bodies
         Seq()
       case _ => super.visitBody(body)
+  }
 
   protected def binCompare(lhs: Term, rhs: Term, op: (Value, Value) => Boolean): Boolean =
     (getTermResult(lhs).headOption, getTermResult(rhs).headOption) match
       case (Some(v1), Some(v2)) => op(v1, v2)
       case _ => false
 
-  override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    // Remove equality constraints that always hold
-    case Eq(lhs, rhs, neg) if !atomBindsRelevantVar(atom) =>
-      val op = if (neg) eqOps.neq else eqOps.equ
-      if (binCompare(lhs, rhs, op(_, _).isTrue))
-        Seq()
-      else
-        super.visitAtom(atom)
-    // A negative call to a failing relation always succeeds
-    case Call(ref, args, true) =>
-      ref.target match
-        case Some(r: Relation) if relationAlwaysFails(r) => Seq()
-        case _ => super.visitAtom(atom)
-    case _ => super.visitAtom(atom)
+  override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+    atom match
+      // Remove equality constraints that always hold
+      case Eq(lhs, rhs, neg) if !atomBindsRelevantVar(atom) =>
+        val op = if (neg) eqOps.neq else eqOps.equ
+        if (binCompare(lhs, rhs, op(_, _).isTrue))
+          Seq()
+        else
+          super.visitAtom(atom)
+      // A negative call to a failing relation always succeeds
+      case Call(ref, args, true) =>
+        ref.target match
+          case Some(r: Relation) if relationAlwaysFails(r) => Seq()
+          case _ => super.visitAtom(atom)
+      case _ => super.visitAtom(atom)
+  }
 
   // Replace all terms with their constants if possible
-  override def visitTerm(term: Term): Seq[Term] =
+  override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     if (!term.typ.get.mode.isBinding)
       val transformed = term match
         case Cast(t, ty) => transformTerm(term).map(Cast(_, ty))
@@ -145,6 +134,7 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
         case _ => super.visitTerm(term)
     else
       super.visitTerm(term)
+  }
 
 class IRConstantOptimizer(override val assumeEdbIsNotEmpty: Boolean)
   extends ConstantBaseIROptimizer
