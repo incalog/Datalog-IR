@@ -36,12 +36,6 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.CCombineFixOut
-import scala.language.future
-
-/*private class IRMeetV extends BaseMeetV
-  with irarith.interpreter.ConstantMeetV
-  with irstr.interpreter.ConstantMeetV
-  with irdata.interpreter.ConstantMeetV*/
 
 private class IRJoinV extends Join[Value] with BaseJoinV
   with irarith.interpreter.ConstantJoinV
@@ -98,9 +92,7 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
     override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
   }
   override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
-
-  //given BaseMeetV = IRMeetV()
-
+  
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps
 
   override def resetIDB(): Unit = idb.setState(Map())
@@ -120,24 +112,24 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
   // annotate information about constants
   val analysisAnnotator = new AnalysisAnnotator
   // log the control-flow graph
-  val cfgLogger = new ControlEventLogger[Value, RV](this)
+  //val cfgLogger = new ControlEventLogger[Value, RV](this)
 
   fix.Fixpoint.DEBUG = false
 
   //(new PrintingControlObserver()(println))
-  val graphBuilder = addControlObserver(new ControlEventGraphBuilder)
+  //val graphBuilder = addControlObserver(new ControlEventGraphBuilder)
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     val fixPt =
-      fix.log(cfgLogger,
+      //fix.log(cfgLogger,
         fix.log(analysisAnnotator,
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
             fix.filter(_.isInstanceOf[FixIn.EnterRelation],
-              fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](StackedStates().withObservers(Seq(triggerControlEvent)))
+              fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](StackedStates())//.withObservers(Seq(triggerControlEvent)))
             )
           )
         )
-      )
+      //)
 
     if (enableLogging)
       fix.log(new PrintLogger, fixPt).fixpoint

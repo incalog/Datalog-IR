@@ -71,9 +71,9 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
         updateTermResult(term, extractTermValue(varName))
       }
     case Eq(lhs@Var(ref), rhs, false) if lhs.typ.get.mode.isBinding =>
-      //updateTermResult(lhs, extractTermValue(ref.name.name))
+      updateTermResult(lhs, extractTermValue(ref.name.name))
     case Eq(lhs, rhs@Var(ref), false) if rhs.typ.get.mode.isBinding =>
-      //updateTermResult(rhs, extractTermValue(ref.name.name))
+      updateTermResult(rhs, extractTermValue(ref.name.name))
     case _ => // nothing
 
   def updateRelationResult(rel: Relation, value: RV): Unit =

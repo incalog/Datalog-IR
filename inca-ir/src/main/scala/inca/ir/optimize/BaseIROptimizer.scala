@@ -16,15 +16,22 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
   def getRelationResult(relation: Relation): Set[RV]
 
   var params: Set[Ref[Var.Target]] = Set()
+  var boundBodyVars: Set[Ref[Var.Target]] = Set()
 
-  override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
+  def atomBindsRelevantVar(atom: Atom): Boolean =
+    val boundVars = atom.vars.filter(_.mode.isBinding)
+    boundVars.exists(bind => boundBodyVars.contains(bind.ref) || params.contains(bind.ref))
+
+  def evalProgram(modules: Seq[Module]): Unit =
     // Important, evaluate the program first
     abstractInterpreter.evalProgram(modules)
     if (logAnalysis)
       printStep(s"Analysis: $name", modules)
-    super.visitProgram(modules, dependencies)
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     params = relation.params.map(p => RefByName(p.name)).toSet
     super.visitRelation(relation)
 
+  override def visitBody(body: Body): Seq[Body] =
+    boundBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
+    super.visitBody(body)
