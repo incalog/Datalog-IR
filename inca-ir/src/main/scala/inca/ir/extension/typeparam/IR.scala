@@ -6,20 +6,14 @@ object IR extends IR {}
 
 trait IR extends BaseIR:
   override val name: String = "TypeParam"
-
   override def language: Language = super.language + IR
-
   override def requires: Language = Language()
 
-case class TypeVar(name: Name) extends Type:
-  override def toString: String = name.name
+case class TypeVar(name: Name) extends Type
 
 case class ParametricModuleEntry(typeParams: Seq[Name], entry: ModuleEntry) extends ModuleEntry:
-  override def toString: String = s"with[${typeParams.mkString(", ")}] $entry"
-
   def withName(name: String): ParametricModuleEntry =
     ParametricModuleEntry(typeParams, entry.withName(name))
-
   override val name: Name = entry.name
 
 object ParametricModuleEntry:
@@ -30,10 +24,7 @@ object ParametricModuleEntry:
       ParametricModuleEntry(tyParams, entry)
 
 case class TypeApplication[Target <: ModuleEntry](name: Name, args: Seq[Type]) extends Ref[Target]:
-  override def toString: String = s"$name[${args.mkString(", ")}]"
-
   override def unqualifiedName: Name = name
-
   override def path: Seq[Name] = Seq()
 
 object TypeApplication:

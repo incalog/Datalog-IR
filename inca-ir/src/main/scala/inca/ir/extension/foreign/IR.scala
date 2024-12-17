@@ -9,9 +9,7 @@ object IR extends IR {}
 
 trait IR extends BaseIR:
   override val name: String = "Foreign"
-
   override def language: Language = super.language + IR
-
   override def requires: Language = Language()
 
 trait ForeignLanguage:
@@ -34,21 +32,14 @@ trait ForeignTerm(args: Seq[Term]) extends Term:
   val code: lang.Code
 
   def inTypes: Seq[Type]
-
   def outTypes: Seq[Type]
-
   def visitArgs(f: Term => Seq[Term]): Seq[Term]
-
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class ConvertIRForeign(term: Term, irType: Type, foreignType: Type) extends Term:
-  override def toString: String = s"$term as $foreignType"
-
   override def vars: Seq[Var] = term.vars
 
 case class ConvertForeignIR(term: Term, foreignType: Type, irType: Type) extends Term:
-  override def toString: String = s"$term as $irType"
-
   override def vars: Seq[Var] = term.vars
 
 trait ForeignAggregationOperator extends AggregationOperatorUserDefined:

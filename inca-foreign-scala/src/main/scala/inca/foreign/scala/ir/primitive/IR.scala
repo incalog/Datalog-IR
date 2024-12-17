@@ -49,15 +49,10 @@ case class ScalaType(name: String) extends ForeignType:
 
 object ScalaType:
   def any: ScalaType = ScalaType("Any")
-
   def nothing: ScalaType = ScalaType("Nothing")
-
   def string: ScalaType = ScalaType("String")
-
   def int: ScalaType = ScalaType("Int")
-
   def double: ScalaType = ScalaType("Double")
-
   def bool: ScalaType = ScalaType("Boolean")
 
 case class ScalaTerm(code: String, ty: Type, args: Seq[Term], isApp: Boolean = true) extends ForeignTerm(args):

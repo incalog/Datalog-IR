@@ -19,7 +19,6 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
 
   case object TermKey extends AnalysisKey:
     override val key: String = "Term"
-    override val color: Color = Color.Blue
     override type Result = TermResult
 
   case class TermResult(value: TV) extends AnalysisResult:
@@ -29,7 +28,6 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
 
   case object BodyKey extends AnalysisKey:
     override val key: String = "Body"
-    override val color: Color = Color.Yellow
     override type Result = BodyResult
 
   case class BodyResult(res: RV) extends AnalysisResult:
@@ -39,7 +37,6 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
 
   case object RelationKey extends AnalysisKey:
     override val key: String = "Relation"
-    override val color: Color = Color.Green
     override type Result = RelationResult
 
   case class RelationResult(res: RV) extends AnalysisResult:

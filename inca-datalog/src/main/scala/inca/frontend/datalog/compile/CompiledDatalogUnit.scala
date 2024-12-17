@@ -21,13 +21,13 @@ case class CompiledDatalogUnit(mod: Module, override val compilerOptions: Datalo
     val logMod = compilerOptions.datalogLogging.logModule
 
     if (logMod && !logTyped)
-      printStep("Datalog-Module", mod)
+      printStep("Datalog-Module", mod.toString)
 
     val typer: Typechecker = new Typechecker
     typer.checkModule(mod)
 
     if (logMod && logTyped)
-      printStep("Datalog-Module", mod)
+      printStep("Datalog-Module", mod.toString)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings

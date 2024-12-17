@@ -10,20 +10,12 @@ import inca.ir.*
  */
 trait IR extends BaseIR:
   override val name: String = "Block"
-
   override def language: Language = super.language + IR
-
   override def requires: Language = Language()
 
 object IR extends IR {}
 
 case class Block(at: Seq[Atom], t: Term) extends Term:
-  override def toString: String =
-    if (at.isEmpty)
-      t.toString
-    else
-      s"{${at.mkString(", ")}; $t}"
-
   override def vars: Seq[Var] = t.vars ++ at.flatMap(_.vars)
 
 object Block:

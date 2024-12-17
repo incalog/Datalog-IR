@@ -9,25 +9,17 @@ object IR extends IR {}
 
 trait IR extends BaseIR:
   override val name: String = "Disjunction"
-
   override def language: Language = super.language + IR
-
   override def requires: Language = Language()
 
-case class DisjunctionAlternative(body: Body) extends SourceLocation:
-  override def toString: String = body.atoms.mkString("{", ", ", "}")
+case class DisjunctionAlternative(body: Body) extends SourceLocation
 
 object DisjunctionAlternative:
   def apply(at: Atom): DisjunctionAlternative = DisjunctionAlternative(Body(Seq(at)))
-
   def apply(ats: Seq[Atom]): DisjunctionAlternative = DisjunctionAlternative(Body(ats))
-
   def apply(at: Atom, ats: Atom*): DisjunctionAlternative = DisjunctionAlternative(Body(at +: ats))
 
 case class Disjunction(alternatives: Seq[DisjunctionAlternative]) extends Atom:
-  override def toString: String =
-    alternatives.mkString(" or ")
-
   override def vars: Seq[Var] = alternatives.flatMap(_.body.atoms.flatMap(_.vars))
 
 object Disjunction:

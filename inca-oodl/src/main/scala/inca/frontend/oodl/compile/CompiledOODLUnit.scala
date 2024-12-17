@@ -34,13 +34,13 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
   lazy val typed: Module =
     val logMod = oodlLogging.logModule
     if (logMod && !logTyped)
-      printStep("OODL-Module", fun)
+      printStep("OODL-Module", fun.toString)
 
     val typer: Typechecker = new Typechecker
     typer.typecheck(fun)
 
     if (logMod && logTyped)
-      printStep("OODL-Module", fun)
+      printStep("OODL-Module", fun.toString)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
@@ -53,13 +53,13 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
 
     val logSSA = oodlLogging.logSSAModule
     if (logSSA && !logTyped)
-      printStep("SSA", fun)
+      printStep("SSA", fun.toString)
 
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
 
     if (logSSA && logTyped)
-      printStep("SSA", fun)
+      printStep("SSA", fun.toString)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings

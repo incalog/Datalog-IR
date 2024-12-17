@@ -3,13 +3,14 @@ package inca.ir.optimize
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
+import inca.ir.printer.{DatalogBaseIRPrinter, Printer}
 import inca.ir.visitors.IRVisitor
-import inca.util.printStep
+import inca.util.{DEFAULT_PRINTER, printSteps}
 
-trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
+trait BaseIROptimizer[V, RV, TV](using implicit val printer: DatalogBaseIRPrinter = DEFAULT_PRINTER) extends IRVisitor:
   val abstractInterpreter: BaseGenericInterpreter[V, ?, RV, ?, ?]
   var logAnalysis: Boolean = false
-  
+
   def getTermResult(term: Term): Set[TV]
 
   def getBodyResult(body: Body): Set[RV]
@@ -27,7 +28,10 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
     // Important, evaluate the program first
     abstractInterpreter.evalProgram(modules)
     if (logAnalysis)
-      printStep(s"Analysis: $name", modules)
+      val oldLogAnalysis = printer.includeAnalysisString
+      printer.includeAnalysisString = true
+      printSteps(s"Analysis: $name", modules)
+      printer.includeAnalysisString = oldLogAnalysis
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     params = relation.params.map(p => RefByName(p.name)).toSet

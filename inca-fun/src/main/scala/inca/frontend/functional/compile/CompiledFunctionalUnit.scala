@@ -26,13 +26,13 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
   lazy val typed: Module = {
     val logMod = funLogging.logModule
     if (logMod && !logTyped)
-      printStep("Functional-Module", fun)
+      printStep("Functional-Module", fun.toString)
 
     val typer: Typechecker = new Typechecker
     typer.typecheck(fun)
 
     if (logMod && logTyped)
-      printStep("Functional-Module", fun)
+      printStep("Functional-Module", fun.toString)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
@@ -88,13 +88,13 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
     val module = norm.visitModule(typed)
 
     if (logNormalized && !logTyped)
-      printStep("Normalized", module)
+      printStep("Normalized", module.toString)
 
     val typer: Typechecker = new Typechecker
     typer.typecheck(module)
 
     if (logNormalized && logTyped)
-      printStep("Normalized", module)
+      printStep("Normalized", module.toString)
 
     messages ++= typer.getErrors
     messages ++= typer.getWarnings

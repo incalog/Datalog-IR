@@ -1,16 +1,25 @@
 package inca.util
 
-def printStep(title: String, content: Any): Unit =
+import inca.ir.Module
+import inca.ir.printer.{IRDatalogPrinter, Printer}
+
+// Configure this printer to manipulate the way the IR output is printed
+lazy val DEFAULT_PRINTER = new IRDatalogPrinter {}
+
+def printStep(title: String, content: String): Unit =
   println(title)
   println(content)
   println()
   println("~~~~~~~~~~~~~~~~~~~~~~~")
   println()
 
-def printSteps(title: String, contents: Seq[Any]): Unit =
+def printStep(title: String, content: Module)(implicit printer: Printer): Unit =
+  printStep(title, printer.prettyPrint(content))
+
+def printSteps(title: String, contents: Seq[Module])(implicit printer: Printer): Unit =
   println(title)
   contents.foreach { content =>
-    println(content)
+    println(printer.prettyPrint(content))
     println()
     println("~~~~~~~~~~~~~~~~~~~~~~~")
     println()

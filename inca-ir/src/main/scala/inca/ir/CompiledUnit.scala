@@ -3,37 +3,30 @@ package inca.ir
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.optimize.BaseIROptimizer
+import inca.ir.printer.Printer
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
 import inca.util.{CompilationMessage, printStep, printSteps}
 import inca.util.compileroptions.CompilerOptions
+import inca.util.DEFAULT_PRINTER
 
 import scala.collection.mutable.ListBuffer
 
-trait CompiledUnit:
+trait CompiledUnit(using implicit val printer: Printer = DEFAULT_PRINTER):
   def compilerOptions: CompilerOptions
-
   def name: Name
-
   def sourceLocation: SourceLocation
-
   def isClosedWorld: Boolean
-
   def irModules: Seq[Module]
-
   def otherUnits: Seq[CompiledUnit]
 
   lazy val header: Seq[Module] = dependencies.map(_.header)
-
   private lazy val dependencies: Seq[Module] = otherUnits.flatMap(_.irModules)
-
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
 
   def allMessages: List[CompilationMessage] = messages.toList
-
   def errors: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.ERROR).toList
-
   def warnings: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.WARNING).toList
 
   protected def stopIfNeeded(): Unit = {
@@ -90,7 +83,7 @@ trait CompiledUnit:
     //println()
 
     if (logModule)
-      printStep("IR-Module", if logTyped then checked else irModules)
+      printSteps("IR-Module", if logTyped then checked else irModules)
 
     if (logStatsBeforeLowering)
       printStatistics(checked, "before lowering")
@@ -125,7 +118,7 @@ trait CompiledUnit:
         val ls = lowFun.visitProgram(ms)
         // Don't typecheck after postprocessing
         if (logLowerings)
-          printStep(s"Post processing lowering: ${lowFun.name}", ls)
+          printSteps(s"Post processing lowering: ${lowFun.name}", ls)
         ls
       }
     else
