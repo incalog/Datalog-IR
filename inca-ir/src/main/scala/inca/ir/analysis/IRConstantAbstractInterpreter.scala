@@ -18,7 +18,7 @@ import sturdy.effect.store.{AStoreThreaded, Store}
 import sturdy.fix
 import sturdy.data.finiteUnit
 import sturdy.effect.except.{Except, JoinedExcept}
-import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint, Logger}
+import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint, Logger, StackConfig}
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
@@ -54,7 +54,10 @@ private class IREqOps extends BaseEqOps
   with irstr.interpreter.ConstantEqOps
   with irdata.interpreter.ConstantEqOps
 
-class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
+class IRConstantAbstractInterpreter(
+    val logTraversalTrace: Boolean = false,
+    val logControlEvents: Boolean = false
+  )
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.ConstantAbstractInterpreter
   with irstr.interpreter.ConstantAbstractInterpreter
@@ -92,7 +95,7 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
     override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
   }
   override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
-  
+
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps
 
   override def resetIDB(): Unit = idb.setState(Map())
@@ -111,27 +114,33 @@ class IRConstantAbstractInterpreter(val enableLogging: Boolean = false)
 
   // annotate information about constants
   val analysisAnnotator = new AnalysisAnnotator
-  // log the control-flow graph
-  //val cfgLogger = new ControlEventLogger[Value, RV](this)
 
-  fix.Fixpoint.DEBUG = false
+  // log the control-flow graph
+  private lazy val cfgLogger = new ControlEventLogger[Value, RV](this)
+
+  // fix.Fixpoint.DEBUG = false
 
   //(new PrintingControlObserver()(println))
-  //val graphBuilder = addControlObserver(new ControlEventGraphBuilder)
+  val graphBuilder: ControlEventGraphBuilder[Int, SupColumn, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
+
+  private val stackConfig: StackConfig = if (logControlEvents)
+    StackedStates().withObservers(Seq(triggerControlEvent))
+  else
+    StackedStates()
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
-    val fixPt =
-      //fix.log(cfgLogger,
+    var fixPt =
         fix.log(analysisAnnotator,
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
             fix.filter(_.isInstanceOf[FixIn.EnterRelation],
-              fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](StackedStates())//.withObservers(Seq(triggerControlEvent)))
+              fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](stackConfig)
             )
           )
         )
-      //)
 
-    if (enableLogging)
-      fix.log(new PrintLogger, fixPt).fixpoint
-    else
-      fixPt.fixpoint
+    if (logControlEvents)
+      fixPt = fix.log(cfgLogger, fixPt)
+    if (logTraversalTrace)
+      fixPt = fix.log(new PrintLogger, fixPt)
+
+    fixPt.fixpoint

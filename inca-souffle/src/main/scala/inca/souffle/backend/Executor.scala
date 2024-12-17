@@ -271,7 +271,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case _ => Seq()
     }.toMap
 
-    //println(outputFiles)
+    println(outputFiles)
 
     val relationDecl = souffleProg.content.flatMap {
       case d@ProgramContent.RelationDecl(name, _, _, _) => name.map(_ -> d)

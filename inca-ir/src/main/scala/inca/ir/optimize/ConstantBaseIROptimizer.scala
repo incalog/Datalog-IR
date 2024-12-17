@@ -9,6 +9,7 @@ import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalRelation, Relation, Term}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
+import inca.util.printStep
 import sturdy.values.Topped
 
 //import java.awt.Toolkit
@@ -21,13 +22,15 @@ extension [T](topped: Topped[T])
 trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, Value]:
   override def name: String = "Constant Optimizer"
 
-  override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter()
+  // configure
+  val assumeEdbIsNotEmpty: Boolean
+  val logControlEvents: Boolean
+
+  override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter(logControlEvents = logControlEvents)
 
   val eqOps: BaseEqOps = abstractInterpreter.eqOps
 
   import abstractInterpreter.analysisAnnotator.{RelationKey, TermKey, BodyKey}
-
-  val assumeEdbIsNotEmpty: Boolean
 
   override def getTermResult(term: Term): Set[Value] =
     term.getAnalysisResult(TermKey).map(_.value)
@@ -67,13 +70,17 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
     evalProgram(modules)
 
     // Optimize the program
-    val r = super.visitProgram(modules, dependencies)
+    val mods = super.visitProgram(modules, dependencies)
 
-    /*val stringSelection = new StringSelection(s"digraph G {${abstractInterpreter.graphBuilder.get.toGraphViz}\n}")
+    if (logControlEvents)
+      val dotString = abstractInterpreter.graphBuilder.get.toGraphViz
+      printStep("Control-Events", s"digraph ControlEvents {$dotString\n}")
+
+    /*val stringSelection = new StringSelection()
     val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
     clipboard.setContents(stringSelection, null)*/
 
-    r
+    mods
 
 
   // Override this in a child
@@ -136,7 +143,10 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
       super.visitTerm(term)
   }
 
-class IRConstantOptimizer(override val assumeEdbIsNotEmpty: Boolean)
+class IRConstantOptimizer(
+    override val assumeEdbIsNotEmpty: Boolean,
+    override val logControlEvents: Boolean = false
+  )
   extends ConstantBaseIROptimizer
   with irarith.optimize.ConstantIROptimizer
   with irstr.optimize.ConstantIROptimizer
