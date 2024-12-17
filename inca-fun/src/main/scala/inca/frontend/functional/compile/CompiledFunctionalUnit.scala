@@ -147,7 +147,6 @@ object CompiledFunctionalUnit:
   val optimizationPipeline: List[() => BaseIRVisitor] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true) {},
-    //() => new optimize.AliasElimination {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, logControlEvents = false) {},
     () => new optimize.AliasElimination {}
   )
