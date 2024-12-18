@@ -261,10 +261,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       relationOps.filter(sup) { row => eqOp(row(lix), row(rix)) }
     }
 
-  private def boundInSupplementary(s: String): Boolean =
+  protected def boundInSupplementary(s: String): Boolean =
     relationOps.hasColumn(supplementaryTable.getTable, s)
 
-  private def boundInSupplementary(t: ir.Term): Boolean = t.typ match
+  protected def boundInSupplementary(t: ir.Term): Boolean = t.typ match
     case Some(TermType(_, Mode.Bound)) => true /* term is always bound, independent of current query */
     case _ =>
       val sup = supplementaryTable.getTable
@@ -288,7 +288,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.TermArg(t) => extractVarName(t)
     case ir.WildcardArg() => Some(ir.Name(gensym.fresh("_")))
 
-  private final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
+  protected final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
     if (params.isEmpty) {
       // Relation with no parameters... This should not happen, even though viatra supports it
       failure(NoParamRelation, s"Relation ${r.name} has no Parameters!")

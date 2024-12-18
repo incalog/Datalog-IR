@@ -23,6 +23,10 @@ case class Aggregate(rel: Ref[Relation], args: Seq[Arg], op: AggregationOperator
       case AggregateColumnArg(t) => f(t)
       case a => a
     }
+    
+object Aggregate:
+  def apply(name: Name, args: Seq[Arg], op: AggregationOperator): Aggregate =
+    new Aggregate(RefByName(name), args, op)
 
 trait AggregationOperator:
   def resultType: Type

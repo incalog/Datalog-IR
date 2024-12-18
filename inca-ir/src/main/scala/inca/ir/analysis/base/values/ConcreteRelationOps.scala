@@ -59,6 +59,10 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
         yield row1 ++ row2
     ConcreteRelation(allCols, cartesianValues)
 
+  def fold(initial: Seq[V])(f: (Seq[V], Seq[V]) => Seq[V]): ConcreteRelation[V] =
+    val foldedValue = rows.foldLeft(initial)(f)
+    ConcreteRelation(cols, Set(foldedValue))
+
   def filter(f: Seq[V] => Boolean): ConcreteRelation[V] =
     ConcreteRelation(cols, rows.filter(f))
   
@@ -115,6 +119,9 @@ class ConcreteRelationOps[V](using failure: Failure)
 
   override def filter(rv: ConcreteRelation[V])(f: Row => Boolean): ConcreteRelation[V] =
     rv.filter(f)
+
+  override def fold(rv: ConcreteRelation[V], initial: Row)(f: (Row, Row) => Row): ConcreteRelation[V] =
+    rv.fold(initial)(f)
 
   override def map(rv: ConcreteRelation[V], columnName: String)(f: Row => V): ConcreteRelation[V] =
     rv.map(columnName)(f)

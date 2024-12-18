@@ -2,8 +2,9 @@ package inca.ir.analysis
 
 import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
-import inca.ir.{BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
-import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.{Arg, BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.typing.IRTypechecker
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -1064,5 +1065,42 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     assert(res("main").size == 1)
+  }
+
+  test("Aggregate - non recursive") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+        Param("y", TInt),
+      ), Seq(
+        Body(Seq(
+          Aggregate(Name("edge"), Seq(WildcardArg(), AggregateColumnArg(Var("y"))), ArithmeticAggregationOperator.MinInt),
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(2, 3)))
+
+    val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 2)))
   }
 

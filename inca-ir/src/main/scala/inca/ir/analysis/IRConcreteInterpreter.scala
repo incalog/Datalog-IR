@@ -9,6 +9,7 @@ import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.data.analysis as irdata
+import inca.ir.extension.aggregate.analysis as iragg
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.CollectedFailures
@@ -38,7 +39,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]
   with irarith.interpreter.ConcreteInterpreter
   with irstr.interpreter.ConcreteInterpreter
-  with irdata.interpreter.ConcreteInterpreter:
+  with irdata.interpreter.ConcreteInterpreter
+  with iragg.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 

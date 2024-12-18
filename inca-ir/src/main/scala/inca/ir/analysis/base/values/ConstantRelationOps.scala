@@ -40,6 +40,9 @@ class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[B
   override def map(rv: ConstantRelation, columnName: String)(f: Seq[Value] => Value): ConstantRelation =
     ConstantRelation(rv.cols :+ columnName, rv.rows :+ f(rv.rows), rv.empty)
 
+  override def fold(rv: ConstantRelation, initial: Row)(f: (Row, Row) => Row): ConstantRelation =
+    ConstantRelation(rv.cols, f(initial, rv.rows), empty = Topped.Actual(false))
+  
   override def flatMap(rv: ConstantRelation)(f: Seq[Value] => ConstantRelation): ConstantRelation =
     naturalJoin(rv, f(rv.rows))
 

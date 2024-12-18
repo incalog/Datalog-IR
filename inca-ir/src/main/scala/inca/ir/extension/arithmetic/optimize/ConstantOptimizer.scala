@@ -11,7 +11,7 @@ import sturdy.values.Topped
 import sturdy.values.ordering.OrderingOps
 import inca.ir.optimize.isTrue
 
-trait ConstantIROptimizer extends ConstantBaseIROptimizer:
+trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = abstractInterpreter.intOrderingOps
 

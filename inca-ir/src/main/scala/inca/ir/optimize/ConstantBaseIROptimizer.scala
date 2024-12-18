@@ -132,9 +132,9 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
 
 class IRConstantOptimizer(override val assumeEdbIsNotEmpty: Boolean, override val computeControlEvents: Boolean)
   extends ConstantBaseIROptimizer
-  with irarith.optimize.ConstantIROptimizer
-  with irstr.optimize.ConstantIROptimizer
-  with irdata.optimize.ConstantIROptimizer
+  with irarith.optimize.ConstantOptimizer
+  with irstr.optimize.ConstantOptimizer
+  with irdata.optimize.ConstantOptimizer
 
 
 

@@ -25,6 +25,9 @@ trait RelationOps[V, B, RV]:
   def map(rv: RV, columnName: String)(f: Row => V): RV
 
   /** may produce empty table */
+  def fold(rv: RV, initial: Row)(f: (Row, Row) => Row): RV
+
+  /** may produce empty table */
   def flatMap(rv: RV)(f: Row => RV): RV
 
   /** may produce empty table */

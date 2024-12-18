@@ -7,7 +7,7 @@ import inca.ir.analysis.base.values.Value
 import inca.ir.*
 import inca.ir.optimize.ConstantBaseIROptimizer
 
-trait ConstantIROptimizer extends ConstantBaseIROptimizer:
+trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   override def valueToTerm(value: Value): Option[Term] = value match
     // FIXME: While correct, this is causing problems in the Souffle backend

@@ -99,6 +99,9 @@ class TypeRelationOps extends RelationOps[TypeValue, Topped[Boolean], TypeRelati
   override def map(rv: TypeRelation, columnName: String)(f: Row => TypeValue): TypeRelation =
     rv.map(columnName)(f)
 
+  override def fold(rv: TypeRelation, initial: Row)(f: (Row, Row) => Row): TypeRelation =
+    TypeRelation(rv.cols, f(initial, rv.rows), empty = Topped.Actual(false))
+  
   override def flatMap(rv: TypeRelation)(f: Row => TypeRelation): TypeRelation =
     rv.flatMap(f)
 
