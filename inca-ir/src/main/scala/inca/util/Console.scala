@@ -1,10 +1,10 @@
 package inca.util
 
 import inca.ir.Module
-import inca.ir.printer.{IRDatalogPrinter, Printer}
+import inca.ir.printer.{GenericPrinter, IRDebugPrinter}
 
 // Configure this printer to manipulate the way the IR output is printed
-lazy val DEFAULT_PRINTER = new IRDatalogPrinter {}
+lazy val DEFAULT_PRINTER = new IRDebugPrinter {}
 
 def printStep(title: String, content: String): Unit =
   println(title)
@@ -13,10 +13,10 @@ def printStep(title: String, content: String): Unit =
   println("~~~~~~~~~~~~~~~~~~~~~~~")
   println()
 
-def printStep(title: String, content: Module)(implicit printer: Printer): Unit =
+def printStep(title: String, content: Module)(implicit printer: GenericPrinter): Unit =
   printStep(title, printer.prettyPrint(content))
 
-def printSteps(title: String, contents: Seq[Module])(implicit printer: Printer): Unit =
+def printSteps(title: String, contents: Seq[Module])(implicit printer: GenericPrinter): Unit =
   println(title)
   contents.foreach { content =>
     println(printer.prettyPrint(content))

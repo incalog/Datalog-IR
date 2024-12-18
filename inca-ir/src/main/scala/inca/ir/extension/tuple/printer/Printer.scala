@@ -2,9 +2,9 @@ package inca.ir.extension.tuple.printer
 
 import inca.ir.{Term, Type}
 import inca.ir.extension.tuple.{TTuple, TupleLit, Project}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(term: Term): String = term match
     case TupleLit(ts) => ts.map(prettyPrint).mkString("(", ", ", ")")
     case Project(t, idx) => s"${prettyPrint(t)}._${idx + 1}"

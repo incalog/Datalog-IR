@@ -3,13 +3,15 @@ package inca.ir.optimize
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
-import inca.ir.printer.{DatalogBaseIRPrinter, Printer}
 import inca.ir.visitors.IRVisitor
 import inca.util.{DEFAULT_PRINTER, printSteps}
 
-trait BaseIROptimizer[V, RV, TV](using implicit val printer: DatalogBaseIRPrinter = DEFAULT_PRINTER) extends IRVisitor:
+trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
+  // Configure
+  val computeControlEvents: Boolean
+  val assumeEdbIsNotEmpty: Boolean
+
   val abstractInterpreter: BaseGenericInterpreter[V, ?, RV, ?, ?]
-  var logAnalysis: Boolean = false
 
   def getTermResult(term: Term): Set[TV]
 
@@ -24,14 +26,12 @@ trait BaseIROptimizer[V, RV, TV](using implicit val printer: DatalogBaseIRPrinte
     val boundVars = atom.vars.filter(_.mode.isBinding)
     boundVars.exists(bind => boundBodyVars.contains(bind.ref) || params.contains(bind.ref))
 
-  def evalProgram(modules: Seq[Module]): Unit =
+  // You need to enable computeControlEvents to get a control graph
+  def controlGraph: Option[String] = None
+
+  def analyzeProgram(modules: Seq[Module]): Unit =
     // Important, evaluate the program first
     abstractInterpreter.evalProgram(modules)
-    if (logAnalysis)
-      val oldLogAnalysis = printer.includeAnalysisString
-      printer.includeAnalysisString = true
-      printSteps(s"Analysis: $name", modules)
-      printer.includeAnalysisString = oldLogAnalysis
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     params = relation.params.map(p => RefByName(p.name)).toSet

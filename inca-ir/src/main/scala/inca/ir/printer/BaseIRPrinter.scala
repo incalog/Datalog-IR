@@ -1,9 +1,7 @@
 package inca.ir.printer
 import inca.ir.{Arg, TAny, TNothing, Var, Eq, Call, ExtensionalCall, Cast, Atom, Body, ExtensionalRelation, ExtensionalRelationSubstitution, Import, Module, ModuleEntry, Name, Param, ProvideExtensionalRelation, ProvideRelation, Ref, Relation, RelationSubstitution, RequireExtensionalRelation, RequireRelation, Substitution, Term, TermArg, TermType, Type, WildcardArg}
 
-trait DatalogBaseIRPrinter extends Printer:
-  var includeAnalysisString: Boolean = false
-
+trait BaseIRPrinter extends GenericPrinter:
   override def prettyPrint(name: Name): String =
     name.name
 

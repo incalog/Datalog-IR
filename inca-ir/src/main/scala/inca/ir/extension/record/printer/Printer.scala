@@ -2,9 +2,9 @@ package inca.ir.extension.record.printer
 
 import inca.ir.{Atom, ModuleEntry, Term, Type}
 import inca.ir.extension.record.{RecordDefinition, Deconstruct, FieldLookup, FieldDefinition, RecordLit, TRecord}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(moduleEntry: ModuleEntry): String = moduleEntry match
     case RecordDefinition(name) => s"record ${prettyPrint(name)}"
     case FieldDefinition(name, ty, record) => s"field ${prettyPrint(name)}: ${prettyPrint(ty)}"

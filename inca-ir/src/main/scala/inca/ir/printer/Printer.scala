@@ -2,7 +2,7 @@ package inca.ir.printer
 
 import inca.ir.{Arg, Atom, Body, Module, ModuleEntry, Name, Param, Ref, Relation, Substitution, Term, TermType, Type}
 
-trait Printer:
+trait GenericPrinter:
   def name: String
   def prettyPrint(module: Seq[Module]): String =
     module.map(prettyPrint).mkString("\n\n")

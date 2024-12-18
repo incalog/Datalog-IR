@@ -2,9 +2,9 @@ package inca.ir.extension.bool.printer
 
 import inca.ir.extension.bool.{TBoolean, BoolTrue, BoolFalse, BoolOr, BoolAnd, BoolNot, BoolTerm, AtomAsBool}
 import inca.ir.{Arg, Atom, Term, Type}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(ty: Type): String = ty match
     case TBoolean => "TBoolean"
     case _ => super.prettyPrint(ty)

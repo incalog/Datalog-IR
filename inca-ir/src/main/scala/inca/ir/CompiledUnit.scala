@@ -3,7 +3,7 @@ package inca.ir
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
 import inca.ir.optimize.BaseIROptimizer
-import inca.ir.printer.Printer
+import inca.ir.printer.GenericPrinter
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor, StatisticsCollector}
@@ -13,7 +13,7 @@ import inca.util.DEFAULT_PRINTER
 
 import scala.collection.mutable.ListBuffer
 
-trait CompiledUnit(using implicit val printer: Printer = DEFAULT_PRINTER):
+trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER):
   def compilerOptions: CompilerOptions
   def name: Name
   def sourceLocation: SourceLocation
@@ -129,12 +129,19 @@ trait CompiledUnit(using implicit val printer: Printer = DEFAULT_PRINTER):
     val logOptimizations = irLogging.logOptimizations
     val logTyped = irLogging.logTypeInformation
     val logAnalsis = irLogging.logAnalysis
+    val logControlGraph = irLogging.logControlGraph
 
     optimizationPipeline.foldLeft(p) { case (ms, optimizer) =>
       val optimFun = optimizer()
 
+      // log analysis
       optimFun match
-        case optimizer: BaseIROptimizer[?, ?, ?] => optimizer.logAnalysis = logAnalsis
+        case optimizer: BaseIROptimizer[?, ?, ?] =>
+          optimizer.analyzeProgram(ms)
+          if (logAnalsis)
+            printSteps(s"Analysis: ${optimizer.name}", ms)
+          if (logControlGraph && optimizer.computeControlEvents)
+            printStep(s"Control-Graph: ${optimizer.name}", optimizer.controlGraph.get)
         case _ => // nothing
 
       val ls = optimFun.visitProgram(ms, loweredOtherUnits)

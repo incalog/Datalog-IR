@@ -3,9 +3,9 @@ package inca.ir.extension.edbdata.printer
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.{Link, UndefEdbFieldInverse, UndefEdbField, LookupEdbField, UndefEdbType, LookupEdbType, NotInEdbType, EdbFieldDefinition, EdbNodeDefinition, TEdbList, TEdbNode, TEdbValue}
 import inca.ir.{Atom, ModuleEntry, Name, Term, Type}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   def prettyPrint(link: Link): String = link match
     case Link.Field(name) => name.toString
     case _ => super.toString

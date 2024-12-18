@@ -2,9 +2,9 @@ package inca.ir.extension.aggregate.printer
 
 import inca.ir.extension.aggregate.{AggregateColumnArg, Aggregate}
 import inca.ir.{Arg, Atom}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(arg: Arg): String = arg match
     case AggregateColumnArg(t) => s"#${prettyPrint(t)}"
     case _ => super.prettyPrint(arg)

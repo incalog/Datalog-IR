@@ -2,9 +2,9 @@ package inca.ir.extension.arithmetic.printer
 
 import inca.ir.extension.arithmetic.{UnOp, BinCompare, BinOp, DoubleNum, IntNum, TDouble, TInt}
 import inca.ir.{Arg, Atom, Term, Type}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(atom: Atom): String = atom match
     case BinCompare(lhs, rhs, op) => s"(${prettyPrint(lhs)} $op ${prettyPrint(rhs)})"
     case _ => super.prettyPrint(atom)

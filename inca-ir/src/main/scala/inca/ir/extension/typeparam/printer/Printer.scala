@@ -2,9 +2,9 @@ package inca.ir.extension.typeparam.printer
 
 import inca.ir.{ModuleEntry, Ref, Type}
 import inca.ir.extension.typeparam.{TypeVar, ParametricModuleEntry, TypeApplication}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(moduleEntry: ModuleEntry): String = moduleEntry match
     case ParametricModuleEntry(typeParams, entry) =>
       s"with[${typeParams.map(prettyPrint).mkString(", ")}] ${prettyPrint(entry)}"

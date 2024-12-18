@@ -2,9 +2,9 @@ package inca.ir.extension.list.printer
 
 import inca.ir.{Atom, Term, Type}
 import inca.ir.extension.list.{TList, ListLit, IsEmpty, Head, Size, Tail, Deconstruct, Append, Prepend}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(atom: Atom): String = atom match
     case Deconstruct(list, hd, tl) => s"?${prettyPrint(list)}(${prettyPrint(hd)}, ${prettyPrint(tl)})"
     case _ => super.prettyPrint(atom)

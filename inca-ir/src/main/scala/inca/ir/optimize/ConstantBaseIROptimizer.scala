@@ -22,11 +22,14 @@ extension [T](topped: Topped[T])
 trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, Value]:
   override def name: String = "Constant Optimizer"
 
-  // configure
-  val assumeEdbIsNotEmpty: Boolean
-  val logControlEvents: Boolean
+  override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter(logControlEvents = computeControlEvents)
 
-  override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter(logControlEvents = logControlEvents)
+  override def controlGraph: Option[String] =
+    if (computeControlEvents)
+      val dotString = abstractInterpreter.graphBuilder.get.toGraphViz
+      Some(s"digraph ControlGraph {$dotString\n}")
+    else
+      None
 
   val eqOps: BaseEqOps = abstractInterpreter.eqOps
 
@@ -54,7 +57,7 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
         case Topped.Top => false
       }
 
-  override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
+  override def analyzeProgram(modules: Seq[ir.Module]): Unit =
     // We could make this more precise, by setting the `empty` flag correctly on edb relations
     modules.foreach { m =>
       m.entries.foreach {
@@ -65,23 +68,7 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
         case _ => // nothing
       }
     }
-
-    // Analyse the program
-    evalProgram(modules)
-
-    // Optimize the program
-    val mods = super.visitProgram(modules, dependencies)
-
-    if (logControlEvents)
-      val dotString = abstractInterpreter.graphBuilder.get.toGraphViz
-      printStep("Control-Events", s"digraph ControlEvents {$dotString\n}")
-
-    /*val stringSelection = new StringSelection()
-    val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-    clipboard.setContents(stringSelection, null)*/
-
-    mods
-
+    super.analyzeProgram(modules)
 
   // Override this in a child
   def valueToTerm(value: Value): Option[Term] =
@@ -143,10 +130,7 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
       super.visitTerm(term)
   }
 
-class IRConstantOptimizer(
-    override val assumeEdbIsNotEmpty: Boolean,
-    override val logControlEvents: Boolean = false
-  )
+class IRConstantOptimizer(override val assumeEdbIsNotEmpty: Boolean, override val computeControlEvents: Boolean)
   extends ConstantBaseIROptimizer
   with irarith.optimize.ConstantIROptimizer
   with irstr.optimize.ConstantIROptimizer

@@ -3,9 +3,9 @@ package inca.ir.extension.data.printer
 import inca.ir.extension.bool.{AtomAsBool, BoolAnd, BoolFalse, BoolNot, BoolOr, BoolTerm, BoolTrue, TBoolean}
 import inca.ir.extension.data.{TData, Construct, Deconstruct, DataDefinition, CaseDefinition, DataDefinitionSubstitution, CaseDefinitionSubstitution, ProvideCaseDefinition, ProvideDataDefinition, RequireCaseDefinition, RequireDataDefinition}
 import inca.ir.{Arg, Atom, ModuleEntry, Substitution, Term, Type}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(moduleEntry: ModuleEntry): String = moduleEntry match
     case DataDefinition(name) => s"data ${prettyPrint(name)}"
     case CaseDefinition(name, args, data) => s"case ${prettyPrint(name)}(${args.map(prettyPrint).mkString(",")}): ${prettyPrint(data)}"

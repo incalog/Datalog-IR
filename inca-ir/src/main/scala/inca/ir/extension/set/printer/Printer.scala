@@ -2,9 +2,9 @@ package inca.ir.extension.set.printer
 
 import inca.ir.{Atom, Term, Type}
 import inca.ir.extension.set.{TSet, SetLit, SetFrom, SetMember, SetUnion, SetIntersection, SetComprehension}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(atom: Atom): String = atom match
     case SetMember(mem, s) => s"(${prettyPrint(mem)} in ${prettyPrint(s)})"
     case _ => super.prettyPrint(atom)

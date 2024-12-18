@@ -2,9 +2,9 @@ package inca.ir.extension.impure.printer
 
 import inca.ir.Atom
 import inca.ir.extension.impure.{ImpurityKind, Impure}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   def prettyPrint(impurityKind: ImpurityKind): String = impurityKind.name
 
   override def prettyPrint(atom: Atom): String = atom match

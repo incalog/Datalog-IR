@@ -2,9 +2,9 @@ package inca.ir.extension.disjunction.printer
 
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.Atom
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   def prettyPrint(disjunctionAlternative: DisjunctionAlternative): String =
     disjunctionAlternative.body.atoms.map(prettyPrint).mkString("{", ", ", "}")
 

@@ -2,9 +2,9 @@ package inca.ir.extension.datamatch.printer
 
 import inca.ir.extension.datamatch.{Case, Match}
 import inca.ir.{Atom, Term}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   def prettyPrint(theCase: Case): String =
     val Case(name, patVars, body) = theCase
     s"case ${prettyPrint(name)}(${patVars.map(prettyPrint).mkString(", ")}) => ${body.map(prettyPrint).mkString(", ")}"

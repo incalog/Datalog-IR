@@ -2,9 +2,9 @@ package inca.ir.extension.mono.printer
 
 import inca.ir.{Atom, Term, Type}
 import inca.ir.extension.mono.{TMono, NewMono, NewMonoFor, ReadMono, WriteMono, MonoDefinition}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(atom: Atom): String = atom match
     case WriteMono(m, input, keys) =>
       val prefix = s"${prettyPrint(m)} += ${prettyPrint(input)}"

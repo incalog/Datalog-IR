@@ -2,9 +2,9 @@ package inca.ir.extension.string.printer
 
 import inca.ir.{Term, Type}
 import inca.ir.extension.string.{TString, StringLit, StringConcat, ToString}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(term: Term): String = term match
     case StringLit(value) => s"\"$value\""
     case StringConcat(lhs, rhs) => s"${prettyPrint(lhs)} + ${prettyPrint(lhs)}"

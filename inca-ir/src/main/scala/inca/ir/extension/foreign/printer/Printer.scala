@@ -2,9 +2,9 @@ package inca.ir.extension.foreign.printer
 
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.Term
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(term: Term): String = term match
     case ConvertForeignIR(term, foreignType, irType) => s"${prettyPrint(term)} as ${prettyPrint(irType)}"
     case ConvertIRForeign(term, irType, foreignType) => s"${prettyPrint(term)} as ${prettyPrint(foreignType)}"

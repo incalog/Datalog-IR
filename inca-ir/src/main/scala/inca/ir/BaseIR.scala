@@ -2,7 +2,7 @@ package inca.ir
 
 import inca.ir.*
 import inca.ir.analysis.Analyzable
-import inca.ir.printer.IRDatalogPrinter
+import inca.ir.printer.IRPrinter
 import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 
@@ -15,9 +15,9 @@ implicit def name2string(name: Name): String = name.toString
 implicit def term2Arg(term: Term): Arg = term.arg
 implicit def termList2ArgList(terms: Seq[Term]): Seq[Arg] = terms.map(_.arg)
 
-// Always use the DatalogPrinter for toString!
+// Always use the Printer for toString!
 //  To manipulate the console output change the logger in CompiledUnit by providing an implicit Printer.
-private val defaultPrinter = new IRDatalogPrinter {}
+private val defaultPrinter = new IRPrinter {}
 
 case class Name(name: String) extends SourceLocation:
   override def toString: String =

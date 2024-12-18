@@ -2,9 +2,9 @@ package inca.ir.extension.aggregateset.printer
 
 import inca.ir.extension.aggregateset.AggregateSet
 import inca.ir.{Arg, Atom}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
 
   override def prettyPrint(atom: Atom): String = atom match
     case AggregateSet(rel, args, op) =>

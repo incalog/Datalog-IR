@@ -14,8 +14,8 @@ import inca.foreign.scala.printer
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, NotInEdbType, TEdbList, TEdbNode, TEdbValue}
-import inca.ir.extension.foreign.printer.DatalogPrinter
-import inca.ir.printer.{IRDatalogPrinter, Printer}
+import inca.ir.extension.foreign.printer.Printer
+import inca.ir.printer.{GenericPrinter, IRDebugPrinter}
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.{Gensym, printStep}
@@ -53,8 +53,8 @@ object GeneratePSystem:
 
   private def lowerAndTypeModule(module: Module, options: CompilerOptions)(implicit env: RuleEnvironment): Module = {
     // use a printer that supports the primitive IR
-    given Printer = new IRDatalogPrinter with printer.DatalogPrinter:
-      override val name: String = "IRDatalogPrinter with Primitive"
+    given GenericPrinter = new IRDebugPrinter with printer.Printer:
+      override val name: String = "IRPrinter with Primitive"
 
     val viatraLogging = options("viatra_logging")
     val logTyped = viatraLogging.readBoolean("typed")

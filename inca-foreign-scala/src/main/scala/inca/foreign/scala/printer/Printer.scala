@@ -2,9 +2,9 @@ package inca.foreign.scala.printer
 
 import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaTerm, ScalaType, ScalaDefnModuleEntry}
 import inca.ir.{Arg, Atom, ModuleEntry, Term, Type}
-import inca.ir.printer.DatalogBaseIRPrinter
+import inca.ir.printer.BaseIRPrinter
 
-trait DatalogPrinter extends DatalogBaseIRPrinter:
+trait Printer extends BaseIRPrinter:
   override def prettyPrint(moduleEntry: ModuleEntry): String = moduleEntry match
     case ScalaDefnModuleEntry(name, code) => code
     case _ => super.prettyPrint(moduleEntry)

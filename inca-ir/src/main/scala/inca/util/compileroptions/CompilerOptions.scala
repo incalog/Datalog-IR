@@ -44,6 +44,11 @@ case class IRLoggingSection(override val name: String, defaults: Map[String, Any
 
   def logAnalysis_=(newVal: Boolean): Unit = update("analysis", newVal)
 
+  // Log all analysis results
+  def logControlGraph: Boolean = readBoolean("control_graph")
+
+  def logControlGraph_=(newVal: Boolean): Unit = update("control_graph", newVal)
+
   // Log all optimization steps
   def logOptimizations: Boolean = readBoolean("optimizations")
 
