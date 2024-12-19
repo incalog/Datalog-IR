@@ -1,6 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir
+import inca.util.memoize
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
@@ -9,11 +10,9 @@ import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalRelation, Relation, Term}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
+import inca.ir.extension.aggregate as iragg
 import inca.util.printStep
 import sturdy.values.Topped
-
-//import java.awt.Toolkit
-//import java.awt.datatransfer.StringSelection
 
 extension [T](topped: Topped[T])
   def isTrue: Boolean = topped.isActual && topped.get == true
@@ -70,12 +69,13 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
     }
     super.analyzeProgram(modules)
 
-  // Override this in a child
-  def valueToTerm(value: Value): Option[Term] =
+  // Override the internal method in the children
+  private lazy val valueToTerm = memoize(valueToTermInternal)
+  def valueToTermInternal(value: Value): Option[Term] =
     None
 
   private def transformTerm(term: Term): Option[Term] =
-    getTermResult(term).headOption.flatMap(valueToTerm)
+    getTermResult(term).headOption.flatMap(valueToTerm.apply)
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
@@ -135,6 +135,7 @@ class IRConstantOptimizer(override val assumeEdbIsNotEmpty: Boolean, override va
   with irarith.optimize.ConstantOptimizer
   with irstr.optimize.ConstantOptimizer
   with irdata.optimize.ConstantOptimizer
+  with iragg.optimize.ConstantOptimizer
 
 
 

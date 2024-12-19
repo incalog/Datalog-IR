@@ -3,6 +3,8 @@ package inca.ir.extension.aggregate.analysis.interpreter
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, Bottom, ConstantRelation, Top, Value}
+import inca.ir.extension.aggregate.{AggregationOperator, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
+import inca.ir.analysis.base.values.Top as TopV
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -16,5 +18,15 @@ import sturdy.data.{MakeJoined, WithJoin}
 import sturdy.effect.except.Except
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
+
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  ???
+  override val aggregateOps: AggregateOps[Value] = new AggregateOps[Value]:
+    override def init(op: AggregationOperator): Value =
+      // we could make this more precise, but there is really no point. Once we aggregate more than the initial value
+      // we don't know anything anyway.
+      TopV
+
+    override def aggregate(accumulator: Value, value: Value, op: AggregationOperator): Value =
+      // Again, we could make this more precise by handling different aggregation operators, but the problem remains
+      // the same as above.
+      TopV

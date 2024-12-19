@@ -10,6 +10,7 @@ import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
+import inca.ir.extension.aggregate.analysis as iragg
 import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.EffectStack
 import sturdy.effect.except.{Except, JoinedExcept}
@@ -36,7 +37,8 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[TypeValue, Topped[Boolean], TypeRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.TypeAbstractInterpreter
   with irstr.interpreter.TypeAbstractInterpreter
-  with irdata.interpreter.TypeAbstractInterpreter:
+  with irdata.interpreter.TypeAbstractInterpreter
+  with iragg.interpreter.TypeAbstractInterpreter:
 
   type TRV = TypeRelation
 

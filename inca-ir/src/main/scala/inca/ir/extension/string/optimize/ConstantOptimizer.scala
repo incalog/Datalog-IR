@@ -9,9 +9,9 @@ import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
-  override def valueToTerm(value: Value): Option[Term] = value match
+  override def valueToTermInternal(value: Value): Option[Term] = value match
     case ConstantStringV(v) => Some(irstr.StringLit(v))
-    case _ => super.valueToTerm(value)
+    case _ => super.valueToTermInternal(value)
 
 
 

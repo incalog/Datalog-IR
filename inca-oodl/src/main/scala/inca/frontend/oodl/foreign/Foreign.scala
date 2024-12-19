@@ -7,6 +7,7 @@ import inca.ir.Name
 import inca.ir.extension.foreign.{ForeignAggregationOperator, ForeignLanguage}
 
 object OODL extends ForeignLanguage:
+  override val name: Name = Name("OODL")
   type Code = Expression
 
   def compileType(ty: Type): ir.Type =

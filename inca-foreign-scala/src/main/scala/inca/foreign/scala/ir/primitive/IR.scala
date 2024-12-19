@@ -19,6 +19,7 @@ import inca.ir.extension.tuple.TTuple
 import inca.util.Gensym
 
 object ScalaInca extends ForeignLanguage:
+  override val name: Name = Name("Scala")
   type Code = String
 
   def cleanString(name: String): String = name.replace(".", "_").replace("@", "__")

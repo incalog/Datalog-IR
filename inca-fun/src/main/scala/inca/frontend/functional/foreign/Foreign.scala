@@ -10,6 +10,7 @@ import inca.ir.extension.mono.MonoTypes
 import inca.util.Gensym
 
 object FunctionalInca extends ForeignLanguage:
+  override val name: Name = Name("FunctionalInca")
   type Code = Expression
 
   def compileType(ty: Type): ir.Type =

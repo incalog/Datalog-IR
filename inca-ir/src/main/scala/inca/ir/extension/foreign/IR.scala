@@ -13,7 +13,10 @@ trait IR extends BaseIR:
   override def requires: Language = Language()
 
 trait ForeignLanguage:
+  val name: Name
   type Code
+
+  override def toString: String = name.name
 
 trait ForeignType extends Type:
   val lang: ForeignLanguage

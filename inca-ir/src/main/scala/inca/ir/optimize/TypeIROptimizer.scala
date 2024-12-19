@@ -1,6 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir
+import inca.ir.Hint.preserveHints
 import inca.ir.{Body, ExtensionalRelation, Relation, Term}
 import inca.ir.analysis.IRTypeAbstractInterpreter
 import inca.ir.analysis.base.values.{TypeRelation, TypeValue}
@@ -26,7 +27,7 @@ class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val co
   override def getRelationResult(relation: Relation): Set[TypeRelation] =
     relation.getAnalysisResult(RelationKey).map(_.res)
 
-  override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
+  override def analyzeProgram(modules: Seq[ir.Module]): Unit =
     // We could make this more precise, by setting the `empty` flag correctly
     modules.foreach { m =>
       m.entries.foreach {
@@ -36,16 +37,27 @@ class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val co
         case _ => // nothing
       }
     }
+    super.analyzeProgram(modules)
 
-    super.visitProgram(modules, dependencies)
-
-  override def visitRelation(relation: Relation): Seq[Relation] =
-    // we could remove empty relations here
-    /*val isEmpty = getRelationResult(relation).map(_.empty).forall {
+  private def relationAlwaysFails(relation: Relation): Boolean =
+    getRelationResult(relation).map(_.empty).forall {
       case Topped.Actual(v) => v
       case Topped.Top => false
-    }*/
-    super.visitRelation(relation)
+    }
+
+  override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
+    if (relationAlwaysFails(relation))
+      Seq()
+    else
+      super.visitRelation(relation)
+  }
+
+  override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
+    // Remove failing bodies
+    getBodyResult(body).headOption match
+      case Some(res: TypeRelation) if res.empty.isTrue => Seq()
+      case _ => super.visitBody(body)
+  }
 
 
 

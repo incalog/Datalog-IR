@@ -9,7 +9,7 @@ import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
-  override def valueToTerm(value: Value): Option[Term] = value match
+  override def valueToTermInternal(value: Value): Option[Term] = value match
     // FIXME: While correct, this is causing problems in the Souffle backend
     /*case ConstantDataV(dataDef, caseDef, args) =>
       val argsV = args.flatMap(valueToTerm)
@@ -17,7 +17,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
         None
       else
         Some(irdata.Construct(caseDef.name, argsV))*/
-    case _ => super.valueToTerm(value)
+    case _ => super.valueToTermInternal(value)
 
 
 

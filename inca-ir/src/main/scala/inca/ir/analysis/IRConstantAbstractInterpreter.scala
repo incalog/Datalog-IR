@@ -9,6 +9,7 @@ import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
+import inca.ir.extension.aggregate.analysis as iragg
 import sturdy.control.{ControlEventGraphBuilder, PrintingControlObserver}
 import sturdy.data.WithJoin
 import sturdy.values.{Changed, Combine, Finite, Join, MaybeChanged, Powerset, Topped, Widen, Widening, finitely}
@@ -62,6 +63,7 @@ class IRConstantAbstractInterpreter(
   with irarith.interpreter.ConstantAbstractInterpreter
   with irstr.interpreter.ConstantAbstractInterpreter
   with irdata.interpreter.ConstantAbstractInterpreter
+  with iragg.interpreter.ConstantAbstractInterpreter
   with DatalogControlObservable:
 
   type RV = ConstantRelation
@@ -124,9 +126,9 @@ class IRConstantAbstractInterpreter(
   val graphBuilder: ControlEventGraphBuilder[Int, SupColumn, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
 
   private val stackConfig: StackConfig = if (logControlEvents)
-    StackedStates().withObservers(Seq(triggerControlEvent))
+    StackedStates(readPriorOutput = false).withObservers(Seq(triggerControlEvent))
   else
-    StackedStates()
+    StackedStates(readPriorOutput = false)
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     var fixPt =

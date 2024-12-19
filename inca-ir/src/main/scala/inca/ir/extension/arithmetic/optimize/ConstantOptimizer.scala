@@ -15,10 +15,10 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = abstractInterpreter.intOrderingOps
 
-  override def valueToTerm(value: Value): Option[Term] = value match
+  override def valueToTermInternal(value: Value): Option[Term] = value match
     case ConstantIntV(v1) => Some(irarith.IntNum(v1))
     case ConstantDoubleV(v1) => Some(irarith.DoubleNum(v1))
-    case _ => super.valueToTerm(value)
+    case _ => super.valueToTermInternal(value)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
