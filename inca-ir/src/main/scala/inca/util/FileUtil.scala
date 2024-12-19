@@ -25,7 +25,6 @@ object FileUtil:
   def writeFile(path: String, content: String): Unit =
     writeFile(new File(path), content)
 
-
   def writeFile(file: File, content: String): Unit =
     Files.createDirectories(Paths.get(file.getParent))
     val fileWriter = new FileWriter(file)
@@ -33,5 +32,3 @@ object FileUtil:
       fileWriter.write(content)
     finally
       fileWriter.close()
-
-  def appendFile(path: String, content: String): Unit = ???

@@ -34,9 +34,10 @@ case class Memoize[I, O](f: I => O, capacity: Int, loadFactor: Float) extends De
 
   def clearCache(): Unit = cache.clear()
   def clearCache(input: I): Unit = cache.remove(input)
-  override def apply(input: I): O = cache.get(input) match
-    case out if out != null => out
-    case _ =>
+  override def apply(input: I): O =
+    if (cache.containsKey(input))
+      cache.get(input)
+    else
       val out = super.apply(input)
       cache.put(input, out)
       out
