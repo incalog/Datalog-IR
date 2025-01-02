@@ -361,17 +361,18 @@ trait BaseValueNumbering extends IRVisitor {
    * @return [[Term]] with which [[arg]] is replaced
    */
   protected def treatBinding(arg: Term, term: Term): Term = {
+    val newArg = if (isParam(arg)) arg else visitTerm(arg).head
     val vn = getIdOf(term)
     if (vnTables.isCongrClassContained(vn)) {
-      updateCongrClassIfNecessary(vn, arg)
+      updateCongrClassIfNecessary(vn, newArg)
     }
     else {
-      vnTables.addCongrClass(CongrClass(vn, arg, term))
+      vnTables.addCongrClass(CongrClass(vn, newArg, term))
       updateCongrClassIfNecessary(vn, term)
     }
-    validBody &= vnTables.updateValueNumbersAndCongrClasses(arg, vn)
-    if (!isParam(arg) && isAllowedToReplace(arg)) return vnTables.getReplacement(arg)
-    else return arg
+    validBody &= vnTables.updateValueNumbersAndCongrClasses(newArg, vn)
+    if (!isParam(newArg) && isAllowedToReplace(newArg)) return vnTables.getReplacement(newArg)
+    else return newArg
   }
 
 

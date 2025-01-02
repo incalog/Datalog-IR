@@ -312,6 +312,45 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("Replacement of sub-term in call") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("b"), IntNum(121)),
+            Call("S", Seq(TermArg(Add(Var("b"), IntNum(2))))),
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123))
+          )),
+          Body(Seq(
+            Eq(Var("a"), IntNum(0))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(IntNum(123)))),
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(123))
+          )),
+          Body(Seq(
+            Eq(Var("a"), IntNum(0))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
   test("Calls: mul & add distributivity") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -1837,7 +1876,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("a"), Seq(Param("param$0", TInt), Param("param$1", TInt)), Seq(
           Body(Seq(
-            Call(Name("b"), Seq(TermArg(IntNum(10)))),
+            Call(Name("b"), Seq(TermArg(Var("param$1")))),
             //            Eq(IntNum(12), Add(IntNum(2),Var("param$1"))),
             //            Eq(Var(Name("Z")), IntNum(12)),
             //            Eq(IntNum(12), IntNum(12)),
