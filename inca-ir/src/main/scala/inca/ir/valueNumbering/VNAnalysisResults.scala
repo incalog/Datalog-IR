@@ -1,6 +1,7 @@
 package inca.ir.valueNumbering
 
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
+import inca.ir.valueNumbering.VNTables.VNTablesTerms
 import inca.ir.{Name, Term}
 
 import scala.collection.mutable

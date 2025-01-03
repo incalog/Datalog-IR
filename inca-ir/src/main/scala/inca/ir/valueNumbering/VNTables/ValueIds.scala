@@ -1,4 +1,4 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.VNTables
 
 import inca.ir
 import inca.util.Tabulator

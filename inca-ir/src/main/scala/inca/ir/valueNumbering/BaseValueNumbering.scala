@@ -3,6 +3,7 @@ package inca.ir.valueNumbering
 import inca.ir
 import inca.ir.*
 import inca.ir.typing.IRTypechecker
+import inca.ir.valueNumbering.VNTables.{CongrClassesTable, CongruenceClassTerms, VNTablesRelations, VNTablesTerms, VNTablesTrait, ValueId, ValueIds}
 
 import scala.collection.mutable
 import inca.ir.visitors.IRVisitor
@@ -67,6 +68,13 @@ trait BaseValueNumbering extends IRVisitor {
     stats.printStatistics()
   }
 
+  var currentIteration: Int = 0
+  def printResultsRelations(): Unit = {
+    if (!printVNResults) return
+    println(s"Results from VN of Relations after iteration $currentIteration")
+    vnTablesRelations.printResults()
+  }
+
 
   private var relations: Map[String,Relation] = _  // used to access analysis results of params of other relations
 
@@ -80,6 +88,8 @@ trait BaseValueNumbering extends IRVisitor {
     phase = Phase.initial // in initial phase congrClass is empty -> it can be assumed that all saved Vars are bound
     val tempResult = super.visitModule(module)
 
+    printResultsRelations()
+
     phase = Phase.repetition // repeat with previous analysis results and rewritten bodies
     val result = repetitionPhase(tempResult)
 
@@ -91,7 +101,12 @@ trait BaseValueNumbering extends IRVisitor {
 
   @tailrec
   private def repetitionPhase(module: Module): Module = {
+    oldVNTablesRelations = vnTablesRelations
+    vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]()) // TODO
+    currentIteration += 1
     val result = super.visitModule(module)
+    printResultsRelations()
+    println(result)
     val typechecker = new IRTypechecker{}
     typechecker.checkProgram(Seq(result))
     if (result != module && useFixPointIteration){
@@ -162,11 +177,14 @@ trait BaseValueNumbering extends IRVisitor {
     currentRelationParams = relation.params.map(_.name)
     currentBodyIndex = -1
 
-    val result = super.visitRelation(relation).head
-    saveResultsFromRelation(relation, result)
+    callRenamedInRelation = false
+    oldRelation = relation // TODO if this kept then saving parts above not necessary
+
+    val newRelation = super.visitRelation(relation).head
+    saveResultsFromRelation(relation, newRelation)
     VNs_Bodies = ValueIds[Body]()
 
-    Seq(result)
+    valueNumberRelations(newRelation)
   }
 
 
@@ -218,9 +236,22 @@ trait BaseValueNumbering extends IRVisitor {
       case Eq(e, vari@Var(RefByName(Name(_))), false) =>
         valueNumberVar(vari, e, dontRemove = true)
 
-      case call@Call(_, _, false) => treatBindingsInCall(call)
+      case call@Call(_, _, false) => // TODO
+        val Call(ref, args, b) = treatBindingsInCall(call)
+        val relation = relations(ref.name.name)
+        val newRef = oldVNTablesRelations.getReplacement(relation).name // in repetition phase it might happen that relation not in congrClass anymore -> used tables of prev iteration
+        callRenamedInRelation ||= ref.name != newRef
+        oldRelation = relations(currentRelationName)
+        Seq(Call(newRef, args, b))
 
-      case call@ExtensionalCall(_, _, false) => treatBindingsInExtensionalCall(call)
+      case Call(ref, args, b) =>
+        val relation = relations(ref.name.name)
+        val newRef = vnTablesRelations.getReplacement(relation).name
+        callRenamedInRelation ||= ref.name != newRef
+        oldRelation = relations(currentRelationName)
+        Seq(Call(newRef, args, b))
+
+      case call@ExtensionalCall(_, _, false) => Seq(treatBindingsInExtensionalCall(call))
 
       case _ => super.visitAtom(atom)
     }
@@ -323,7 +354,7 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
 
-  private def treatBindingsInCall(call: Call): Seq[Atom] = {
+  private def treatBindingsInCall(call: Call): Call = {
     val Call(ref, args, neg) = call
     val relation = relations(ref.name)
     val newArgs: Seq[Arg] = args.zipWithIndex.map {
@@ -338,7 +369,7 @@ trait BaseValueNumbering extends IRVisitor {
         TermArg(newArg)
       case (arg,_) => visitArg(arg).head
     }
-    return Seq(Call(ref, newArgs, neg))
+    return Call(ref, newArgs, neg)
   }
 
 
@@ -377,10 +408,10 @@ trait BaseValueNumbering extends IRVisitor {
 
 
 
-  private def treatBindingsInExtensionalCall(call: ExtensionalCall): Seq[Atom] = {
+  private def treatBindingsInExtensionalCall(call: ExtensionalCall): ExtensionalCall = {
     val ExtensionalCall(ref, args, neg) = call
     val newArgs: Seq[Arg] = args.flatMap(visitArg)
-    Seq(ExtensionalCall(ref, newArgs, neg))
+    ExtensionalCall(ref, newArgs, neg)
   }
 
 
@@ -454,6 +485,43 @@ trait BaseValueNumbering extends IRVisitor {
       return Seq(body)
     }
   }
+
+
+
+  // +++ VN of Relations +++
+
+  private var vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]()) // TODO
+
+  private var oldVNTablesRelations: VNTablesRelations = vnTablesRelations // saved for replacement in repetition phase
+
+  private var callRenamedInRelation: Boolean = false
+  private var oldRelation: Relation = _
+
+  protected def normalizeRelation(relation: Relation): Seq[Relation] = Seq(relation) // TODO
+
+  private def valueNumberRelations(relationInput: Relation): Seq[Relation] = {
+    val relation = normalizeRelation(relationInput) match {
+      case h :: _ => h
+      case _ => return Seq()
+    }
+
+    if (callRenamedInRelation && vnTablesRelations.isValNumContained(oldRelation)) {
+      val oldVN = vnTablesRelations.getIdOf(oldRelation)
+      vnTablesRelations.updateValueNumbersAndCongrClasses(relation,oldVN)
+
+    }
+
+    val vn: ValueId = vnTablesRelations.getIdOf(relation)
+
+    if (vnTablesRelations.isCongrClassContained(vn)) {
+      return Seq()
+    }
+    else {
+      vnTablesRelations.addCongrClass(vn, relation)
+      return Seq(relation)
+    }
+  }
+
 
 
 }

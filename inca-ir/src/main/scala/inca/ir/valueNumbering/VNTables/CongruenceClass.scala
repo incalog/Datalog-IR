@@ -1,6 +1,7 @@
-package inca.ir.valueNumbering
+package inca.ir.valueNumbering.VNTables
 
-import inca.ir.{Term, Var}
+
+import inca.ir.{Relation, Term, Var}
 
 import scala.collection.mutable
 
@@ -55,6 +56,13 @@ trait CongruenceClassTerms extends CongruenceClass[Term] {
     isValid
   }
   
+}
+
+
+case class CongruenceClassRelations(valueId: ValueId, var leader: Relation) extends CongruenceClass[Relation] {
+
+  override def changeLeaderIfNecessary(t: Relation): Boolean = false // TODO if never necessary move function to terms
+
 }
 
 
