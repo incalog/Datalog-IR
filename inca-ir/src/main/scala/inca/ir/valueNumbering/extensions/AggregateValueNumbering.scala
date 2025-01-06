@@ -15,4 +15,9 @@ trait AggregateValueNumbering extends BaseValueNumbering {
     case _ => super.visitArg(arg)
   }
 
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match {
+    case Aggregate(rel, args, op) => Seq(Aggregate(visitRef(rel), args.flatMap(visitArg), visitAggregationOperator(op)))
+    case _ => super.visitAtom(atom)
+  }
+
 }

@@ -39,6 +39,41 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Simple duplicated Relation 3-times") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+        //          Body(Seq(
+        //            Eq(Var("a"), IntNum(0)),
+        //          ))
+        //        ))
+      ))
+    performTest(expected, input)
+  }
+
   test("Simple duplicated Relation after VN of terms") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
@@ -261,6 +296,62 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
         //            Call("S", Seq(TermArg(IntNum(0))))
         //          ))
         //        )),
+      ))
+    performTest(expected, input)
+  }
+
+  test("Duplicated Relation 3-times: replace names in Calls") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("U"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Call("R", Seq(TermArg(Var("b")))),
+            Call("S", Seq(TermArg(Var("c")))),
+            Call("T", Seq(TermArg(Var("d")))),
+          ))
+        )),
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+//        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//          ))
+//        )),
+//        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//          ))
+//        )),
+        Relation(Name("U"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Call("R", Seq(TermArg(IntNum(0)))),
+//            Call("S", Seq(TermArg(Var("c")))),
+//            Call("T", Seq(TermArg(Var("d")))),
+          ))
+        )),
       ))
     performTest(expected, input)
   }

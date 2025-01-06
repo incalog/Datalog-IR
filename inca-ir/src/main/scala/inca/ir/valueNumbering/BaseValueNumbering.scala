@@ -17,7 +17,7 @@ trait BaseValueNumbering extends IRVisitor {
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
-  def printVNResults: Boolean = false
+  def printVNResults: Boolean = true
   def printVNStatistics: Boolean = true
 
   protected case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {
@@ -106,7 +106,7 @@ trait BaseValueNumbering extends IRVisitor {
     currentIteration += 1
     val result = super.visitModule(module)
     printResultsRelations()
-    println(result)
+//    println(result)
     val typechecker = new IRTypechecker{}
     typechecker.checkProgram(Seq(result))
     if (result != module && useFixPointIteration){
@@ -236,19 +236,14 @@ trait BaseValueNumbering extends IRVisitor {
       case Eq(e, vari@Var(RefByName(Name(_))), false) =>
         valueNumberVar(vari, e, dontRemove = true)
 
-      case call@Call(_, _, false) => // TODO
+      case call@Call(_, _, false) =>
         val Call(ref, args, b) = treatBindingsInCall(call)
-        val relation = relations(ref.name.name)
-        val newRef = oldVNTablesRelations.getReplacement(relation).name // in repetition phase it might happen that relation not in congrClass anymore -> used tables of prev iteration
-        callRenamedInRelation ||= ref.name != newRef
-        oldRelation = relations(currentRelationName)
+        val newRef = visitRef(ref)
         Seq(Call(newRef, args, b))
 
       case Call(ref, args, b) =>
         val relation = relations(ref.name.name)
-        val newRef = vnTablesRelations.getReplacement(relation).name
-        callRenamedInRelation ||= ref.name != newRef
-        oldRelation = relations(currentRelationName)
+        val newRef = visitRef(ref)
         Seq(Call(newRef, args, b))
 
       case call@ExtensionalCall(_, _, false) => Seq(treatBindingsInExtensionalCall(call))
@@ -522,6 +517,14 @@ trait BaseValueNumbering extends IRVisitor {
     }
   }
 
+  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = {
+    if (!relations.contains(ref.name.name)) return ref
+    val relation = relations(ref.name.name)
+    val newRef = oldVNTablesRelations.getReplacement(relation).name // in repetition phase it might happen that relation not in congrClass anymore -> used tables of prev iteration
+    callRenamedInRelation ||= ref.name != newRef
+    oldRelation = relations(currentRelationName)
+    RefByName(newRef)
+  }
 
 
 }

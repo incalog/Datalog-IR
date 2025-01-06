@@ -56,7 +56,7 @@ class ValueIds[T]{
     }.transpose
     val header = c.keys.toSeq.map(_.toString)
 
-    Tabulator.format("Terms for Ids: ", header, entries)
+    Tabulator.format("Entries for Ids: ", header, entries)
   }
 
   def printResults(): Unit = {
