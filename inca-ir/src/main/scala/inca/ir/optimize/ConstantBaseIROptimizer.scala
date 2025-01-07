@@ -46,16 +46,22 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
 
   private def relationAlwaysFails(relation: Relation): Boolean =
     getRelationResult(relation).map(_.empty).forall {
-        case Topped.Actual(v) => v
-        case Topped.Top => false
-      }
+      case Topped.Actual(v) => v
+      case Topped.Top => false
+    }
 
-  private def relationAlwaysSucceeds(relation: Relation): Boolean =
+  private def bodyAlwaysFails(body: Body): Boolean =
+    getBodyResult(body).map(_.empty).forall {
+      case Topped.Actual(v) => v
+      case Topped.Top => false
+    }
+
+  /*private def relationAlwaysSucceeds(relation: Relation): Boolean =
     getRelationResult(relation)
       .map(_.empty).forall {
         case Topped.Actual(v) => !v
         case Topped.Top => false
-      }
+      }*/
 
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
     // We could make this more precise, by setting the `empty` flag correctly on edb relations
@@ -90,11 +96,10 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
   }
 
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
-    getBodyResult(body).headOption match
-      case Some(res: ConstantRelation) if res.empty.isTrue =>
-        // Remove failing bodies
-        Seq()
-      case _ => super.visitBody(body)
+    if (bodyAlwaysFails(body))
+      Seq()
+    else
+      super.visitBody(body)
   }
 
   protected def binCompare(lhs: Term, rhs: Term, op: (Value, Value) => Boolean): Boolean =
@@ -116,7 +121,7 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
         ref.target match
           case Some(r: Relation) if relationAlwaysFails(r) => Seq()
           case _ => super.visitAtom(atom)
-      // Only relevant for intra-relation analysis
+      // Only relevant for intra-relation analysis, inter-relational analysis should detect this
       case Call(ref, args, false) =>
         ref.target match
           case Some(r: Relation) if relationAlwaysFails(r) => throw FailedBody
