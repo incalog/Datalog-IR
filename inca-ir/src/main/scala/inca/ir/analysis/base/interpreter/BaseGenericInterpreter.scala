@@ -185,21 +185,24 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     val paramNames = r.params.map(p => p.name.name)
 
-    val relRes = mapJoin(r.bodies.indices, { ix =>
-      evalBody(r, ix, paramNames)
-    })
+    if (r.bodies.isEmpty)
+      relationOps.make(paramNames, Seq())
+    else
+      val relRes = mapJoin(r.bodies.indices, { ix =>
+        evalBody(r, ix, paramNames)
+      })
 
-    /*val supCols = relationOps.columns(supplementaryTable.getTable)
-    val boundCols = paramNames.intersect(supCols)
+      /*val supCols = relationOps.columns(supplementaryTable.getTable)
+      val boundCols = paramNames.intersect(supCols)
 
-    val relName = AllocationSiteAddr.Variable(r.name.name)(true)
-    val emptyRes = relationOps.make(paramNames, Seq())
-    val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
-    val idbRes = relationOps.naturalJoin(idb.readOrElse(relName, emptyRes), boundSup)
-    relRes = mapJoin(Seq(relRes, idbRes), identity)*/
+      val relName = AllocationSiteAddr.Variable(r.name.name)(true)
+      val emptyRes = relationOps.make(paramNames, Seq())
+      val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
+      val idbRes = relationOps.naturalJoin(idb.readOrElse(relName, emptyRes), boundSup)
+      relRes = mapJoin(Seq(relRes, idbRes), identity)*/
 
-    insertIDB(r.name, relRes)
-    relRes
+      insertIDB(r.name, relRes)
+      relRes
   }}
 
   def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {

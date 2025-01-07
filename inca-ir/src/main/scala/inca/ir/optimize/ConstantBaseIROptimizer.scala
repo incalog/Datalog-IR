@@ -6,11 +6,12 @@ import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{ConstantRelation, Value, Top as TopV}
-import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalRelation, Relation, Term}
+import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalRelation, ModuleEntry, Relation, Term}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import inca.ir.extension.aggregate as iragg
+import inca.ir.visitors.BaseIRVisitor
 import inca.util.printStep
 import sturdy.values.Topped
 
@@ -67,6 +68,7 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
         case _ => // nothing
       }
     }
+
     super.analyzeProgram(modules)
 
   // Override the internal method in the children
@@ -113,6 +115,11 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
       case Call(ref, args, true) =>
         ref.target match
           case Some(r: Relation) if relationAlwaysFails(r) => Seq()
+          case _ => super.visitAtom(atom)
+      // Only relevant for intra-relation analysis
+      case Call(ref, args, false) =>
+        ref.target match
+          case Some(r: Relation) if relationAlwaysFails(r) => throw FailedBody
           case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }

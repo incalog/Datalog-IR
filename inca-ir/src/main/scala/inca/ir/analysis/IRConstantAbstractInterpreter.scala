@@ -59,7 +59,7 @@ private class IREqOps extends BaseEqOps
 class IRConstantAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
     val logControlEvents: Boolean = false,
-    override val interRelational: Boolean = true
+    override val interRelational: Boolean = false
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.ConstantAbstractInterpreter
