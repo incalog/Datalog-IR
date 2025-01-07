@@ -6,6 +6,7 @@ import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelati
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps
+import inca.ir.analysis.base.values.Top as TopV
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
@@ -57,7 +58,8 @@ private class IREqOps extends BaseEqOps
 
 class IRConstantAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
-    val logControlEvents: Boolean = false
+    val logControlEvents: Boolean = false,
+    override val interRelational: Boolean = true
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.ConstantAbstractInterpreter
@@ -67,6 +69,8 @@ class IRConstantAbstractInterpreter(
   with DatalogControlObservable:
 
   type RV = ConstantRelation
+
+  override val topV: Value = TopV
 
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 
@@ -120,7 +124,7 @@ class IRConstantAbstractInterpreter(
   // log the control-flow graph
   private lazy val cfgLogger = new ControlEventLogger[Value, RV](this)
 
-  // fix.Fixpoint.DEBUG = false
+  //fix.Fixpoint.DEBUG = true
 
   //(new PrintingControlObserver()(println))
   val graphBuilder: ControlEventGraphBuilder[Int, SupColumn, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)

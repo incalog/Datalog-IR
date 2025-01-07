@@ -18,7 +18,7 @@ trait Printer extends BaseIRPrinter:
     case _ => super.prettyPrint(term)
 
   override def prettyPrint(ty: Type): String = ty match
-    case TSet(ts) => s"TSet[${prettyPrint(ty)}]"
+    case TSet(ts) => s"TSet[${prettyPrint(ts)}]"
     case _ => super.prettyPrint(ty)
 
 

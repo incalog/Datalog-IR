@@ -6,7 +6,7 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
-import inca.ir.analysis.base.values.*
+import inca.ir.analysis.base.values.{TypeValue, *}
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
@@ -33,7 +33,10 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
 
-class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
+class IRTypeAbstractInterpreter(
+     val enableLogging: Boolean = false,
+     override val interRelational: Boolean = true
+  )
   extends BaseGenericInterpreter[TypeValue, Topped[Boolean], TypeRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.TypeAbstractInterpreter
   with irstr.interpreter.TypeAbstractInterpreter
@@ -41,6 +44,8 @@ class IRTypeAbstractInterpreter(val enableLogging: Boolean = false)
   with iragg.interpreter.TypeAbstractInterpreter:
 
   type TRV = TypeRelation
+
+  override val topV: TypeValue = TypeValue.Top
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 

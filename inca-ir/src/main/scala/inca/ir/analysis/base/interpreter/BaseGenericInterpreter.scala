@@ -21,10 +21,8 @@ import sturdy.values.references.AllocationSiteAddr
 
 // TODO:
 //  1. Make Context-Sensitive + Insensitive configurable
-//  2. Concrete Interpreter (data + arith + string + agg?)
-//  3. Abstract Interpreter - Constant Analysis (data + arith + string + agg?)
-//  4. Logger to annotate information (also about failing atoms + bodies + relations)
-//  5. Optimize program
+//  2. Concrete Interpreter (agg)
+//  3. Interval Analysis
 
 enum Adorn:
   case b
@@ -72,6 +70,8 @@ given CCombineFixOut[V, RV, W <: Widening](using Combine[RV, W]): Combine[FixOut
 
 
 trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
+  val interRelational: Boolean = false
+
   // Fixpoint
   def fixpoint: EffectStack ?=> Fixpoint[FixIn, FixOut[V, RV]]
 
@@ -93,6 +93,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   lazy val except: Except[BaseIRException, ExcV, WithJoin]
 
   val joinV: J[V]
+  val topV: V
 
   var edb: Map[String, RV] = Map()
 
@@ -157,9 +158,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     external(p.map(m => m.name.name -> evalModule(m)).toMap)
 
   def entryPoints(m: ir.Module): Iterable[ir.Relation] = //m.relations.values
-    m.relations.values.filter(_.hasHint(MainHint)) match
-      case mainRels if mainRels.nonEmpty => mainRels
-      case _ => m.relations.values
+    if (interRelational)
+      m.relations.values.filter(_.hasHint(MainHint)) match
+        case mainRels if mainRels.nonEmpty => mainRels
+        case _ => m.relations.values
+    else
+      m.relations.values
 
   def evalModule(m: ir.Module)(using Fixed): Map[String, RV] = {
     entryPoints(m).map { rel =>
@@ -181,7 +185,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     val paramNames = r.params.map(p => p.name.name)
 
-    var relRes = mapJoin(r.bodies.indices, { ix =>
+    val relRes = mapJoin(r.bodies.indices, { ix =>
       evalBody(r, ix, paramNames)
     })
 
@@ -310,7 +314,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
       // evaluate the call
       val relRes = r match
-        case rel: ir.Relation => evalRelation(rel, adornment)
+        case rel: ir.Relation if interRelational => evalRelation(rel, adornment)
+        case rel: ir.Relation =>
+          // assume top for all unbound arguments
+          val unboundArgIndices = argMapping.zipWithIndex.filter(_._1.isEmpty).map(_._2)
+          unboundArgIndices.map(params).foldLeft[RV](evalContext) {
+            case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
+          }
         case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
       // add all variables from the call to the context
