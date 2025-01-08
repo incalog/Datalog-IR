@@ -16,6 +16,12 @@ trait IR extends BaseIR:
 object IR extends IR {}
 
 case class Block(at: Seq[Atom], t: Term) extends Term:
+  override def toString: String =
+    if (at.isEmpty)
+      t.toString
+    else
+      s"{${at.mkString(", ")}; $t}"
+
   override def vars: Seq[Var] = t.vars ++ at.flatMap(_.vars)
 
 object Block:

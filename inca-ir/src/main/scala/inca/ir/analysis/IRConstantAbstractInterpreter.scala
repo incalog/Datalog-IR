@@ -70,7 +70,7 @@ class IRConstantAbstractInterpreter(
 
   type RV = ConstantRelation
 
-  override val topV: Value = TopV
+  override lazy val topV: Value = TopV
 
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 

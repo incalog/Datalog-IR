@@ -17,6 +17,7 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/itypes/TypeChecker.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     //val diff = loaded.engine.measure(UnitRelation("main"))
     //println(diff)

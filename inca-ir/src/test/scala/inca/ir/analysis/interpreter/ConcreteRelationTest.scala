@@ -59,29 +59,31 @@ class ConcreteRelationTest extends AnyFunSuiteLike:
   test("Union - Unit Table x Table") {
     val table1 = ConcreteRelation(Seq(), Set(Seq[Int]()))
     val table2 = ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
-    val result = table1.union(table2)
-    assert(result == table1)
+    assertThrows[IllegalArgumentException] {
+      table1.union(table2)
+    }
   }
 
   test("Union - Table x Unit Table") {
     val table1 = ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = ConcreteRelation(Seq(), Set(Seq[Int]()))
-    val result = table1.union(table2)
-    assert(result == table2)
+    assertThrows[IllegalArgumentException] {
+      table1.union(table2)
+    }
   }
 
   test("Union - Table x Table with Columns but no rows") {
     val table1 = ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = ConcreteRelation(Seq("a", "b"), Set(Seq[Int]()))
     val result = table1.union(table2)
-    assert(result == table1)
+    assert(result == ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4), Seq())))
   }
 
   test("Union -  Table with Columns but no rows x Table") {
     val table1 = ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = ConcreteRelation(Seq("a", "b"), Set(Seq[Int]()))
     val result = table2.union(table1)
-    assert(result == table1)
+    assert(result == ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4), Seq())))
   }
 
   test("Union - Table x Table (same columns )") {
@@ -153,22 +155,25 @@ class ConcreteRelationTest extends AnyFunSuiteLike:
   test("Anti Join - Unit Table x Table") {
     val table1 = ConcreteRelation(Seq(), Set(Seq[Int]()))
     val table2 = ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
-    val result = table1.antiJoin(table2)
-    assert(result == table2)
+    assertThrows[IllegalArgumentException] {
+      table1.antiJoin(table2)
+    }
   }
 
   test("Anti Join - Table x Unit Table") {
     val table1 = ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = ConcreteRelation(Seq(), Set(Seq[Int]()))
-    val result = table1.antiJoin(table2)
-    assert(result == table1)
+    assertThrows[IllegalArgumentException] {
+      table1.antiJoin(table2)
+    }
   }
 
   test("Anti Join - Table x Table (no shared columns)") {
     val table1 = ConcreteRelation(Seq("a", "b"), Set(Seq(1, 2), Seq(3, 4)))
     val table2 = ConcreteRelation(Seq("c", "d"), Set(Seq(5, 6), Seq(7, 8)))
-    val result = table1.antiJoin(table2)
-    assert(result.rows.isEmpty)
+    assertThrows[IllegalArgumentException] {
+      table1.antiJoin(table2)
+    }
   }
 
   test("Anti Join - Table x Table (shared columns | same values)") {

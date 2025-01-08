@@ -47,7 +47,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   // Concrete interpretation must always be inter-relational
   override val interRelational: Boolean = true
 
-  override val topV: Value = throw IllegalStateException("Concrete interpreter does not support top value!")
+  override lazy val topV: Value = throw IllegalStateException("Concrete interpreter does not support top value!")
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 

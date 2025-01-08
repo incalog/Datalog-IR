@@ -45,7 +45,7 @@ class IRTypeAbstractInterpreter(
 
   type TRV = TypeRelation
 
-  override val topV: TypeValue = TypeValue.Top
+  override lazy val topV: TypeValue = TypeValue.Top
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 

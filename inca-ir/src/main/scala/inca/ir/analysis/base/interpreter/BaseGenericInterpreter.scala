@@ -93,7 +93,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   lazy val except: Except[BaseIRException, ExcV, WithJoin]
 
   val joinV: J[V]
-  val topV: V
+  lazy val topV: V
 
   var edb: Map[String, RV] = Map()
 

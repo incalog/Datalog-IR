@@ -22,7 +22,9 @@ object ScalaInca extends ForeignLanguage:
   override val name: Name = Name("Scala")
   type Code = String
 
-  def cleanString(name: String): String = name.replace(".", "_").replace("@", "__")
+  def cleanString(name: String): String = name
+    .replace(".", "_")
+    .replace("@", "__")
 
   def cleanName(name: Name): Name = Name(cleanString(name.name))
 

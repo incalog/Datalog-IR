@@ -17,22 +17,31 @@ trait IR extends BaseIR:
 object IR extends IR {}
 
 // TODO: also track State type?
-case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type
+case class TMono(input: Type, output: Type, keys: Seq[Type]) extends Type:
+  override def toString: String =
+    val prefix = s"Mono[$input, $output]"
+    if keys.nonEmpty then prefix + s"@{${keys.mkString(",")}}" else prefix
 
 // TODO: is it necessary to keep args?
 case class NewMono(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term]) extends Term:
+  override def toString: String = s"new ${mono.name}(${args.mkString(", ")})@{${keys.mkString(",")}}"
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 object NewMono:
   def apply(mono: MonoDefinition): NewMono = NewMono(mono, Seq(), Seq())
 
 case class NewMonoFor(mono: MonoDefinition, keys: Seq[Type], args: Seq[Term], uniqueFor: Seq[Term]) extends Term:
+  override def toString: String = s"new ${mono.name}(${args.mkString(", ")}, $uniqueFor)@{${keys.mkString(",")}}"
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
 case class ReadMono(m: Term) extends Term:
+  override def toString: String = s"$m.get"
   override def vars: Seq[Var] = m.vars
 
 case class WriteMono(m: Term, input: Term, keys: Seq[Term]) extends Atom:
+  override def toString: String =
+    val prefix = s"$m += $input"
+    if keys.nonEmpty then prefix + s"@{${keys.mkString(",")}}" else prefix
   override def vars: Seq[Var] = m.vars ++ input.vars ++ keys.flatMap(_.vars)
 
 object WriteMono:

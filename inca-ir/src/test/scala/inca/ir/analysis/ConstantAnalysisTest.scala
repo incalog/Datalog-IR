@@ -20,7 +20,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     //println(mod)
 
-    val abstractInterp = IRConstantAbstractInterpreter()
+    val abstractInterp = IRConstantAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
     //println(abstractInterp.graphBuilder.get.toGraphViz)

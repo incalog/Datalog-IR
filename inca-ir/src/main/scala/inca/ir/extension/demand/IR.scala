@@ -10,6 +10,7 @@ trait IR extends BaseIR:
   override def requires: Language = Language()
 
 case class TDemand(ty: Type) extends Type:
+  override def toString: String = s"TDemand($ty)"
   override def flatten: Seq[Type] = ty.flatten.map(TDemand.apply)
 
 def demandRelationName(rel: Name): Name =

@@ -12,10 +12,12 @@ trait IR extends BaseIR:
   override def requires: Language = Language(arithmetic.IR, demand.IR)
 
 trait ImpurityKind:
+  override def toString: String = name
   val name: String
   val ty: Type
 
 case class Impure(v: Ref[Var.Target], atoms: Seq[Atom], update: Term, kind: ImpurityKind) extends Atom with Var.Target:
+  override def toString: String = s"Impure($v => ${atoms.mkString(", ")}, $update)"
   override def vars: Seq[Var] = Var(v) +: (atoms.flatMap(_.vars) ++ update.vars)
 
 object Impure:
