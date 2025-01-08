@@ -15,6 +15,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("datalog/unittests/Path.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(CompiledDatalogUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledDatalogUnit.optimizationPipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("Path", Seq(?, ?))
@@ -52,6 +53,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(CompiledDatalogUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledDatalogUnit.optimizationPipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeSum", Seq("A", ?))
@@ -65,6 +67,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(CompiledDatalogUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledDatalogUnit.optimizationPipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeMax", Seq("A", ?))
@@ -78,6 +81,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(CompiledDatalogUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledDatalogUnit.optimizationPipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeMin", Seq("A", ?))
@@ -91,6 +95,7 @@ class DatalogAscentExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("datalog/unittests/Aggregate.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(CompiledDatalogUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledDatalogUnit.optimizationPipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("NodeCount", Seq("A", ?))

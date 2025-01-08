@@ -32,3 +32,10 @@ class CompiledHazelUnit(val ir: Module) extends CompiledUnit:
     () => new demand.Lowering {},
     () => new tuple.Lowering {}
   ))
+
+  setOptimizationPipeline(List(
+    //() => new optimize.TypeIROptimizer {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false) {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true) {},
+    () => new optimize.AliasElimination {}
+  ))

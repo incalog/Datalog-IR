@@ -185,10 +185,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     val paramNames = r.params.map(p => p.name.name)
 
-    if (r.bodies.isEmpty)
+    val relRes = if (r.bodies.isEmpty)
       relationOps.make(paramNames, Seq())
     else
-      val relRes = mapJoin(r.bodies.indices, { ix =>
+      mapJoin(r.bodies.indices, { ix =>
         evalBody(r, ix, paramNames)
       })
 
@@ -201,8 +201,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       val idbRes = relationOps.naturalJoin(idb.readOrElse(relName, emptyRes), boundSup)
       relRes = mapJoin(Seq(relRes, idbRes), identity)*/
 
-      insertIDB(r.name, relRes)
-      relRes
+    insertIDB(r.name, relRes)
+    relRes
   }}
 
   def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
@@ -318,7 +318,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       // evaluate the call
       val relRes = r match
         case rel: ir.Relation if interRelational => evalRelation(rel, adornment)
-        case rel: ir.Relation =>
+        // TODO: We could evaluate across module boundaries here. For now we just assume top.
+        case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
           // assume top for all unbound arguments
           val unboundArgIndices = argMapping.zipWithIndex.filter(_._1.isEmpty).map(_._2)
           unboundArgIndices.map(params).foldLeft[RV](evalContext) {
@@ -345,9 +346,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.Eq(lhs, rhs, neg) => evalEq(lhs, rhs, neg)
     case ir.Call(ref, args, neg) => ref.target match
       case Some(r: ir.Relation) => evalCall(r, r.params, args, neg)
+      case Some(r: ir.RequireRelation) => evalCall(r, r.params, args, neg)
       case _ => failure(RefNotFound, s"Can not find call reference $ref")
     case ir.ExtensionalCall(ref, args, neg) => ref.target match
       case Some(r: ir.ExtensionalRelation) => evalCall(r, r.params, args, neg)
+      case Some(r: ir.RequireExtensionalRelation) => evalCall(r, r.params, args, neg)
       case _ => failure(RefNotFound, s"Can not find extensional call reference $ref")
     case _ => failure(UnknownAtom, s"Unknown atom $at")
 

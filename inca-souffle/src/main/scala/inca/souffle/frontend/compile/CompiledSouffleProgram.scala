@@ -1,6 +1,7 @@
 package inca.souffle.frontend.compile
 
 import inca.ir
+import inca.ir.optimize
 import inca.ir.extension.{block, bool, disjunction, module, not}
 import inca.ir.{CompiledProgram, CompiledUnit, ExtensionalRelation, Module, Name, Param, Relation}
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
@@ -20,6 +21,15 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
       () => new disjunction.Lowering {},
       () => new not.Lowering {},
       () => new module.Lowering {}
+    )
+  )
+
+  setOptimizationPipeline(
+    List(
+      //() => new optimize.TypeIROptimizer {},
+      () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false) {},
+      () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true) {},
+      () => new optimize.AliasElimination {}
     )
   )
 

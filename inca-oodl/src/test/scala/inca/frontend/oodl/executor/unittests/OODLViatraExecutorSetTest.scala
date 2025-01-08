@@ -15,6 +15,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/Set.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -27,6 +28,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetAsParam.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -39,6 +41,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetClass.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -51,6 +54,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetClass2.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -63,6 +67,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetClassSimple.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -75,6 +80,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetClassTuple.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -87,6 +93,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -99,6 +106,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension2.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -111,6 +119,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehension3.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -123,6 +132,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehensionTuple.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -135,6 +145,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetComprehensionUnit.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -147,6 +158,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetConst.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -159,6 +171,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetConstVar.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -171,6 +184,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetEmpty.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -210,6 +224,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetFieldDeclare.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -222,6 +237,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetFieldSet.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -234,6 +250,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetIf.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq(0))
     val setAdt = res.entries.head
@@ -246,6 +263,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetIntersect.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -258,6 +276,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetMethodNested.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -270,6 +289,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetRecursive.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -282,6 +302,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetRecursive2.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -294,6 +315,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetTuple.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -306,6 +328,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetUnion.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head
@@ -318,6 +341,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/SetUnionObject.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
     val setAdt = res.entries.head

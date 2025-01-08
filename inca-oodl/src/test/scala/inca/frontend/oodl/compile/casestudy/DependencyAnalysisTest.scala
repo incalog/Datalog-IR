@@ -19,6 +19,7 @@ class DependencyAnalysisTest extends AnyFunSuite:
     //checker.printTypeIO()
     val compiled = CompiledOODLUnit(module, OODLCompilerOptions.default)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     compiled.lowered
 
   val file = Source.fromURI(oodlFile)

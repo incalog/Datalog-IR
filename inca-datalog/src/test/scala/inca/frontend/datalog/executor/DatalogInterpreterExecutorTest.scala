@@ -14,6 +14,7 @@ class DatalogInterpreterExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("datalog/unittests/Path.dl")
     val compiled = exec.compileDatalog(code, options)
     compiled.setPipeline(CompiledDatalogUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledDatalogUnit.optimizationPipeline)
     val loaded = exec.loadDatalog(compiled)
 
     var res = loaded.query("Path", Seq(?, ?))

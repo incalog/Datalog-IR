@@ -60,3 +60,10 @@ object CompiledDatalogUnit:
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {}
   ) // arith + string + data
+
+  val optimizationPipeline: List[() => BaseIRVisitor] = List(
+    //() => new optimize.TypeIROptimizer {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false) {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true) {},
+    () => new optimize.AliasElimination {}
+  )

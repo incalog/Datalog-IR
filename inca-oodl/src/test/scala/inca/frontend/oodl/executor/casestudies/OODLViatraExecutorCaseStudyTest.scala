@@ -20,6 +20,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/DependencyAnalysis.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq(endNode, step))
 
@@ -34,6 +35,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/CfgVisitor.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())
 
@@ -57,6 +59,7 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
     val compiled = dRedExec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = dRedExec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())

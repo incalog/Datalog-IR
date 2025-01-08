@@ -32,6 +32,9 @@ trait CompiledProgram:
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     compiledUnits.foreach(_.setPipeline(pipeline))
 
+  def setOptimizationPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
+    compiledUnits.foreach(_.setOptimizationPipeline(pipeline))
+
   private lazy val moduleGraph: ModuleGraph = ModuleGraph(irModules)
 
   lazy val topologicalOrderedModules: Seq[IRModule] = moduleGraph.topologicalSort

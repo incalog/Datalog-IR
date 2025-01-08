@@ -19,10 +19,13 @@ extension [T](topped: Topped[T])
   def isTrue: Boolean = topped.isActual && topped.get == true
   def isFalse: Boolean = topped.isActual && topped.get == false
 
-trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, Value]:
+trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimizer[Value, ConstantRelation, Value]:
   override def name: String = "Constant Optimizer"
 
-  override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter(logControlEvents = computeControlEvents)
+  override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter(
+    logControlEvents = computeControlEvents,
+    interRelational = interRelational
+  )
 
   override def controlGraph: Option[String] =
     if (computeControlEvents)
@@ -142,8 +145,12 @@ trait ConstantBaseIROptimizer extends BaseIROptimizer[Value, ConstantRelation, V
       super.visitTerm(term)
   }
 
-class IRConstantOptimizer(override val assumeEdbIsNotEmpty: Boolean, override val computeControlEvents: Boolean)
-  extends ConstantBaseIROptimizer
+class IRConstantOptimizer(
+       override val assumeEdbIsNotEmpty: Boolean,
+       override val computeControlEvents: Boolean,
+       override val interRelational: Boolean = false
+  )
+  extends ConstantBaseIROptimizer(interRelational)
   with irarith.optimize.ConstantOptimizer
   with irstr.optimize.ConstantOptimizer
   with irdata.optimize.ConstantOptimizer
