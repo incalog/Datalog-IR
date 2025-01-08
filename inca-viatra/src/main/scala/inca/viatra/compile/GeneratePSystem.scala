@@ -400,7 +400,7 @@ object GeneratePSystem:
         else
           s"$termCode"
 
-      val description = s""""eval(${scalaTerm.code})""""
+      val description = s""""eval(${scalaTerm.toString})""""
       val outName = gensym.fresh("out")
       val pvarName = EVALPREFIX + outName
 
@@ -514,7 +514,7 @@ object GeneratePSystem:
   private def genPParam(param: Param): Code = param.ty match
     case ety: EdbType =>
       val (sort, key) = genEdbTypeKey(ety)
-      s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}", $sort, $key)"""
+      s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}", $sort.toString, $key)"""
     case _ =>
       s"""private val $PARAMPREFIX${param.name}: PParameter = new PParameter("${param.name}")"""
 
