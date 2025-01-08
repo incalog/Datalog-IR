@@ -41,13 +41,18 @@ trait ConstantJoinV extends BaseJoinV:
 class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?]) extends StringOps[Value]:
   override def stringLit(s: String): Value = ConstantStringV(s)
 
-  override def toString(v: Value): Value = ConstantStringV(v.toString)
+  override def toString(v: Value): Value = v match
+    case Top => Top
+    case Bottom => Bottom
+    case _ => ConstantStringV(v.toString)
 
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match
-    case (CStringV(s1), CStringV(s2)) => ConstantStringV(s1 ++ s2)
+    case (ConstantStringV(s1), ConstantStringV(s2)) => ConstantStringV(s1 ++ s2)
     case (Top, _) | (_, Top) => Top
-    case (Bottom, _) | (_, Bottom) => except.throws(AtomFailed("Can not concat bottom"))
-    case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
+    case (Bottom, _) | (_, Bottom) =>
+      except.throws(AtomFailed("Can not concat bottom"))
+    case _ =>
+      failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:

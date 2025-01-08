@@ -33,9 +33,10 @@ trait BaseIRPrinter extends GenericPrinter:
     case Relation(name, params, bodies) =>
       val prefix = s"${prettyPrint(name)}${params.map(prettyPrint).mkString("(", ", ", ")")}"
       if (bodies.isEmpty)
-        s"$prefix = nil" //+ analysisString
+        s"$prefix = nil"
       else
-        s"$prefix ${bodies.map(prettyPrint).mkString("{\n", "\n} or {\n", "\n}")}" //+ analysisString
+        s"$prefix ${bodies.map(prettyPrint).mkString("{\n", "\n} or {\n", "\n}")}"
+    case _ => moduleEntry.toString // fallback
 
   override def prettyPrint(subst: Substitution[?, ?]): String = subst match
     case ExtensionalRelationSubstitution(to, toParams, from, fromParams) =>
@@ -46,6 +47,7 @@ trait BaseIRPrinter extends GenericPrinter:
       val lhs = s"${prettyPrint(to)}(${toParams.map(prettyPrint).mkString(", ")})"
       val rhs = s"${prettyPrint(from)}(${fromParams.map(prettyPrint).mkString(", ")})"
       s"$lhs = $rhs"
+    case _ => subst.toString // fallback
 
   override def prettyPrint(body: Body): String =
     s"${body.atoms.map(prettyPrint).mkString("\t", "\n\t", "")}"
@@ -54,6 +56,7 @@ trait BaseIRPrinter extends GenericPrinter:
     case TermArg(t) => prettyPrint(t)
     case w@WildcardArg() if w.typ.isEmpty => "_"
     case w@WildcardArg() => s"_: ${prettyPrint(w.typ.get)}"
+    case _ => arg.toString // fallback
 
   override def prettyPrint(termTy: TermType): String =
     val TermType(ty, mode) = termTy
@@ -69,6 +72,7 @@ trait BaseIRPrinter extends GenericPrinter:
   override def prettyPrint(ty: Type): String = ty match
     case TAny => "TAny"
     case TNothing => "TNothing"
+    case _ => ty.toString // fallback
 
   override def prettyPrint(param: Param): String =
     val Param(name, ty) = param
@@ -84,6 +88,7 @@ trait BaseIRPrinter extends GenericPrinter:
     case Eq(lhs, rhs, neg) =>
       val op = if (neg) "!=" else "=="
       s"${prettyPrint(lhs)} $op ${prettyPrint(rhs)}"
+    case _ => atom.toString // fallback
 
   override def prettyPrint(term: Term): String = term match
     case Var(ref) => term.typ match
@@ -94,4 +99,5 @@ trait BaseIRPrinter extends GenericPrinter:
         prettyPrint(t)
       else
         s"${prettyPrint(t)}: ${prettyPrint(ty)}"
+    case _ => term.toString // fallback
 
