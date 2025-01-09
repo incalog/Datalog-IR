@@ -19,3 +19,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 # Update sbt
 RUN sbt sbtVersion && \
  	sbt update
+ 	
+# Install and publish sturdy locally
+RUN git clone https://gitlab.rlp.net/plmz/sturdy.scala.git
+RUN cd sturdy.scala && sbt sturdy_core/publishLocal
