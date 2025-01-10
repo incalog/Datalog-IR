@@ -464,7 +464,8 @@ trait BaseValueNumbering extends IRVisitor {
   private var VNs_Bodies = ValueIds[Body]()
 
 
-  protected def normalizeBody(body: Body): Seq[Body] = Seq(body) // TODO normalize order of atoms
+  protected def normalizeBody(body: Body): Seq[Body] = Seq(body) // TODO normalize order of atoms (dont change body)
+  // TODO sort by number of bound parameters 
 
   private def valueNumberBodies(bodyInput: Body): Seq[Body] = {
     val body = normalizeBody(bodyInput) match {

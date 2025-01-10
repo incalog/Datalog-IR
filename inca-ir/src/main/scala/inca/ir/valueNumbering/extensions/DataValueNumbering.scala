@@ -29,7 +29,9 @@ trait DataValueNumbering extends BaseValueNumbering {
         val newArgs: Seq[Arg] = treatBindingsWithIndex(args, args_constr)
         Seq(Deconstruct(newTerm, caseRef.name, newArgs))
       case _ =>
-        vnTables.getConstruct(getIdOf(newTerm)) match {  // TODO search terms with vn of term for construct ?
+        // if term in Deconstruct is not a Construct (because e.g. Construct is not a constant)
+        // search equivalent terms for Construct and use it to value number arguments of Deconstruct
+        vnTables.getConstruct(getIdOf(newTerm)) match {
           case Some(Construct(caseRef, args_constr)) =>
             val newArgs: Seq[Arg] = treatBindingsWithIndex(args, args_constr)
             Seq(Deconstruct(newTerm, caseRef.name, newArgs))
@@ -38,23 +40,6 @@ trait DataValueNumbering extends BaseValueNumbering {
             Seq(Deconstruct(newTerm, caseRef.name, newArgs))
         }
     }
-
-
-//    newTerm match {
-//      case Construct(caseRef, args_constr) =>
-//        val newArgs: Seq[Arg] = args.zipWithIndex.map {
-//          case (TermArg(vari@Var(_)), idx) if vari.mode.isBinding =>
-//            val newArg = treatBinding(vari, args_constr(idx))
-//            TermArg(newArg)
-//          case (arg,_) => visitArg(arg).head
-//        }
-//        Seq(Deconstruct(newTerm, caseRef.name, newArgs))
-//
-//      case _ => {
-//        val newArgs: Seq[Arg] = args.flatMap(visitArg)
-//        Seq(Deconstruct(newTerm, caseRef.name, newArgs))
-//      }
-//    }
 
   }
 

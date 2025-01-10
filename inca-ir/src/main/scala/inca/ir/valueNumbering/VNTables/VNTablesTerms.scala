@@ -66,11 +66,11 @@ trait VNTablesTerms extends VNTablesTrait[Term] {
     return isValid
   }
 
-  // TODO 
-  def getConstruct(id: ValueId): Option[Term] = this.valueNumbers.getAllWithId(id).find {
+  
+  def getConstruct(id: ValueId): Option[Construct] = this.valueNumbers.getAllWithId(id).find {
     case _: Construct => true
     case _ => false
-  }
+  }.asInstanceOf[Option[Construct]]
 
 }
 

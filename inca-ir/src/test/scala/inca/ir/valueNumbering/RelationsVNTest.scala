@@ -502,7 +502,7 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
             Eq(Var("b"), IntNum(1)),
           ))
         )),
-        Relation(Name("S"), Seq(Param("b", TInt)), Seq(
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
           Body(Seq(
             Eq(Var("a"), IntNum(0)),
             Eq(Var("c"), IntNum(1)),
