@@ -356,6 +356,78 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Duplicated Relation 3-times: replace names in Calls 2") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("U"), Seq(Param("a", TInt),Param("b", TInt),Param("c", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("a")))),
+            Call("S", Seq(TermArg(Var("b")))),
+            Call("T", Seq(TermArg(Var("c")))),
+          ))
+        )),
+        Relation(Name("V"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("res"), IntNum(1)),
+            Call("U", Seq(TermArg(Var("a")),TermArg(Var("b")),TermArg(Var("c")))),
+            Call("R", Seq(TermArg(Var("a")))),
+            Call("S", Seq(TermArg(Var("b")))),
+            Call("T", Seq(TermArg(Var("c")))),
+          ))
+        )),
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+        //          Body(Seq(
+        //            Eq(Var("a"), IntNum(0)),
+        //          ))
+        //        )),
+        //        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+        //          Body(Seq(
+        //            Eq(Var("a"), IntNum(0)),
+        //          ))
+        //        )),
+        Relation(Name("U"), Seq(Param("a", TInt),Param("b", TInt),Param("c", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("a")))),
+            Call("R", Seq(TermArg(Var("b")))),
+            Call("R", Seq(TermArg(Var("c")))),
+          ))
+        )),
+        Relation(Name("V"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("res"), IntNum(1)),
+            Call("U", Seq(TermArg(IntNum(0)),TermArg(IntNum(0)),TermArg(IntNum(0)))),
+            Call("R", Seq(TermArg(IntNum(0)))),
+//            Call("R", Seq(TermArg(Var("b")))),
+//            Call("R", Seq(TermArg(Var("c")))),
+          ))
+        )),
+      ))
+    performTest(expected, input)
+  }
+
   // should not be a problem <- because of typesystem every variable needs to be bound and var with different type cannot be bound in the same way
   test("Duplicated Relation: same relation but different types") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
@@ -391,7 +463,7 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
-  test("Duplicated Relation (alpha equivalence)") {
+  test("Duplicated Relation (alpha equivalence: parameters)") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("R"), Seq(Param("a", TInt)), Seq(
@@ -410,6 +482,39 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
         Relation(Name("R"), Seq(Param("a", TInt)), Seq(
           Body(Seq(
             Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+        //          Body(Seq(
+        //            Eq(Var("a"), IntNum(0)),
+        //          ))
+        //        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Duplicated Relation (alpha equivalence: other variables)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Eq(Var("b"), IntNum(1)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("b", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Eq(Var("c"), IntNum(1)),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Eq(Var("b"), IntNum(1)),
           ))
         )),
         //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(

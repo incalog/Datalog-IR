@@ -95,6 +95,9 @@ class BodiesVNTest extends ValueNumberingTestAbstract(){
         Relation(Name("S"), Seq(Param("result", TInt)), Seq(
           Body(Seq(
             Eq(Var("result"), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var("result"), IntNum(2))
           ))
         ))
       ))
@@ -114,6 +117,9 @@ class BodiesVNTest extends ValueNumberingTestAbstract(){
         Relation(Name("S"), Seq(Param("result", TInt)), Seq(
           Body(Seq(
             Eq(Var("result"), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var("result"), IntNum(2))
           ))
         ))
       ))
