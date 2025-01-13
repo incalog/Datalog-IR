@@ -44,7 +44,8 @@ trait CongruenceClassTerms extends CongruenceClass[Term] {
 
   def changeDefTermIfNecessary(t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
     if (isConstTerm(t)) definingTerm = t
-    else if (updateDefTermIfNecessary && definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var]) // resembles case that CongruenceClass was initially created for Var bound in Call
+    // resembles case that CongruenceClass was initially created for Var bound in Call
+    else if (updateDefTermIfNecessary && definingTerm.isInstanceOf[Var] && !t.isInstanceOf[Var])
       definingTerm = t
   }
 

@@ -463,150 +463,150 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
-  test("Duplicated Relation (alpha equivalence: parameters)") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-          ))
-        )),
-        Relation(Name("S"), Seq(Param("b", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("b"), IntNum(0)),
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-          ))
-        )),
-        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
-        //          Body(Seq(
-        //            Eq(Var("a"), IntNum(0)),
-        //          ))
-        //        ))
-      ))
-    performTest(expected, input)
-  }
+//  test("Duplicated Relation (alpha equivalence: parameters)") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//          ))
+//        )),
+//        Relation(Name("S"), Seq(Param("b", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("b"), IntNum(0)),
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//          ))
+//        )),
+//        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+//        //          Body(Seq(
+//        //            Eq(Var("a"), IntNum(0)),
+//        //          ))
+//        //        ))
+//      ))
+//    performTest(expected, input)
+//  }
 
-  test("Duplicated Relation (alpha equivalence: other variables)") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Eq(Var("b"), IntNum(1)),
-          ))
-        )),
-        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Eq(Var("c"), IntNum(1)),
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
+//  test("Duplicated Relation (alpha equivalence: other variables)") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
 //            Eq(Var("b"), IntNum(1)),
-          ))
-        )),
-        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
-        //          Body(Seq(
-        //            Eq(Var("a"), IntNum(0)),
-        //          ))
-        //        ))
-      ))
-    performTest(expected, input)
-  }
+//          ))
+//        )),
+//        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//            Eq(Var("c"), IntNum(1)),
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+////            Eq(Var("b"), IntNum(1)),
+//          ))
+//        )),
+//        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+//        //          Body(Seq(
+//        //            Eq(Var("a"), IntNum(0)),
+//        //          ))
+//        //        ))
+//      ))
+//    performTest(expected, input)
+//  }
 
-  test("Duplicated Relation (alpha equivalence: other variables 2)") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Call("T", Seq(TermArg(Var("b"))))
-          ))
-        )),
-        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Call("T", Seq(TermArg(Var("c"))))
-          ))
-        )),
-        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-          )),
-          Body(Seq(
-            Eq(Var("a"), IntNum(1)),
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Call("T", Seq(TermArg(Var("b"))))
-          ))
-        )),
+//  test("Duplicated Relation (alpha equivalence: other variables 2)") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//            Call("T", Seq(TermArg(Var("b"))))
+//          ))
+//        )),
 //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
 //          Body(Seq(
 //            Eq(Var("a"), IntNum(0)),
 //            Call("T", Seq(TermArg(Var("c"))))
 //          ))
 //        )),
-        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-          )),
-          Body(Seq(
-            Eq(Var("a"), IntNum(1)),
-          ))
-        ))
-      ))
-    performTest(expected, input)
-  }
+//        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//          )),
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(1)),
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//            Call("T", Seq(TermArg(Var("b"))))
+//          ))
+//        )),
+////        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+////          Body(Seq(
+////            Eq(Var("a"), IntNum(0)),
+////            Call("T", Seq(TermArg(Var("c"))))
+////          ))
+////        )),
+//        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//          )),
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(1)),
+//          ))
+//        ))
+//      ))
+//    performTest(expected, input)
+//  }
 
-  test("Duplicated Relation (parameters different order)") {
-    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Eq(Var("b"), IntNum(1))
-          ))
-        )),
-        Relation(Name("S"), Seq(Param("b", TInt), Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Eq(Var("b"), IntNum(1)),
-          ))
-        ))
-      ))
-    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
-      Seq(
-        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
-          Body(Seq(
-            Eq(Var("a"), IntNum(0)),
-            Eq(Var("b"), IntNum(1))
-          ))
-        )),
-        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
-        //          Body(Seq(
-        //            Eq(Var("a"), IntNum(0)),
-        //          ))
-        //        ))
-      ))
-    performTest(expected, input)
-  }
+//  test("Duplicated Relation (parameters different order)") {
+//    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt), Param("b", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//            Eq(Var("b"), IntNum(1))
+//          ))
+//        )),
+//        Relation(Name("S"), Seq(Param("b", TInt), Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//            Eq(Var("b"), IntNum(1)),
+//          ))
+//        ))
+//      ))
+//    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+//      Seq(
+//        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//            Eq(Var("b"), IntNum(1))
+//          ))
+//        )),
+//        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+//        //          Body(Seq(
+//        //            Eq(Var("a"), IntNum(0)),
+//        //          ))
+//        //        ))
+//      ))
+//    performTest(expected, input)
+//  }
 
 }

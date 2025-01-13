@@ -344,10 +344,10 @@ trait BaseValueNumberingTerms extends IRVisitor {
   }
 
 
-  /** treats equality of a term passed as am argument (to for example a Call) and another term
+  /** treats equality of a term passed as an argument (to for example a Call) and another term
    *
-   * Makes sure given argument term and all terms with its value number get same value number as the other given term.
-   * Also, makes sure corresponding congruence class is updated if necessary.
+   * Makes sure given argument term and all terms with its value number get the same value number as the other given term.
+   * Also, makes sure that the corresponding congruence class is updated if necessary.
    * Returns replacement for given argument term.
    *
    * @param arg [[Term]] to give value number
