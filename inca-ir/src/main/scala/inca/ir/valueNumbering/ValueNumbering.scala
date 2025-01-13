@@ -1,6 +1,6 @@
 package inca.ir.valueNumbering
 
-import inca.ir.valueNumbering.BaseValueNumbering
+import inca.ir.valueNumbering.BaseVN.BaseValueNumbering
 import inca.ir.valueNumbering.extensions.*
 
 /*************************************************************************

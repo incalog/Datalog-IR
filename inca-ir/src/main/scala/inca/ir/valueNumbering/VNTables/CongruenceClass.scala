@@ -13,7 +13,7 @@ trait CongruenceClass[T] {
   override def toString: String =
     s"Congruence Class: Id = $valueId, leader = $leader"
 
-  def changeLeaderIfNecessary(t: T): Boolean 
+  def changeLeaderIfNecessary(t: T): Boolean = true
   
   def updateCongrClassIfNecessary(t: T): Boolean = changeLeaderIfNecessary(t)
   
@@ -59,11 +59,7 @@ trait CongruenceClassTerms extends CongruenceClass[Term] {
 }
 
 
-case class CongruenceClassRelations(valueId: ValueId, var leader: Relation) extends CongruenceClass[Relation] {
-
-  override def changeLeaderIfNecessary(t: Relation): Boolean = true
-
-}
+case class CongruenceClassRelations(valueId: ValueId, var leader: Relation) extends CongruenceClass[Relation]
 
 
 

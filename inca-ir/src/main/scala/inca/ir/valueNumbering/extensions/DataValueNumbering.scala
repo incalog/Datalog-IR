@@ -1,8 +1,8 @@
 package inca.ir.valueNumbering.extensions
 
-import inca.ir.valueNumbering.BaseValueNumbering
 import inca.ir.{Arg, Atom, Ref, RefByName, Term, TermArg, Var}
 import inca.ir.extension.data.{CaseDefinition, CaseDefinitionReference, Construct, Deconstruct}
+import inca.ir.valueNumbering.BaseVN.BaseValueNumbering
 
 trait DataValueNumbering extends BaseValueNumbering {
 

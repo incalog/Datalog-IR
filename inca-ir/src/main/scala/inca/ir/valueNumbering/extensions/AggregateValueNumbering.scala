@@ -1,8 +1,8 @@
 package inca.ir.valueNumbering.extensions
 
-import inca.ir.valueNumbering.BaseValueNumbering
 import inca.ir.{Arg, Atom, Ref, RefByName, Relation, Var}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg, AggregationOperator}
+import inca.ir.valueNumbering.BaseVN.BaseValueNumbering
 
 trait AggregateValueNumbering extends BaseValueNumbering {
 

@@ -2821,6 +2821,56 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("Negated Calls") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Eq(Var("b"), IntNum(1)),
+            Call("S", Seq(TermArg(Var("a")),TermArg(Var("b"))), true),
+            Call("S", Seq(TermArg(Var("a")),TermArg(Var("b")))),
+            Call("S", Seq(TermArg(Var("c")),TermArg(Var("c"))), true),
+            Eq(Var("c"), IntNum(2)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt),Param("b", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("b"), IntNum(1)),
+            Eq(Var("a"), IntNum(0)),
+          )),
+          Body(Seq(
+            Eq(Var("a"), IntNum(1)),
+            Eq(Var("b"), IntNum(0)),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+//            Eq(Var("b"), IntNum(1)),
+            Call("S", Seq(TermArg(Var("a")),TermArg(IntNum(1))), true),
+            Call("S", Seq(TermArg(Var("a")),TermArg(IntNum(1)))),
+            Call("S", Seq(TermArg(IntNum(2)),TermArg(IntNum(2))), true),
+//            Eq(Var("c"), IntNum(2)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt),Param("b", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("b"), IntNum(1)),
+            Eq(Var("a"), IntNum(0)),
+          )),
+          Body(Seq(
+            Eq(Var("a"), IntNum(1)),
+            Eq(Var("b"), IntNum(0)),
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
   test("precision double") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(

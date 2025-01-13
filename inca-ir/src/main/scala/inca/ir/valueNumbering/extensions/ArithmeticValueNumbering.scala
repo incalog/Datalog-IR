@@ -1,10 +1,9 @@
 package inca.ir.valueNumbering.extensions
 
-import inca.ir.valueNumbering.BaseValueNumbering
 import inca.ir.{Atom, Term, TermType, Var}
 import inca.ir.extension.arithmetic.*
 import inca.ir.typing.Mode.Bound
-
+import inca.ir.valueNumbering.BaseVN.BaseValueNumbering
 
 
 trait ArithmeticValueNumbering extends BaseValueNumbering {

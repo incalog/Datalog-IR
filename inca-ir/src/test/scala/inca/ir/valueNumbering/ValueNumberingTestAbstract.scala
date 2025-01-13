@@ -4,6 +4,7 @@ import inca.ir.Module as IRModule
 import org.scalatest.funsuite.AnyFunSuite
 import inca.ir.*
 import inca.ir.typing.Typechecker
+import inca.ir.valueNumbering.BaseVN.BaseValueNumbering
 
 abstract class ValueNumberingTestAbstract extends AnyFunSuite{
 
@@ -11,7 +12,8 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   case class ConfigVN(normalizeDoubles: Boolean = false,
                       useDefiningTerm: Boolean = false,
                       useFixPointIteration: Boolean = true,
-                      printVNResults: Boolean = true
+                      printVNResults: Boolean = true,
+                      printVNStatistics: Boolean = true
                      )
   
   val config: ConfigVN = ConfigVN()
