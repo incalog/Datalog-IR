@@ -17,8 +17,8 @@ trait BaseValueNumbering extends IRVisitor {
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
-  def printVNResults: Boolean = true
-  def printVNStatistics: Boolean = true
+  def printVNResults: Boolean = false
+  def printVNStatistics: Boolean = false
 
   protected case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {
     override val isConstTerm: Term => Boolean = isConst
@@ -58,7 +58,7 @@ trait BaseValueNumbering extends IRVisitor {
 
   def printResults(): Unit = {
     if (!printVNResults) return
-    println(s"Results from Relation $currentRelationName body $currentBodyIndex")
+    println(s"Results from Relation ${oldRelation.name.name} body $currentBodyIndex")
     vnTables.printResults()
   }
 
@@ -102,11 +102,10 @@ trait BaseValueNumbering extends IRVisitor {
   @tailrec
   private def repetitionPhase(module: Module): Module = {
     oldVNTablesRelations = vnTablesRelations
-    vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]()) // TODO
+    vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]())
     currentIteration += 1
     val result = super.visitModule(module)
     printResultsRelations()
-//    println(result)
     val typechecker = new IRTypechecker{}
     typechecker.checkProgram(Seq(result))
     if (result != module && useFixPointIteration){
@@ -118,12 +117,15 @@ trait BaseValueNumbering extends IRVisitor {
   }
 
   protected def updateCongrClassIfNecessary(vn: ValueId, t: Term, updateDefTermIfNecessary: Boolean = false): Unit = {
-    val isValid = vnTables.updateCongrClassIfNecessary(vn, t)
-    validBody = validBody && isValid
+    validBody &= vnTables.updateCongrClassIfNecessary(vn, t, updateDefTermIfNecessary)
   }
 
-  private def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Unit = {
+  private def updateValueNumbersAndCongrClassesTerms(fromId: ValueId, toId: ValueId): Unit = {
     validBody &= vnTables.updateValueNumbersAndCongrClasses(fromId, toId)
+  }
+
+  private def updateValueNumbersAndCongrClassesTerms(t: Term, toId: ValueId): Unit = {
+    validBody &= vnTables.updateValueNumbersAndCongrClasses(t, toId)
   }
 
   protected def getIdOf(t: Term): ValueId = vnTables.getIdOf(t)
@@ -166,22 +168,19 @@ trait BaseValueNumbering extends IRVisitor {
   }
   
 
-  private def saveResultsFromRelation(oldRelation: Relation, newRelation: Relation): Unit = {
+  private def saveResultsInRelation(newRelation: Relation): Unit = {
     newRelation.storeAnalysisResult(ParamVNResults(getResultsFromRelation(oldRelation)))
-    relations = relations + (currentRelationName.name -> newRelation)
+    relations = relations + (oldRelation.name.name -> newRelation)
     joinParams(newRelation)
   }
 
   override def visitRelation(relation: Relation): Seq[Relation] = {
-    currentRelationName = relation.name
+    oldRelation = relation
     currentRelationParams = relation.params.map(_.name)
     currentBodyIndex = -1
 
-    callRenamedInRelation = false
-    oldRelation = relation // TODO if this kept then saving parts above not necessary
-
     val newRelation = super.visitRelation(relation).head
-    saveResultsFromRelation(relation, newRelation)
+    saveResultsInRelation(newRelation)
     VNs_Bodies = ValueIds[Body]()
 
     valueNumberRelations(newRelation)
@@ -206,7 +205,7 @@ trait BaseValueNumbering extends IRVisitor {
   override def visitBody(body: Body): Seq[Body] = {
     currentBodyIndex += 1
     setTables(body)
-    validBody = true // body is invalid if found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
+    validBody = true // body is invalid if for example found to contain Eq(lhs,rhs) with lhs and rhs constant and lhs != rhs
 
     val newBody = super.visitBody(body).head
 
@@ -231,7 +230,7 @@ trait BaseValueNumbering extends IRVisitor {
       case Eq(e, vari@Var(_), false) if vari.mode.isBinding =>
         valueNumberVar(vari, e, dontRemove = isParam(vari))
       case Eq(vari@Var(_), e, false) =>
-        // not removed (unless trivial) since non binding Eq is comparison that might reduce number of solutions; but remember equality
+        // not removed (unless trivial) since non-binding Eq is comparison that might reduce number of solutions; but remember equality
         valueNumberVar(vari, e, dontRemove = true)
       case Eq(e, vari@Var(RefByName(Name(_))), false) =>
         valueNumberVar(vari, e, dontRemove = true)
@@ -256,7 +255,7 @@ trait BaseValueNumbering extends IRVisitor {
 
   /** replaces term with Var if possible */
   override def visitTerm(term: Term): Seq[Term] = {
-    if (isConst(term)) return Seq(term) // dont replace constant terms and no need to normalize them
+    if (isConst(term)) return Seq(term) // don't replace constant terms and no need to normalize them
     if (vnTables.isCongrClassContained(getIdOf(term)) && isAllowedToReplace(term)) {
       return Seq(vnTables.getReplacement(term))
     }
@@ -269,7 +268,7 @@ trait BaseValueNumbering extends IRVisitor {
 
     if (newTermId != termId){
       // ids not equal but terms are equal because newTerm was obtained by rewriting term -> should have same id
-      validBody &= vnTables.updateValueNumbersAndCongrClasses(termId, newTermId)
+      updateValueNumbersAndCongrClassesTerms(termId, newTermId)
     }
 
     val normalizedTerm = normalize(newTerm)
@@ -286,7 +285,7 @@ trait BaseValueNumbering extends IRVisitor {
         updateCongrClassIfNecessary(newTermId, normalizedTerm)
       }
       if (newTermId != normId) {
-        validBody &= vnTables.updateValueNumbersAndCongrClasses(newTermId, normId)
+        updateValueNumbersAndCongrClassesTerms(newTermId, normId)
       }
       if (vnTables.isCongrClassContained(normId) && isAllowedToReplace(newTerm)) {
           return Seq(vnTables.getReplacement(normalizedTerm))
@@ -313,11 +312,11 @@ trait BaseValueNumbering extends IRVisitor {
     }
 
     val termId: ValueId = getIdOf(newTerm)
-    validBody &= vnTables.updateValueNumbersAndCongrClasses(newVari, termId)
+    updateValueNumbersAndCongrClassesTerms(newVari, termId)
 
     if (vnTables.isCongrClassContained(termId)) {
       // remove "Assignment" or replace term
-      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that vari already computed/bound
+      if (dontRemove || phase == Phase.repetition) { // since only in 1st pass known that variable already computed/bound
         generateEqIfNecessary(newVari, newTerm)
       }
       else {
@@ -396,7 +395,7 @@ trait BaseValueNumbering extends IRVisitor {
       vnTables.addCongrClass(CongrClass(vn, newArg, term))
       updateCongrClassIfNecessary(vn, term)
     }
-    validBody &= vnTables.updateValueNumbersAndCongrClasses(newArg, vn)
+    updateValueNumbersAndCongrClassesTerms(newArg, vn)
     if (!isParam(newArg) && isAllowedToReplace(newArg)) return vnTables.getReplacement(newArg)
     else return newArg
   }
@@ -421,7 +420,7 @@ trait BaseValueNumbering extends IRVisitor {
     val id = getIdOf(newTerm)
     // in the 1st pass: binding var becomes leader of its new congr class;
     // in 2nd pass: vari was replaced with leader -> newTerm that was leader becomes new leader
-    vnTables.addCongrClass(CongrClass(id, newTerm, newTerm)) // TODO now congrClass for non variable term
+    vnTables.addCongrClass(CongrClass(id, newTerm, newTerm))
     newTerm
   }
 
@@ -463,9 +462,7 @@ trait BaseValueNumbering extends IRVisitor {
 
   private var VNs_Bodies = ValueIds[Body]()
 
-
-  protected def normalizeBody(body: Body): Seq[Body] = Seq(body) // TODO normalize order of atoms (dont change body)
-  // TODO sort by number of bound parameters 
+  protected def normalizeBody(body: Body): Seq[Body] = Seq(body) // TODO
 
   private def valueNumberBodies(bodyInput: Body): Seq[Body] = {
     val body = normalizeBody(bodyInput) match {
@@ -486,11 +483,10 @@ trait BaseValueNumbering extends IRVisitor {
 
   // +++ VN of Relations +++
 
-  private var vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]()) // TODO
+  private var vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]())
 
   private var oldVNTablesRelations: VNTablesRelations = vnTablesRelations // saved for replacement in repetition phase
 
-  private var callRenamedInRelation: Boolean = false
   private var oldRelation: Relation = _
 
   protected def normalizeRelation(relation: Relation): Seq[Relation] = Seq(relation) // TODO
@@ -501,10 +497,10 @@ trait BaseValueNumbering extends IRVisitor {
       case _ => return Seq()
     }
 
-    if (callRenamedInRelation && vnTablesRelations.isValNumContained(oldRelation)) {
+    // make sure that rewritten relation and old relation are equal (i.e. get same value number)
+    if (vnTablesRelations.isValNumContained(oldRelation)) {
       val oldVN = vnTablesRelations.getIdOf(oldRelation)
       vnTablesRelations.updateValueNumbersAndCongrClasses(relation,oldVN)
-
     }
 
     val vn: ValueId = vnTablesRelations.getIdOf(relation)
@@ -518,13 +514,16 @@ trait BaseValueNumbering extends IRVisitor {
     }
   }
 
-  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = {
-    if (!relations.contains(ref.name.name)) return ref
-    val relation = relations(ref.name.name)
-    val newRef = oldVNTablesRelations.getReplacement(relation).name // in repetition phase it might happen that relation not in congrClass anymore -> used tables of prev iteration
-    callRenamedInRelation ||= ref.name != newRef
-    oldRelation = relations(currentRelationName)
-    RefByName(newRef)
+
+  override def visitRef[Target](ref: Ref[Target]): Ref[Target] = ref.target match {
+    case Some(rel : Relation) if relations.contains(ref.name.name) =>
+      val relation = relations(ref.name.name)
+      // in repetition phase it might happen that relation not in congrClass anymore -> used tables of previous iteration
+      val newName = oldVNTablesRelations.getReplacement(relation).name
+      val newRef = RefByName[Relation](newName)
+      newRef.target = Some(rel)
+      newRef.asInstanceOf[Ref[Target]]
+    case _ => ref
   }
 
 

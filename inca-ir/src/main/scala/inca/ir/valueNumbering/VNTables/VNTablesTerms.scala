@@ -39,6 +39,8 @@ trait VNTablesTerms extends VNTablesTrait[Term] {
 
   def getDefiningTerm(id: ValueId): Term = getCongrClassOf(id).definingTerm
 
+  def updateCongrClassIfNecessary(vn: ValueId, t: Term, updateDefTermIfNecessary: Boolean = false): Boolean =
+    getCongrClassOf(vn).updateCongrClassIfNecessary(t, updateDefTermIfNecessary)
 
   override def updateValueNumbersAndCongrClasses(fromId: ValueId, toId: ValueId): Boolean = {
     var isValid = true

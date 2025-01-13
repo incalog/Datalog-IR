@@ -7,8 +7,9 @@ import inca.ir.{Body, Param, Relation, Term, string2name}
 class VNTablesRelations(override val congrClasses: CongrClassesTable[Relation], override val valueNumbers: ValueIds[Relation])
   extends VNTablesTrait[Relation](congrClasses, valueNumbers){
 
-  // name of relation has to be irrelevant for finding duplicate but has to be saved for replacement
-  private def getLookupRelation(relation: Relation): Relation = Relation("Dummy", relation.params, relation.bodies) // TODO
+  // name of relation has to be irrelevant for finding duplicate but has to be saved for replacement;
+  // name "Dummy" is only used internally and not propagated out of this class
+  private def getLookupRelation(relation: Relation): Relation = Relation("Dummy", relation.params, relation.bodies)
 
   override val newCongrClass: (ValueId, Relation) => CongruenceClass[Relation] = {
     (valueId, relation) => CongruenceClassRelations(valueId, relation)
@@ -28,8 +29,6 @@ class VNTablesRelations(override val congrClasses: CongrClassesTable[Relation], 
     val lookupRelation = getLookupRelation(relation)
     super.updateValNum(lookupRelation,vn)
   }
-
-  def addCongrClass(vn: ValueId, leader: Relation): Unit = addCongrClass(newCongrClass(vn, leader))
 
 }
 

@@ -61,7 +61,7 @@ trait CongruenceClassTerms extends CongruenceClass[Term] {
 
 case class CongruenceClassRelations(valueId: ValueId, var leader: Relation) extends CongruenceClass[Relation] {
 
-  override def changeLeaderIfNecessary(t: Relation): Boolean = false // TODO if never necessary move function to terms
+  override def changeLeaderIfNecessary(t: Relation): Boolean = true
 
 }
 

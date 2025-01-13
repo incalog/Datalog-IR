@@ -514,7 +514,7 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
         Relation(Name("R"), Seq(Param("a", TInt)), Seq(
           Body(Seq(
             Eq(Var("a"), IntNum(0)),
-            Eq(Var("b"), IntNum(1)),
+//            Eq(Var("b"), IntNum(1)),
           ))
         )),
         //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
@@ -522,6 +522,56 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
         //            Eq(Var("a"), IntNum(0)),
         //          ))
         //        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Duplicated Relation (alpha equivalence: other variables 2)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Call("T", Seq(TermArg(Var("b"))))
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Call("T", Seq(TermArg(Var("c"))))
+          ))
+        )),
+        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          )),
+          Body(Seq(
+            Eq(Var("a"), IntNum(1)),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+            Call("T", Seq(TermArg(Var("b"))))
+          ))
+        )),
+//        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//            Call("T", Seq(TermArg(Var("c"))))
+//          ))
+//        )),
+        Relation(Name("T"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          )),
+          Body(Seq(
+            Eq(Var("a"), IntNum(1)),
+          ))
+        ))
       ))
     performTest(expected, input)
   }

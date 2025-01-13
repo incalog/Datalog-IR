@@ -26,9 +26,10 @@ trait VNTablesTrait[T] (protected val congrClasses: CongrClassesTable[T], protec
   def updateValNum(t: T, vn: ValueId): Unit = valueNumbers.update(t, vn)
   
   def addCongrClass(congrClass: CongruenceClass[T]): Unit = congrClasses.update(congrClass.valueId, congrClass)
+
+  def addCongrClass(vn: ValueId, leader: T): Unit = addCongrClass(newCongrClass(vn, leader))
   
-  def updateCongrClassIfNecessary(vn: ValueId, t: T, updateDefTermIfNecessary: Boolean = false): Boolean = 
-    getCongrClassOf(vn).updateCongrClassIfNecessary(t)
+  def updateCongrClassIfNecessary(vn: ValueId, t: T): Boolean = getCongrClassOf(vn).updateCongrClassIfNecessary(t)
 
   def getReplacement(t: T): T = {
     if (!congrClasses.contains(getIdOf(t))) return t
