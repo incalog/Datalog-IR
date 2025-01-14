@@ -34,16 +34,16 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     assertResult(120)(res.entries.head)
   }
 
-  // Too slow using top-down evaluation
-  /*test("Fib") {
+  // Too slow using top-down evaluation for bigger inputs
+  test("Fib") {
     val code = FileUtil.readFileFromResource("functional/unittests/Fib.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("main", Seq(7))
-    assertResult(13)(res.entries.head)
-  }*/
+    val res = loaded.execute("main", Seq(4))
+    assertResult(3)(res.entries.head)
+  }
 
   test("Inc") {
     val code = FileUtil.readFileFromResource("functional/unittests/Inc.finca")

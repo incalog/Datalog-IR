@@ -53,7 +53,6 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
 
   override lazy val boolOps: BooleanOps[Boolean] = ConcreteBooleanOps
 
-  // TODO: Which kind of ExcV should we use here?
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 
   given BooleanOps[Boolean] = boolOps
@@ -86,7 +85,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   override val relationOps: RelationOps[Value, Boolean, CRV] = new ConcreteRelationOps[Value]
 
 
-  fix.Fixpoint.DEBUG = false
+  fix.Fixpoint.DEBUG = true
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
     /*val fixPt =
