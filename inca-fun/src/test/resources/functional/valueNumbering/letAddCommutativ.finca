@@ -1,6 +1,0 @@
-module LetAddition
-@main def main(z: Int): Int =
-  let a = 10 + z in
-    let b = z + 10 in
-      let c = z + 9 + 1 in
-        a + b + c

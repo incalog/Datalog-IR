@@ -1,8 +1,0 @@
-module IfSimple
-@main def main(): Int =
-  let x = 2 + 5 in
-    let y = 5 + 2 in
-        if (y > 0 && x > 0)
-          x
-        else
-          x * -1
