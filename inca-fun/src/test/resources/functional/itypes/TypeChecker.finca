@@ -7,22 +7,22 @@ data Ctx = Empty() | Bind(String, Type, Ctx)
 
 data Option[T] = None() | Some(T)
 
-def generateProgram(i: Int, end: Int): Exp =
+/*def generateProgram(i: Int, end: Int): Exp =
     if (i < end)
         Let("x" + toString(i), Num(i), generateProgram(i+1, end))
     else
         Add(Var("x0"), Var("x" + toString(end-1)))
 
-def program: Exp = generateProgram(0, 500)
+def program: Exp = generateProgram(0, 500)*/
 
-/*def program: Exp = Lam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
+def program: Exp = Lam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
                        Lam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
                          Lam("f", TFun(TInt(), TInt()),
                            Lam("x", TInt(),
                              App(
                                App(Var("m"), Var("f")),
                                App(App(Var("n"), Var("f")), Var("x"))
-                             )))))*/
+                             )))))
 
 @main def main(): Option[Type] = typeOf(Empty(), program())
 
