@@ -115,15 +115,3 @@ object CompiledOODLUnit:
       () => new optimize.RemoveUnusedParameters {},
       () => new ValueNumbering {}
     ) // arith + string + data
-
-    /*
-      ganz ohne Optimierung: Unable to interpret Plan (Assignment, Fibonacci, Tuple)
-      mit vorhandenen Optimierungen: Unable to interpret Plan (Assignment, Fibonacci, Tuple)
-      nur VN: Unable to interpret Plan (Assignment, Tuple)
-              Expected 1, but got 0 (Mutability, Null)
-      mit allen: Unable to interpret Plan (Assignment, Mutability, Tuple)
-      VN & IdentityCastElimination: Unable to interpret Plan (Assignment, Mutability, Tuple)
-      VN & AliasElimination, RemoveDuplicatedRelations, RemoveUnusedParameters:
-              Unable to interpret Plan (Assignment, Tuple)
-              Expected 1, but got 0 (Mutability, Null)
-    */

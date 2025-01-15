@@ -30,6 +30,7 @@ trait BaseValueNumberingAtoms extends BaseValueNumberingTerms {
     case Eq(lhs, rhs, false) if lhs == rhs => Seq()
     case Eq(lhs, rhs, true) if isConst(lhs) && isConst(rhs) && lhs != rhs => Seq()
     case Eq(Var(lhs), Var(rhs), true) if lhs == rhs => validBody = false; Seq(atom)
+    case Eq(lhs, rhs, true) if isConst(lhs) && isConst(rhs) && lhs == rhs => validBody = false; Seq(atom)
     case Eq(lhs, rhs@Var(_), false) if rhs.mode.isBinding => Seq(Eq(rhs, lhs, false))
     case Eq(lhs, rhs, bool) if getIdOf(lhs) > getIdOf(rhs) && !lhs.mode.isBinding => Seq(Eq(rhs, lhs, bool))
     case _ => Seq(atom)

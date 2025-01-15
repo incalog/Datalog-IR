@@ -143,6 +143,55 @@ class AtomsVNTest extends ValueNumberingTestAbstract(){
     performTest(expected, input)
   }
 
+  test("Negated Eq") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("a")))),
+            Eq(Var("a"), Var("a"), true),
+            Eq(Var("result"), Add(Var("a"), Var("a"))),
+          )),
+          Body(Seq(
+            Call(Name("S1"), Seq(TermArg(Var("result")))),
+            Eq(IntNum(1), IntNum(1), true),
+          )),
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("result", TInt)), Seq(
+//          Body(Seq(
+//            Call(Name("S1"), Seq(TermArg(Var("a")))),
+//            Eq(Var("a"), Var("a"), true),
+//            Eq(Var("result"), Add(Var("a"), Var("a"))),
+//          )),
+//          Body(Seq(
+//            Call(Name("S1"), Seq(TermArg(Var("result")))),
+//            Eq(IntNum(1), IntNum(1), true),
+//          )),
+        )),
+        Relation(Name("S1"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var(Name("param$0")), IntNum(5))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+
   test("Negated Calls") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
