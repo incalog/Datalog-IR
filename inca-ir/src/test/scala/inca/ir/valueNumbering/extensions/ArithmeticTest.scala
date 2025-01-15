@@ -3482,4 +3482,72 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
+  test("Cast") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), Cast(DoubleNum(123), TInt)),
+            Eq(Var("param$0"), Var("a"))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), Cast(DoubleNum(123), TInt)),
+            Eq(Var("param$0"), Var("a"))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  /*
+  A$$v$input(this$0: ID, value$0: TInt, ts$0: TInt) {
+    A$input(this$0: >ID<, v: >TInt<, Mutation$1: >TInt<)
+    Object(this$0: <ID>)
+    value$0: >TInt< == Cast v: <TInt>
+    ts$0: >TInt< == Mutation$1: <TInt>
+  }
+   */
+  test("Cast 2") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("a")))),
+            Eq(Var("param$0"), Cast(DoubleNum(123), TInt)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TDouble)), Seq(
+          Body(Seq(
+            Eq(Var("param$0"), DoubleNum(1))
+          )),
+          Body(Seq(
+            Eq(Var("param$0"), DoubleNum(0))
+          )),
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("a")))),
+            Eq(Var("param$0"), Cast(DoubleNum(123), TInt)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("param$0", TDouble)), Seq(
+          Body(Seq(
+            Eq(Var("param$0"), DoubleNum(1))
+          )),
+          Body(Seq(
+            Eq(Var("param$0"), DoubleNum(0))
+          )),
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 }

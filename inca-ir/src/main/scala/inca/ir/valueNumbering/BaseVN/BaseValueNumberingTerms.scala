@@ -15,7 +15,7 @@ trait BaseValueNumberingTerms extends IRVisitor {
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
-  def printVNResults: Boolean = false
+  def printVNResults: Boolean = true
   def printVNStatistics: Boolean = false
 
   protected case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {

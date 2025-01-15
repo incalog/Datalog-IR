@@ -12,6 +12,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.ir.optimize
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.valueNumbering.ValueNumbering
 
 case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledUnit:
 
@@ -108,8 +109,21 @@ object CompiledOODLUnit:
       demandLowering,
       () => new tuple.Lowering {},
 
-      () => new optimize.IdentityCastElimination {},
+//      () => new optimize.IdentityCastElimination {},
       () => new optimize.AliasElimination {},
       () => new optimize.RemoveDuplicatedRelations {},
-      () => new optimize.RemoveUnusedParameters {}
+      () => new optimize.RemoveUnusedParameters {},
+      () => new ValueNumbering {}
     ) // arith + string + data
+
+    /*
+      ganz ohne Optimierung: Unable to interpret Plan (Assignment, Fibonacci, Tuple)
+      mit vorhandenen Optimierungen: Unable to interpret Plan (Assignment, Fibonacci, Tuple)
+      nur VN: Unable to interpret Plan (Assignment, Tuple)
+              Expected 1, but got 0 (Mutability, Null)
+      mit allen: Unable to interpret Plan (Assignment, Mutability, Tuple)
+      VN & IdentityCastElimination: Unable to interpret Plan (Assignment, Mutability, Tuple)
+      VN & AliasElimination, RemoveDuplicatedRelations, RemoveUnusedParameters:
+              Unable to interpret Plan (Assignment, Tuple)
+              Expected 1, but got 0 (Mutability, Null)
+    */

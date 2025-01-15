@@ -1,6 +1,6 @@
 package inca.ir.valueNumbering.extensions
 
-import inca.ir.{Atom, Term, TermType, Var}
+import inca.ir.{Atom, Cast, Term, TermType, Var}
 import inca.ir.extension.arithmetic.*
 import inca.ir.typing.Mode.Bound
 import inca.ir.valueNumbering.BaseVN.BaseValueNumbering
@@ -280,8 +280,13 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
       case _ => false
     } else Seq()
 
+    val casts = operands.filter {
+      case Cast(_, _) => true
+      case _ => false
+    }
+
     val newOperands = (if number != IntNum(neutralElem.toInt) && number != DoubleNum(neutralElem) then Seq(number) else Seq())
-      ++ vars ++ Seq(abss, adds, muls, divs, remains, mins).flatMap(sortedByID)
+      ++ vars ++ Seq(abss, adds, muls, divs, remains, mins, casts).flatMap(sortedByID)
     val result = buildOp(newOperands, typ, op)
     result
   }
@@ -295,7 +300,8 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     }
 
     def buildOpInner(operands: Seq[Term]): Term = operands match {
-      case Nil => throw new IllegalStateException(s"Normalization: no terms in operation")
+      case Nil =>
+        throw new IllegalStateException(s"Normalization: no terms in operation")
       case head :: Nil => head
       case h1 :: h2 :: tail =>
         val recRes = buildOpInner(h2 :: tail).typed(typ, force = true)
