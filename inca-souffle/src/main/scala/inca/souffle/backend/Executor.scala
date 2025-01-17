@@ -195,7 +195,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       tupleStrs.mkString("\n")
 
     private def souffleifyTupleEntry(v: Any): Any =
-      transformEDBInput(v)(s => s"\"$s\"", _.toString, _.toString, transformADT)
+      transformEDBInput(v)(identity, _.toString, _.toString, transformADT)
 
     private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
       if (args.nonEmpty)
