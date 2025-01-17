@@ -19,10 +19,12 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("final_var", Seq(prog1))
+    val setAdt = loaded.execute("mainFinalVar", Seq(prog1)).entries.head
+    val query = Relation.from("Set$$TString_Val$$enum", Seq("$set", "$elem$0", "$elem$1"), Seq(Seq(setAdt, null, null)))
+    val res = loaded.engine.read(query).project(1)
     assertResult(
-      ""
+      Seq("(x,IntervalVal(TopInterval()))", "(y,IntervalVal(TopInterval()))")
     )(
-      res.entries.head.toString
+      res.entries.map(_.toString)
     )
   }
