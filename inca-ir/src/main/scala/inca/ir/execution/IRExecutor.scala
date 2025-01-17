@@ -9,6 +9,12 @@ import inca.ir.CompiledUnit
 case class ADT(dataName: String, caseName: String, args: Seq[Any])
 
 /*
+ * Implement your ADT data as enum and conform to this trait, to easily convert your data structure as valid ADT input.
+ */
+trait ADTConvertible:
+  def toADT: ADT
+
+/*
  * Fold over EDB data. If we support more data types in the future that need transformation extend this function.
  * Note: You need to adapt all backends to support the new type.
  */

@@ -2,7 +2,6 @@ package inca.frontend.functional.executor.unittests
 
 import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
-import inca.frontend.functional.foreign
 import inca.ir.execution.{ADT, Relation}
 import inca.util.FileUtil
 import inca.viatra.backend.Executor

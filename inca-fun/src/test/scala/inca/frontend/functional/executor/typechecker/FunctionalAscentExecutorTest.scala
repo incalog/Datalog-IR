@@ -14,7 +14,7 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
   val exec: FunctionalExecutor = new FunctionalExecutor(new Executor(Fixed(1)))
 
   test("TypeChecker") {
-    val code = FileUtil.readFileFromResource("functional/itypes/TypeChecker.finca")
+    val code = FileUtil.readFileFromResource("functional/typechecker/TypeChecker.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
@@ -22,7 +22,7 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
     //val diff = loaded.engine.measure(UnitRelation("main"))
     //println(diff)
     //println(loaded.engine.readAll().map(_.size).sum)
-    val res = loaded.execute("main", Seq())
+    val res = loaded.execute("main", Seq(prog1))
     assertResult(
       "Some_Type(TFun(TFun(TFun(TInt, TInt), TFun(TInt, TInt)), TFun(TFun(TFun(TInt, TInt), TFun(TInt, TInt)), TFun(TFun(TInt, TInt), TFun(TInt, TInt)))))"
     )(

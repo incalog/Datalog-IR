@@ -13,14 +13,14 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   val exec: FunctionalExecutor = new FunctionalExecutor(new Executor)
 
   test("TypeChecker") {
-    val code = FileUtil.readFileFromResource("functional/itypes/TypeChecker.finca")
+    val code = FileUtil.readFileFromResource("functional/typechecker/TypeChecker.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     //println(loaded.engine.measure(UnitRelation("main")))
     //println(loaded.engine.readAll().map(_.size).sum)
-    val res = loaded.execute("main", Seq())
+    val res = loaded.execute("main", Seq(prog1))
     assertResult(
       "Some$Type(TFun(TFun(TFun(TInt(),TInt()),TFun(TInt(),TInt())),TFun(TFun(TFun(TInt(),TInt()),TFun(TInt(),TInt())),TFun(TFun(TInt(),TInt()),TFun(TInt(),TInt())))))"
     )(

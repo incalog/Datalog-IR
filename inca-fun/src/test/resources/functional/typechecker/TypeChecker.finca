@@ -13,7 +13,7 @@ data Option[T] = None() | Some(T)
     else
         Add(Var("x0"), Var("x" + toString(end-1)))
 
-def program: Exp = generateProgram(0, 500) */
+def program: Exp = generateProgram(0, 500)
 
 def program: Exp = Lam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
                        Lam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
@@ -22,9 +22,9 @@ def program: Exp = Lam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
                              App(
                                App(Var("m"), Var("f")),
                                App(App(Var("n"), Var("f")), Var("x"))
-                             )))))
+                             )))))*/
 
-@main def main(): Option[Type] = typeOf(Empty(), program())
+@main def main(prog: Exp): Option[Type] = typeOf(Empty(), prog)
 
 def typeOf(ctx: Ctx, exp: Exp): Option[Type] = exp match {
   case Num(v) => Some[Type](TInt())

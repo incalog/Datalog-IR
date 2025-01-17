@@ -11,6 +11,8 @@ import scala.sys.process.*
 import scala.util.{Failure, Success, Try}
 import ujson.*
 
+import java.nio.file.{Files, Paths}
+
 class SouffleLogger extends ProcessLogger {
   enum MessageType:
     case Warning
@@ -161,8 +163,12 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
         val result = outputFiles.map { case (relName, file) =>
           val directive = outputFiles(relName)
           val file = outputFiles(relName)
-          val content = FileUtil.readFile(getPath(file))
-          stringToRel(content, directive)
+          if (Files.exists(Paths.get(getPath(file))))
+            val content = FileUtil.readFile(getPath(file))
+            stringToRel(content, directive)
+          else
+            // TODO: Technically we should get the param from somewhere and list them here
+            Relation.from(relName, Seq(), Seq())
         }.toSeq
         cachedResult = Some(result)
         result
@@ -189,10 +195,13 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       tupleStrs.mkString("\n")
 
     private def souffleifyTupleEntry(v: Any): Any =
-      transformEDBInput(v)(identity, _.toString, _.toString, transformADT)
+      transformEDBInput(v)(s => s"\"$s\"", _.toString, _.toString, transformADT)
 
     private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
-      s"""$$${GenerateSouffle.cleanName(caseName)}${args.mkString("(", ",", ")")}"""
+      if (args.nonEmpty)
+        s"""$$${GenerateSouffle.cleanName(caseName)}${args.mkString("(", ",", ")")}"""
+      else
+        s"""$$${GenerateSouffle.cleanName(caseName)}"""
 
     private def cast(el: String, attr: Attribute): Any = attr match
       case _ if el.isEmpty => null
@@ -267,8 +276,6 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       case d@ProgramContent.Directive(DirectiveQualifier.Output, names, _) => names.map { n => n.toString -> d }
       case _ => Seq()
     }.toMap
-
-    println(outputFiles)
 
     val relationDecl = souffleProg.content.flatMap {
       case d@ProgramContent.RelationDecl(name, _, _, _) => name.map(_ -> d)
