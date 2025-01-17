@@ -72,7 +72,7 @@ object GeneratePSystem:
       () => new BlockLowering {}, // lower reintroduced blocks
       () => new ExtractLargeBodies {}
     )
-
+    
     if (withDoubleAggregationRewrite)
       lowerings :+= (() => new TimelyLatticeAggregationRewriter())
 

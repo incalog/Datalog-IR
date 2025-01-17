@@ -2,6 +2,7 @@ package inca.frontend.functional.compile
 
 import inca.frontend.functional.syntax.*
 import inca.ir.util.SourceLocation
+import inca.ir.Name
 
 class GenerateScala:
   type Code = String
@@ -53,6 +54,10 @@ class GenerateScala:
     case DoubleLit(d) => s"$d"
     case StringLit(s) => s""""$s""""
     case BinOp(e1, op, e2) => s"${transExp(e1)} $op ${transExp(e2)}"
+    case Call(Var(Name("min")), Seq(), Seq(e1, e2)) => s"(${transExp(e1)}).min(${transExp(e2)})"
+    case Call(Var(Name("max")), Seq(), Seq(e1, e2)) => s"(${transExp(e1)}).max(${transExp(e2)})"
+    case Call(Var(Name("abs")), Seq(), Seq(e)) => s"(${transExp(e)}).abs"
+    case Call(Var(Name("toString")), Seq(), Seq(e)) => s"${transExp(e)}.toString"
     case UnOp(op, e) => s"$op$e"
     case v@Var(name) =>
       v.target match

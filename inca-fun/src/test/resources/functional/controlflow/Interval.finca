@@ -16,20 +16,20 @@ def init(stm: Stm): Stm = stm match {
   case While(b, s) => stm
 }
 
-def final(stm: Stm): Set[Stm] = stm match {
+def finalStmts(stm: Stm): Set[Stm] = stm match {
   case Assign(x, a) => {stm}
   case Skip() => {stm}
-  case Sequence(s1, s2) => final(s2)
-  case If(b, s1, s2) => final(s1) ++ final(s2)
+  case Sequence(s1, s2) => finalStmts(s2)
+  case If(b, s1, s2) => finalStmts(s1) ++ finalStmts(s2)
   case While(b, s) => {stm}
 }
 
 @main def flow(stm: Stm): Set[(Stm, Stm)] = stm match {
   case Assign(x, a) => {}
   case Skip() => {}
-  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in final(s1)}
+  case Sequence(s1, s2) => flow(s1) ++ flow(s2) ++ {(l1, init(s2)) | l1 in finalStmts(s1)}
   case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
-  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
+  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in finalStmts(s)}
 }
 
 def transitive(cfg: () => Set[(Stm, Stm)]): Set[(Stm, Stm)] =
@@ -154,18 +154,18 @@ def exit_var(stm: Stm, prog: Stm, x: String): Val = stm match {
 def exit_var_external(stm: Stm, prog: Stm, x: String): Val =
   fold(BotVal(), joinVal, {exit_var(stm, prog, x)})
 @main def final_var(prog: Stm): Set[(String,Val)] =
-  {(x, exit_var_external(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
+  {(x, exit_var_external(s, prog, x)) | s in finalStmts(prog), x in freevarsStm(prog)}
 
 def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
   case Var(x) => entry_var(node, prog, x)
   case Num(i) => IntervalVal(IV(i, i))
-  case GreaterThan(e1, e2) => greaterThan(aeval(e1, node, prog), aeval(e2, node, prog))
-  case Add(e1, e2) => add(aeval(e1, node, prog), aeval(e2, node, prog))
-  case Sub(e1, e2) => sub(aeval(e1, node, prog), aeval(e2, node, prog))
-  case Mul(e1, e2) => mul(aeval(e1, node, prog), aeval(e2, node, prog))
+  case GreaterThan(e1, e2) => greaterThanOp(aeval(e1, node, prog), aeval(e2, node, prog))
+  case Add(e1, e2) => addOp(aeval(e1, node, prog), aeval(e2, node, prog))
+  case Sub(e1, e2) => subOp(aeval(e1, node, prog), aeval(e2, node, prog))
+  case Mul(e1, e2) => mulOp(aeval(e1, node, prog), aeval(e2, node, prog))
 }
 
-def greaterThan(v1: Val, v2: Val): Val = v1 match {
+def greaterThanOp(v1: Val, v2: Val): Val = v1 match {
   case BotVal() => BotVal()
   case BoolVal(b1) => BotVal()
   case TopVal() => BoolVal(TopBool())
@@ -186,7 +186,7 @@ def greaterThanInterval(iv1: Interval, iv2: Interval): Bool = iv1 match {
       else TopBool()
   }
 }
-def add(v1: Val, v2: Val): Val = v1 match {
+def addOp(v1: Val, v2: Val): Val = v1 match {
   case BotVal() => BotVal()
   case BoolVal(b1) => BotVal()
   case TopVal() => IntervalVal(TopInterval())
@@ -204,7 +204,7 @@ def addInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
     case IV(l2, h2) => IV(l1 + l2, h1 + h2)
   }
 }
-def sub(v1: Val, v2: Val): Val = v1 match {
+def subOp(v1: Val, v2: Val): Val = v1 match {
   case BotVal() => BotVal()
   case BoolVal(b1) => BotVal()
   case TopVal() => IntervalVal(TopInterval())
@@ -222,7 +222,7 @@ def subInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
     case IV(l2, h2) => IV(l1 - h2, h1 - l2)
   }
 }
-def mul(v1: Val, v2: Val): Val = v1 match {
+def mulOp(v1: Val, v2: Val): Val = v1 match {
   case BotVal() => BotVal()
   case BoolVal(b1) => BotVal()
   case TopVal() => IntervalVal(TopInterval())
