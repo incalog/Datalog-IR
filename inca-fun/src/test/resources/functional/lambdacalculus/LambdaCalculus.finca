@@ -45,7 +45,11 @@ def ctxLookup(ctx: Ctx, n: String): MaybeType = ctx match {
     else ctxLookup(rest, n)
 }
 
-@main def erase(texp: TExp): Exp = texp match {
+// we need a wrapper function for erase. Otherwise, the demand transformation
+// is not applied to `erase`. As such we don't get any output.
+@main def mainErase(texp: TExp): Exp = erase(texp)
+
+def erase(texp: TExp): Exp = texp match {
   case TNum(v) => Num(v)
   case TLam(n, ty, b) => Lam(n, erase(b))
   case TApp(fun, arg) => App(erase(fun), erase(arg))

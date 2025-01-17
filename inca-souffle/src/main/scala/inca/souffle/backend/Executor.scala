@@ -35,7 +35,7 @@ class SouffleLogger extends ProcessLogger {
   def buffer[T](f: => T): T = f
 
   def err(msg: => String): Unit =
-    if msg.startsWith("Error:") then
+    if msg.startsWith("Error") then
       msgType = MessageType.Error
       errors :+= ""
     else if msg.startsWith("Warning:") then
