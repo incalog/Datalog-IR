@@ -110,7 +110,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
   }
 
   // TODO: Currently we are not getting back booleans, but ints because of the lowering
-  //  Either we want an unlower or we want to support booleans ?
+  //  Either we want an unlower/lift or we want to support booleans ?
   test("Parametric Eq") {
     val code = FileUtil.readFileFromResource("functional/unittests/ParametricEq.finca")
     val compiled = exec.compileFunction(code, options)
@@ -279,7 +279,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     assertResult("$Cons_TBoolean(1, $Nil_TBoolean)")(res.entries.head.toString)
   }
 
-// No recursive aggregation support in Souffle + Missing C++ lowering
+// No recursive aggregation support in Souffle + Missing C++ lowering for user-defined aggregation
 /*test("Fold Int") {
   val code = FileUtil.readFileFromResource("functional/unittests/FoldInt.finca")
   val compiled = exec.compileFunction(code)

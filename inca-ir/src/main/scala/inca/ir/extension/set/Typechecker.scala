@@ -9,7 +9,7 @@ trait Typechecker extends BaseIRTypechecker:
     // TODO: We have multiple representations of an empty set (one for each data type).
     //  Can we unify them somehow? For now we just interpret casted empty sets as the empty set of that particular type.
     case Cast(setTerm@SetLit(Seq()), castedTy) =>
-      setTerm.typed(castedTy.bound)
+      setTerm.typed(castedTy.bound, force = true)
       castedTy.bound
     case SetLit(Seq()) =>
       TSet(TNothing).bound
