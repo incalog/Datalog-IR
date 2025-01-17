@@ -1,12 +1,16 @@
 package inca.ir.extension.set
 
-import inca.ir.extension.bool.*
 import inca.ir.extension.tuple.TTuple
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.{Atom, Relation, TAny, TNothing, Term, TermType, Type}
+import inca.ir.{Atom, Relation, TAny, Cast, TNothing, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
+    // TODO: We have multiple representations of an empty set (one for each data type).
+    //  Can we unify them somehow? For now we just interpret casted empty sets as the empty set of that particular type.
+    case Cast(setTerm@SetLit(Seq()), castedTy) =>
+      setTerm.typed(castedTy.bound)
+      castedTy.bound
     case SetLit(Seq()) =>
       TSet(TNothing).bound
     case SetLit(t +: ts) =>

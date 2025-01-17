@@ -1,7 +1,5 @@
 package inca.ir
 
-import inca.ir.extension.*
-import inca.ir.lowering.BaseLowering
 import inca.ir.optimize.BaseIROptimizer
 import inca.ir.printer.GenericPrinter
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
