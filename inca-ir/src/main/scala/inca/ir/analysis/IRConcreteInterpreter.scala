@@ -85,7 +85,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   override val relationOps: RelationOps[Value, Boolean, CRV] = new ConcreteRelationOps[Value]
 
 
-  fix.Fixpoint.DEBUG = true
+  fix.Fixpoint.DEBUG = false
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
     /*val fixPt =

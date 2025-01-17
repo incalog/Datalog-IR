@@ -19,13 +19,12 @@ import inca.ir.typing.Mode.{Binding, Bound, Collapse}
 
 import scala.annotation.tailrec
 
-// Based on Sarah Hauschildts Bachelor thesis
-
 object GenerateAscent:
   private val gensym = new Gensym()
   private var varRefs: Set[String] = Set()
 
-  def cleanName(name: ir.Name): String = name.name.replace("$", "_")
+  def cleanString(name: String): String = name.replace("$", "_")
+  def cleanName(name: ir.Name): String = cleanString(name.name)
 
   def scoped[A](f: => A): A = gensym.scoped {
     val oldRefs = this.varRefs

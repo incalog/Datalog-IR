@@ -16,6 +16,7 @@ import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 import org.eclipse.viatra.query.runtime.util.ViatraQueryLoggingUtil
+import java.lang.reflect._
 
 object Executor:
   def initializeLogging(): Unit =
@@ -49,9 +50,27 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
       val pattern = module.patterns.keys.toSeq.sorted
       pattern.map(n => read(UnitRelation(n)))
 
+    /**
+     * Convert ADT values to their corresponding ADT instances. We only have access to the ADT classes, once PSystem is
+     * loaded.
+     */
+    private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
+      // use reflection to create an ADT instance
+      val moduleClass = module.getClass
+      val adtClass = moduleClass.getDeclaredClasses.find(_.getSimpleName == caseName) match
+        case Some(cls) => cls
+        case _ => throw IllegalArgumentException(s"Unknown ADT with name $caseName")
+      // we assume all our ADTs only have a single constructor, the primary constructor
+      val adtConstructor = adtClass.getDeclaredConstructors.head
+      adtConstructor.setAccessible(true)
+      adtConstructor.newInstance((module +: args): _*)
+
+    private def viatrafyTupleEntry(v: Any): Any =
+      transformEDBInput(v)(identity, identity, identity, transformADT)
+    
     override def insert(edb: Relation): Unit =
       edb.entries.foreach { t =>
-        val input = edb.flattenEntry(t)
+        val input = edb.flattenEntry(t).map(viatrafyTupleEntry)
         feed.insertExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
       }
 

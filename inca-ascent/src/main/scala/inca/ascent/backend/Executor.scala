@@ -4,10 +4,10 @@ import inca.ascent.backend.GenerateAscent.cleanName
 import inca.ascent.syntax.*
 import inca.ir
 import inca.ir.execution.ThreadCount.Auto
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, ThreadCount}
+import inca.ir.execution.{ADT, ExecutorEngine, IRExecutor, Relation, ThreadCount, transformEDBInput}
 import inca.ir.{CompiledUnit, Name}
 import inca.util.FileUtil
-import ujson._
+import ujson.*
 
 import java.io.{File, PrintWriter}
 import java.nio.charset.StandardCharsets
@@ -15,7 +15,7 @@ import java.nio.file.{Files, Path, Paths}
 import scala.sys.process.*
 import scala.sys.process.ProcessBuilder
 import scala.language.implicitConversions
-import scala.jdk.OptionConverters._
+import scala.jdk.OptionConverters.*
 
 object Executor:
   private lazy val ascentProjectPath = Files.createTempDirectory("ascent-project")
@@ -32,10 +32,27 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
         case Some(l) => l.toLong
         case _ => throw IllegalStateException("Could not read execution time!")
 
+    private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
+      if (args.size == 1) {
+        ujson.Obj(caseName -> args.head.asInstanceOf[ujson.Value])
+      } else {
+        ujson.Obj(caseName -> ujson.Arr(args.map(_.asInstanceOf[ujson.Value]): _*))
+      }
+
+    private def ascentifyTupleEntry(v: Any): Any = v match
+      case a: ADT =>
+        // Serialize ADT values and ONLY ADT values
+        val adtJson = transformEDBInput(v)(ujson.Str.apply, ujson.Num.apply, ujson.Num.apply, transformADT)
+        adtJson.toString
+      case _ =>
+        // Convert everything else to a string representation
+        // This pattern match is okay, since we know that ADTs are never nested in another data type
+        transformEDBInput(v)(identity, _.toString, _.toString, transformADT)
+
     def insert(edb: Relation): Unit = {
       inputDirty = true
 
-      val content = edb.entries.map(t => edb.flattenEntry(t).mkString("\t")).mkString("\n")
+      val content = edb.entries.map(t => edb.flattenEntry(t).map(ascentifyTupleEntry).mkString("\t")).mkString("\n")
       val name = cleanName(Name(edb.name))
 
       // Reuse existing file if it exists, so we don't have to recompile the rust project

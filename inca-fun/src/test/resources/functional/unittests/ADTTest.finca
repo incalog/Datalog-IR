@@ -1,0 +1,5 @@
+module ADTTest
+
+data Exp = Add(Exp, Exp) | Num(Int)
+
+@main def main(n: Exp): Exp = Add(n, Num(10))

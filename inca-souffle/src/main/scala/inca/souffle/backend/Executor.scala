@@ -1,7 +1,7 @@
 package inca.souffle.backend
 
 import inca.ir.execution.ThreadCount.Auto
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener, ThreadCount}
+import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationUpdateListener, ThreadCount, transformEDBInput}
 import inca.ir.{CompiledUnit, string2name}
 import inca.souffle.syntax.{Attribute, DirectiveQualifier, ProgramContent, QualifiedName, Type}
 import inca.util.FileUtil
@@ -188,13 +188,11 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
       }
       tupleStrs.mkString("\n")
 
-    // we have strings, arithmetic and data as primitives
-    // TODO support data
-    private def souffleifyTupleEntry(s: Any): String = s match
-      case i: Int => i.toString
-      case f: Float => f.toString
-      case s: String => s
-      case s => throw IllegalArgumentException(s"Do not support $s which is of type ${s.getClass} as input")
+    private def souffleifyTupleEntry(v: Any): Any =
+      transformEDBInput(v)(identity, _.toString, _.toString, transformADT)
+
+    private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
+      s"""$$${GenerateSouffle.cleanName(caseName)}${args.mkString("(", ",", ")")}"""
 
     private def cast(el: String, attr: Attribute): Any = attr match
       case _ if el.isEmpty => null

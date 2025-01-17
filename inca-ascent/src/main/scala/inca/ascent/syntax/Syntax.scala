@@ -31,7 +31,7 @@ val vecSerializeWrapper =
 // Rust wrapper around f32 to support eq, clone and hash. Otherwise we can not use floats in relations
 val f32Wrapper =
   """
-    |#[derive(Debug, Clone, Copy, Serialize)]
+    |#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
     |pub struct Float(f32);
     |impl Hash for Float {
     |    fn hash<H: Hasher>(&self, state: &mut H) {
@@ -214,7 +214,7 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
        |use std::fs::File;
        |use std::str::FromStr;
        |// Used for serialization to and from JSON
-       |use serde::{Serialize, Serializer};
+       |use serde::{Serialize, Serializer, Deserialize};
        |use serde::ser::SerializeSeq;
        |
        |macro_rules! format_error_msg {
@@ -320,7 +320,7 @@ enum ProgramContent:
       }.mkString("\n")
 
       s"""
-         |#[derive(Debug, Eq, PartialEq, Clone, Hash)]
+         |#[derive(Debug, Eq, PartialEq, Clone, Hash, Deserialize)]
          |pub enum $dataName {
          |$paramS
          |}
@@ -334,6 +334,14 @@ enum ProgramContent:
          |        S: Serializer,
          |    {
          |        serializer.serialize_str(&format!("{:?}", &self))
+         |    }
+         |}
+         |
+         |impl FromStr for $dataName {
+         |    type Err = String;
+         |
+         |    fn from_str(s: &str) -> Result<Self, Self::Err> {
+         |        serde_json::from_str(s).map_err(|e| e.to_string())
          |    }
          |}
          |""".stripMargin

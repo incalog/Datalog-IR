@@ -2,6 +2,36 @@ package inca.ir.execution
 
 import inca.ir.CompiledUnit
 
+/*
+ * Use this class to insert ADT data into the EDB.
+ * TODO: Also use this class to represent output ADT data
+ */
+case class ADT(dataName: String, caseName: String, args: Seq[Any])
+
+/*
+ * Fold over EDB data. If we support more data types in the future that need transformation extend this function.
+ * Note: You need to adapt all backends to support the new type.
+ */
+def transformEDBInput(value: Any)(
+  transformString: String => Any,
+  transformInt: Int => Any,
+  transformDouble: Double => Any,
+  transformADT: (String, String, Seq[Any]) => Any): Any =
+
+  value match {
+    case s: String => transformString(s)
+    case i: Int => transformInt(i)
+    case i: java.lang.Integer => transformInt(i)
+    case d: Double => transformDouble(d)
+    case d: java.lang.Double => transformDouble(d)
+    case ADT(dataName, caseName, args) =>
+      val transformedArgs = args.map(arg =>
+        transformEDBInput(arg)(transformString, transformInt, transformDouble, transformADT)
+      )
+      transformADT(dataName, caseName, transformedArgs)
+    case _ => throw IllegalArgumentException(s"Unsupported input value: $value of class: ${value.getClass.getSimpleName}")
+  }
+
 trait ExecutorEngine:
   /**
    * The input to this method is best understood using an example.
