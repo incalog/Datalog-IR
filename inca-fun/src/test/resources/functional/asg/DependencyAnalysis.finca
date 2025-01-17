@@ -1,0 +1,42 @@
+module ASG
+
+data Exp = Num(Int) | Var(String) | Add(Exp, Exp)
+data Def = DefV(String, Exp)
+data DefList = Nil() | Cons(Def, DefList)
+data Option[T] = None() | Some(T)
+
+def findDef(defs: DefList, name: String): Option[Def] = defs match {
+  case Nil() => None[Def]()
+  case Cons(d, tl) => d match {
+    case DefV(defName, exp) => if (defName == name) Some[Def](d) else findDef(tl, name)
+  }
+}
+
+def target(defs: DefList, e: Exp): Set[Def] = e match {
+  case Var(name) => findDef(defs, name) match {
+    case None() => {}
+    case Some(d) => {d}
+  }
+  case Add(e1, e2) => target(defs, e1) ++ target(defs, e2)
+  case Num(n) => {}
+}
+
+def directDeps(defs: DefList, d: Def): Set[Def] = d match {
+    case DefV(defName, e) => target(defs, e)
+}
+
+def transitiveDeps(defs: DefList, d1: Def): Set[Def] =
+  directDeps(defs, d1) ++
+    {d3 | d2 in directDeps(defs, d1), d3 in transitiveDeps(defs, d2)}
+
+def allDeps(defs: DefList, allDefs: DefList): Set[(Def, Def)] = defs match {
+    case Nil() => {}
+    case Cons(hd, tl) => { (hd, d) | d in transitiveDeps(allDefs, hd) } ++ allDeps(tl, allDefs)
+}
+
+def getName(d: Def): String = d match {
+    case DefV(n, e) => n
+}
+
+@main def main(defs: DefList): Set[(String, String)] =
+    { (getName(d1), getName(d2)) | (d1, d2) in allDeps(defs, defs) }

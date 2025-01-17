@@ -303,8 +303,21 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     // eval arguments in current scope
     val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
+    // group all mappings by their name. if we pass the same variable twice to a function we get more than one mapping
+    val multiMapping = argMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
+
     // rename the argument according to the parameters
-    val evalContext = relationOps.projectAndRename(supplementaryTable.getTable, argMapping.flatten.toMap)
+    var evalContext = relationOps.project(supplementaryTable.getTable, multiMapping.keys.toSeq)
+
+    // duplicate all required values if an argument is passed twice
+    multiMapping.foreach { case (supColumn, newNames) =>
+      val columnIndex = relationOps.columnIndex(evalContext, supColumn)
+      evalContext = relationOps.rename(evalContext, Map(supColumn -> newNames.head))
+      newNames.tail.foreach { n =>
+        evalContext = relationOps.map(evalContext, n)(_.apply(columnIndex))
+      }
+    }
+
     // calculate the adornment
     val adornment = Adornment(argMapping.map {
       case Some(_) => Adorn.b
