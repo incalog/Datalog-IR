@@ -347,7 +347,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         case (_, p) => p.name.name -> paramNameToArgName(p.name.name)
       }.toMap
 
-      val callRes = relationOps.projectAndRename(relRes, subst)
+      val validKeys = relationOps.columns(relRes)
+      val callRes = relationOps.projectAndRename(relRes, subst.filter(kv => validKeys.contains(kv._1)))
 
       if (neg)
         relationOps.antiJoin(beforeCall, callRes)

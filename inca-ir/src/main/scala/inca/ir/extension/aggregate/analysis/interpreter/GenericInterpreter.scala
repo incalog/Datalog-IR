@@ -82,7 +82,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val aggColumn = relationOps.columns(relRes)(aggColumnIndex)
       subst += aggColumn -> resultColumn
 
-      val callRes = relationOps.projectAndRename(relRes, subst)
+      val validKeys = relationOps.columns(relRes)
+      val callRes = relationOps.projectAndRename(relRes, subst.filter(kv => validKeys.contains(kv._1)))
       val callAggColIndex = relationOps.columnIndex(callRes, resultColumn)
 
       // Perform the aggregation. Note, the rows must already be grouped here! That is, they all look the same
