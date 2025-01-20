@@ -130,9 +130,9 @@ class IRConstantAbstractInterpreter(
   val graphBuilder: ControlEventGraphBuilder[Int, SupColumn, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
 
   private val stackConfig: StackConfig = if (logControlEvents)
-    StackedStates(readPriorOutput = false).withObservers(Seq(triggerControlEvent))
+    StackedStates().withObservers(Seq(triggerControlEvent))
   else
-    StackedStates(readPriorOutput = false)
+    StackedStates()
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     var fixPt =

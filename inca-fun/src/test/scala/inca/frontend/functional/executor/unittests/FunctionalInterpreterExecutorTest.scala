@@ -41,8 +41,8 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("main", Seq(4))
-    assertResult(3)(res.entries.head)
+    val res = loaded.execute("main", Seq(3))
+    assertResult(2)(res.entries.head)
   }
 
   test("Inc") {

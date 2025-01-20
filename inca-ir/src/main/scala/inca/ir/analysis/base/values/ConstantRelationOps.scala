@@ -76,6 +76,7 @@ class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[B
     }
     ConstantRelation(newCols, newVals, newEmpty)
 
+
   override def antiJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
     val sharedCols = rv.cols.intersect(other.cols)
     if (sharedCols.isEmpty)
@@ -87,7 +88,7 @@ class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[B
         val sameColsIndices = sharedCols.map(rv.cols.indexOf)
         val sameOtherColsIndices = sharedCols.map(other.cols.indexOf)
         val comparison = sameColsIndices.zip(sameOtherColsIndices).map { (rvIx, oIx) =>
-           eqOps.equ(rv.rows(rvIx), other.rows(oIx))
+          eqOps.equ(rv.rows(rvIx), other.rows(oIx))
         }
         val isEmpty = comparison.foldLeft(Topped.Actual(true))((acc, b) => boolOps.and(acc, b))
         isEmpty match
@@ -98,13 +99,11 @@ class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[B
 
 given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]): Join[ConstantRelation] with {
   def join(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
-    if (rv.cols != other.cols)
+    if (rv.cols.toSet != other.cols.toSet)
       throw new IllegalArgumentException("Schemas must match for join")
-    val newRows = rv.rows.zip(other.rows).map { (v1, v2) => joinV(v1, v2).get }
+    val others2Rows = other.cols.map(rv.cols.indexOf)
+    val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
 
-    // Is this correct? What this should do is guarantee that a join over multiple bodies produces the
-    // correct emptiness result. e.g R(x) :- { x == 1 } or { x == 2, x == 1 } should produce a non-empty table.
-    // However, here we join [x -> 1, false] with [x -> Bottom, true].
     val newEmpty = boolOps.and(rv.empty, other.empty)
     ConstantRelation(rv.cols, newRows, newEmpty)
 

@@ -99,12 +99,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   implicit val joinRV: Join[RV]
 
-  val effects: EffectStack = new EffectStack(EffectList(supplementaryTable, failure, except, idb), {
-    // FIXME: The idb is not really effecting the output of the EnterRelation call. As such, it should probably not be an input?
-    case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb) // idb
-  }, {
-    case _: FixIn.EnterRelation => EffectList(except, failure, idb)
-  })
+  val effects: EffectStack = //new EffectStack(EffectList(supplementaryTable, failure, except, idb))
+    new EffectStack(EffectList(supplementaryTable, failure, except), { // idb
+      case _: FixIn.EnterRelation => EffectList(supplementaryTable, idb)
+    }, {
+      case _: FixIn.EnterRelation => EffectList(except, failure, idb)
+    })
 
   given EffectStack = effects
 
@@ -185,21 +185,22 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     val paramNames = r.params.map(p => p.name.name)
 
-    val relRes = if (r.bodies.isEmpty)
+    var relRes = if (r.bodies.isEmpty)
       relationOps.make(paramNames, Seq())
     else
       mapJoin(r.bodies.indices, { ix =>
         evalBody(r, ix, paramNames)
       })
 
-      /*val supCols = relationOps.columns(supplementaryTable.getTable)
-      val boundCols = paramNames.intersect(supCols)
+    // merge with existing idb
+    val supCols = relationOps.columns(supplementaryTable.getTable)
+    val boundCols = paramNames.intersect(supCols)
 
-      val relName = AllocationSiteAddr.Variable(r.name.name)(true)
-      val emptyRes = relationOps.make(paramNames, Seq())
-      val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
-      val idbRes = relationOps.naturalJoin(idb.readOrElse(relName, emptyRes), boundSup)
-      relRes = mapJoin(Seq(relRes, idbRes), identity)*/
+    val relName = AllocationSiteAddr.Variable(r.name.name)(true)
+    val emptyRes = relationOps.make(paramNames, Seq())
+    val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
+    val idbRes = relationOps.naturalJoin(idb.readOrElse(relName, emptyRes), boundSup)
+    relRes = mapJoin(Seq(relRes, idbRes), identity)
 
     insertIDB(r.name, relRes)
     relRes
@@ -265,7 +266,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     updateSupplementaryChecked { sup =>
       val lix = relationOps.columnIndex(sup, ls)
       val rix = relationOps.columnIndex(sup, rs)
-      relationOps.filter(sup) { row => eqOp(row(lix), row(rix)) }
+      relationOps.filter(sup) { row =>
+        eqOp(row(lix), row(rix))
+      }
     }
 
   protected def boundInSupplementary(s: String): Boolean =

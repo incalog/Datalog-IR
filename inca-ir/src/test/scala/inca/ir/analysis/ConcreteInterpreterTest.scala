@@ -259,6 +259,60 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1, 3)))
   }
 
+  test("Left Recursion - Subquery") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(3)),
+          Eq(Var("y"), IntNum(1))
+        ))
+      )),
+      Relation("path", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+        Body(Seq(
+          Call("edge", Seq(Var("x"), Var("z"))),
+          Call("path", Seq(Var("z"), Var("y"))),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("path", Seq(IntNum(1), Var("y")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 3)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(2, 3)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(3, 1)))
+
+    val pathRel = res("main")
+    assert(pathRel.size == 3)
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(1)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(2)))
+    assert(pathRel.entries.map(pathRel.flattenEntry).toSet.contains(Seq(3)))
+  }
+
   test("Left and right Recursion") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
@@ -1104,3 +1158,64 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 2)))
   }
 
+  test("Fibonacci - demand input") {
+    val input_n = 3
+
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("n$0"))),
+          Eq(Var("n$0"), IntNum(0), true),
+          Eq(Var("n$0"), IntNum(1), true),
+          Call("fib", Seq(Sub(Var("n$0"), IntNum(1)), Var("r"))),
+          Eq(Var("n"), Sub(Var("n$0"), IntNum(2)))
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(input_n)),
+        )),
+        Body(Seq(
+          Call("input", Seq(Var("n$0"))),
+          Eq(Var("n$0"), IntNum(0), true),
+          Eq(Var("n$0"), IntNum(1), true),
+          Eq(Var("n"), Sub(Var("n$0"), IntNum(1)))
+        ))
+      )),
+      Relation("fib", Seq(
+        Param("n", TInt),
+        Param("r", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(0)),
+          Eq(Var("r"), IntNum(0))
+        )),
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(1)),
+          Eq(Var("r"), IntNum(1))
+        )),
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Eq(Var("n"), IntNum(0), true),
+          Eq(Var("n"), IntNum(1), true),
+          Call("fib", Seq(Sub(Var("n"), IntNum(1)), Var("r$0"))),
+          Call("fib", Seq(Sub(Var("n"), IntNum(2)), Var("r$1"))),
+          Eq(Var("r"), Add(Var("r$0"), Var("r$1")))
+        )),
+      )),
+      Relation("main", Seq(
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("fib", Seq(IntNum(input_n), Var("y")))
+        )),
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2)))
+  }
