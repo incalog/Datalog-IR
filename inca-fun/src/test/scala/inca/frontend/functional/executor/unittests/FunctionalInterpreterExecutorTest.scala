@@ -207,7 +207,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+    //compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("main", Seq())
     var setAdt = res.entries.head

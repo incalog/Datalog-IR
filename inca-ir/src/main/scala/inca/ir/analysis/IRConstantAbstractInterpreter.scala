@@ -124,7 +124,7 @@ class IRConstantAbstractInterpreter(
   // log the control-flow graph
   private lazy val cfgLogger = new ControlEventLogger[Value, RV](this)
 
-  //fix.Fixpoint.DEBUG = true
+  fix.Fixpoint.DEBUG = false
 
   //(new PrintingControlObserver()(println))
   val graphBuilder: ControlEventGraphBuilder[Int, SupColumn, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
