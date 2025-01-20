@@ -35,7 +35,7 @@ import sturdy.values.given
 
 class IRTypeAbstractInterpreter(
      val enableLogging: Boolean = false,
-     override val interRelational: Boolean = true
+     override val interRelational: Boolean = false
   )
   extends BaseGenericInterpreter[TypeValue, Topped[Boolean], TypeRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.TypeAbstractInterpreter
@@ -112,7 +112,7 @@ class IRTypeAbstractInterpreter(
 
   val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
   
-  fix.Fixpoint.DEBUG = false
+  //fix.Fixpoint.DEBUG = true
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[TypeValue, TRV]] =
     val fixPt =

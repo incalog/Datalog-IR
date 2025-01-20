@@ -118,6 +118,17 @@ object CompiledOODLUnit:
   val optimizationPipeline: List[() => BaseIRVisitor] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+    () => new optimize.IdentityCastElimination {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+    () => new optimize.IdentityCastElimination {},
+    () => new optimize.AliasElimination {}
+  )
+
+  val fastOptimizationPipeline: List[() => BaseIRVisitor] = List(
+    //() => new optimize.TypeIROptimizer {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
+    () => new optimize.IdentityCastElimination {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
+    () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {}
   )

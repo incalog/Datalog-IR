@@ -98,6 +98,6 @@ trait BaseIRPrinter extends GenericPrinter:
       if (t.typ.exists(_.ty == ty))
         prettyPrint(t)
       else
-        s"${prettyPrint(t)}: ${prettyPrint(ty)}"
+        s"Cast(${prettyPrint(t)}, ${prettyPrint(ty)})"
     case _ => term.toString // fallback
 

@@ -137,7 +137,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     if (!term.typ.get.mode.isBinding)
       val transformed = term match
         case Cast(t, ty) => transformTerm(term).map(Cast(_, ty))
-        case _ => transformTerm(term)
+        case _ => transformTerm(term).map(Cast(_, term.typ.get.ty))
       transformed match
         case Some(newTerm) => Seq(newTerm)
         case _ => super.visitTerm(term)

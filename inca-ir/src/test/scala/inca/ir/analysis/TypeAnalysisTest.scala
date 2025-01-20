@@ -16,7 +16,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    val abstractInterp = IRTypeAbstractInterpreter()
+    val abstractInterp = IRTypeAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
     abstractInterp.idb.getState.map(kv => kv._1.toString.drop(1) -> kv._2)
@@ -868,13 +868,13 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
         )),
       )).addHint(MainHint),
     ))
-
+    
     val relTypes = interp(mod)
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(TypeValue.AType(TData("TList"))))
-    assertResult(Topped.Actual(false))(helperRelType.empty)
+    assertResult(Topped.Top)(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
@@ -923,7 +923,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(TypeValue.AType(TData("TList"))))
-    assertResult(Topped.Actual(false))(helperRelType.empty)
+    assertResult(Topped.Top)(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))

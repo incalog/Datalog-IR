@@ -16,7 +16,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/controlflow/CFlow.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.fastOptimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     val setAdt = loaded.execute("mainTransitiveFlow", Seq(prog1)).entries.head
     val query = Relation.from("Set__Stm_Stm__enum", Seq("$set", "$elem$0", "$elem$1"), Seq(Seq(setAdt, null, null)))

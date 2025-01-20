@@ -250,7 +250,7 @@ case class Cast(t: Term, ty: Type) extends Term:
     if (t.typ.exists(_.ty == ty))
       t.toString
     else
-      s"$t: $ty"
+      s"Cast($t, $ty)"
 
   override def vars: Seq[Var] = t.vars
 

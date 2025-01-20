@@ -70,7 +70,7 @@ class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[B
           val compare = eqOps.equ(rv.rows(rvIx), other.rows(otherIx))
           newEmpty = compare match
             case Topped.Actual(b) => boolOps.or(newEmpty, Topped.Actual(!b))
-            case _ => boolOps.or(newEmpty, compare)
+            case _ => Topped.Top //boolOps.or(newEmpty, compare)
           joinV(rv.rows(rvIx), other.rows(otherIx)).get
         case (None, None) => throw new IllegalStateException()
     }
