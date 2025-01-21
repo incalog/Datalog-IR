@@ -121,15 +121,11 @@ object CompiledOODLUnit:
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
-    () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {}
   )
 
   val fastOptimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
-    () => new optimize.IdentityCastElimination {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {}

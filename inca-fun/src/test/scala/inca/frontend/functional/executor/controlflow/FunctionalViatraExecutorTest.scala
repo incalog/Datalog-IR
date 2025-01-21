@@ -33,7 +33,6 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/controlflow/CFlow.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    //compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.fastOptimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     val setAdt = loaded.execute("mainTransitiveFlow", Seq(prog1)).entries.head

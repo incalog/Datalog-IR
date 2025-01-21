@@ -1,7 +1,7 @@
 package inca.ir.optimize
 
 import inca.ir
-import inca.util.memoize
+import inca.util.{Memoize, memoize, printStep}
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
@@ -12,7 +12,6 @@ import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import inca.ir.extension.aggregate as iragg
 import inca.ir.visitors.BaseIRVisitor
-import inca.util.printStep
 import sturdy.values.Topped
 
 extension [T](topped: Topped[T])
@@ -81,7 +80,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     super.analyzeProgram(modules)
 
   // Override the internal method in the children
-  private lazy val valueToTerm = memoize(valueToTermInternal)
+  lazy val valueToTerm: Memoize[Value, Option[Term]] = memoize(valueToTermInternal)
   def valueToTermInternal(value: Value): Option[Term] =
     None
 
@@ -101,6 +100,12 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   }
 
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
+    // When we don't differentiate call sites, we might end up with two different annotations (e.g. SomeConst and Top)
+    // for the same variable. We can not remove bindings equality constraints for these.
+    boundBodyVars = body.vars.filter { t =>
+      t.mode.isBound && transformTerm(t).isEmpty
+    }.map(_.ref).toSet
+
     if (bodyAlwaysFails(body)) {
       logOptimizationStat("constant failed body", 1, _+1)
       Seq()

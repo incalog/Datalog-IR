@@ -38,7 +38,7 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
     super.visitRelation(relation)
   }
 
-  override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
+  /*override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
     boundBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
     super.visitBody(body)
-  }
+  }*/
