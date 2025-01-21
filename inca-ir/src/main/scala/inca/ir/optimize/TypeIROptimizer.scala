@@ -28,7 +28,6 @@ class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val co
     relation.getAnalysisResult(RelationKey).map(_.res)
 
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
-    // We could make this more precise, by setting the `empty` flag correctly
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>

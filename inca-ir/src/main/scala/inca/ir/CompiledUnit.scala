@@ -133,14 +133,15 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
     optimizationPipeline.foldLeft(p) { case (ms, optimizer) =>
       val optimFun = optimizer()
 
-      // log analysis
+      // log analysis phase
+      optimFun.analyzeProgram(ms)
+      if (logAnalsis)
+        printSteps(s"Analysis: ${optimFun.name}", ms)
+
+      // log control events
       optimFun match
-        case optimizer: BaseIROptimizer[?, ?, ?] =>
-          optimizer.analyzeProgram(ms)
-          if (logAnalsis)
-            printSteps(s"Analysis: ${optimizer.name}", ms)
-          if (logControlGraph && optimizer.computeControlEvents)
-            printStep(s"Control-Graph: ${optimizer.name}", optimizer.controlGraph.get)
+        case optimizer: BaseIROptimizer[?, ?, ?] if logControlGraph && optimizer.computeControlEvents =>
+            printStep(s"Control-Graph: ${optimFun.name}", optimizer.controlGraph.get)
         case _ => // nothing
 
       val ls = optimFun.visitProgram(ms, loweredOtherUnits)

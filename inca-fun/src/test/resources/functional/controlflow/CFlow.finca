@@ -42,7 +42,7 @@ def transitiveFlow(prog: Stm): Set[(Stm, Stm)] =
   in transitive(cfg)
 
 
-@main def mainFlowR(stm: Stm): Set[(Stm, Stm)] = flowR(stm)
+//@main def mainFlowR(stm: Stm): Set[(Stm, Stm)] = flowR(stm)
 
 def flowR(stm: Stm): Set[(Stm, Stm)] =
    {(l2, l1) | (l1, l2) in flow(stm)}

@@ -102,7 +102,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
     // When we don't differentiate call sites, we might end up with two different annotations (e.g. SomeConst and Top)
     // for the same variable. We can not remove bindings equality constraints for these.
-    boundBodyVars = body.vars.filter { t =>
+    relevantBodyVars = body.vars.filter { t =>
       t.mode.isBound && transformTerm(t).isEmpty
     }.map(_.ref).toSet
 
@@ -153,14 +153,14 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       val transformed = term match
         case Cast(t, ty) => transformTerm(term).map(Cast(_, ty))
         case _ =>
-          // We need this cast here to guarantee, that we don't break programs.
+          // We need this cast here to guarantee that we don't break programs.
           // E.g. consider the following simple example:
           // R(return$2: TAny) {
           //	Q(i: >TAny< :: 4)
           //	return$2: >TAny< == i :: 4
           // }
           // The program was well-typed before, but after replacing i with 4 in the Eq-Constraint, we get a type error.
-          // i had type TAny, however, the Constant 4 has Type TInt. That is, we now compare >TAny< to <TInt>.
+          // i had type TAny, however, the constant 4 has type TInt. That is, we now compare >TAny< to <TInt>.
           transformTerm(term).map(Cast(_, term.typ.get.ty))
       transformed match
         case Some(newTerm) =>

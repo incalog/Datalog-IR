@@ -102,10 +102,14 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
     if (rv.cols.toSet != other.cols.toSet)
       throw new IllegalArgumentException("Schemas must match for join")
     val others2Rows = other.cols.map(rv.cols.indexOf)
-    val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
 
     val newEmpty = boolOps.and(rv.empty, other.empty)
-    ConstantRelation(rv.cols, newRows, newEmpty)
+    if (newEmpty.isActual && newEmpty.get)
+      // Empty tables should not have bindings
+      ConstantRelation(rv.cols, rv.cols.map(_ => Bottom), newEmpty)
+    else
+      val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
+      ConstantRelation(rv.cols, newRows, newEmpty)
 
   override def apply(v1: ConstantRelation, v2: ConstantRelation): MaybeChanged[ConstantRelation] =
     MaybeChanged(join(v1, v2), v1)

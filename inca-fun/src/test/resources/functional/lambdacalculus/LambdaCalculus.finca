@@ -81,7 +81,7 @@ def envLookup(env: Env, n: String): MaybeVal = env match {
     else envLookup(rest, n)
 }
 
-@main def main(exp: TExp): MaybeVal = typeOf(EmptyCtx(), exp) match {
+/*@main def main(exp: TExp): MaybeVal = typeOf(EmptyCtx(), exp) match {
   case SomeType(ty) => interp(EmptyEnv(), erase(exp))
   case NoType() => NoVal()
-}
+}*/

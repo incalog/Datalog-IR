@@ -10,7 +10,7 @@ import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
 import inca.ir.analysis.base.values.{Bottom as BottomV, Top as TopV}
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
-
+import inca.ir.printer.IRDebugPrinter
 
 class ConstantAnalysisTest extends AnyFunSuiteLike:
 
@@ -25,7 +25,10 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     abstractInterp.evalProgram(Seq(mod))
     //println(abstractInterp.graphBuilder.get.toGraphViz)
     val res = abstractInterp.idb.getState.map(kv => kv._1.toString.drop(1) -> kv._2)
-    println(mod)
+
+    val printer = new IRDebugPrinter {}
+    println(printer.prettyPrint(mod))
+
     res
 
   test("Single relation") {
@@ -732,8 +735,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val relTypes = interp(mod)
 
     val edgeRelType = relTypes("edge")
-    //assert(edgeRelType.cols == Seq("x", "y"))
-    //assert(edgeRelType.rows == Seq(BottomV, BottomV))
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(BottomV, BottomV))
     assertResult(Topped.Actual(true))(edgeRelType.empty)
 
     val filterEdgeRelType = relTypes("filterEdge")

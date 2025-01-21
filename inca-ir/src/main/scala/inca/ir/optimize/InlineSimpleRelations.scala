@@ -6,6 +6,7 @@ import inca.ir.extension.aggregate.Aggregate
 import inca.ir.{Atom, Body, Call, Hint, MainHint, ModuleEntry, Name, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.visitors.IRVisitor
 import inca.util.Gensym
+import scala.compiletime.uninitialized
 
 object NoInlineHint extends Hint, Hint.Key:
   override def key: Key = this
@@ -18,14 +19,14 @@ trait InlineSimpleRelations extends IRVisitor:
     case RemoveFalsePositives
     case InlineRelations
 
-  private var phase: Phase = _
+  private var phase: Phase = uninitialized
 
   val maxAtomsToInline = 100
 
   var gensym: Gensym = Gensym()
 
-  private var inlineableRelations: Map[Name, Relation] = _
-  private var noneInlineableRelations: Set[Name] = _
+  private var inlineableRelations: Map[Name, Relation] = uninitialized
+  private var noneInlineableRelations: Set[Name] = uninitialized
 
   private def shouldInline(relName: Name): Boolean =
     inlineableRelations.contains(relName) && !noneInlineableRelations.contains(relName)
@@ -48,7 +49,7 @@ trait InlineSimpleRelations extends IRVisitor:
     val isSmall = relation.bodies.head.atoms.size < maxAtomsToInline
     !isMain && !isNoInline && singleBody && isSmall
 
-  private var currentRelation: Relation = _
+  private var currentRelation: Relation = uninitialized
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     currentRelation = relation
