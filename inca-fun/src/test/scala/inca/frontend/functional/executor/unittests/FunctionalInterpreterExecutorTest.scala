@@ -200,9 +200,7 @@ class FunctionalInterpreterExecutorTest extends AnyFunSuite:
     assertResult(Set(1, 3))(res.toSet)
   }
 
-  // This can only work if you change the main hint to be on the set as well. Or if the interpreter uses all relations
-  // as entry points. Otherwise you might get incomplete results for the set relations.
-  // Also, it's super slow.
+  // Super slow, but works. That's why it is commented out.
   /*test("Complex set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
     val compiled = exec.compileFunction(code, options)
