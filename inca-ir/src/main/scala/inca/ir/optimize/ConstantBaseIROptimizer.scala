@@ -79,7 +79,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
 
     super.analyzeProgram(modules)
 
-  // Override the internal method in the children
+  // Override the internal method in subclasses
   lazy val valueToTerm: Memoize[Value, Option[Term]] = memoize(valueToTermInternal)
   def valueToTermInternal(value: Value): Option[Term] =
     None
@@ -152,7 +152,16 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     if (!term.typ.get.mode.isBinding) {
       val transformed = term match
         case Cast(t, ty) => transformTerm(term).map(Cast(_, ty))
-        case _ => transformTerm(term)
+        case _ =>
+          // We need this cast here to guarantee, that we don't break programs.
+          // E.g. consider the following simple example:
+          // R(return$2: TAny) {
+          //	Q(i: >TAny< :: 4)
+          //	return$2: >TAny< == i :: 4
+          // }
+          // The program was well-typed before, but after replacing i with 4 in the Eq-Constraint, we get a type error.
+          // i had type TAny, however, the Constant 4 has Type TInt. That is, we now compare >TAny< to <TInt>.
+          transformTerm(term).map(Cast(_, term.typ.get.ty))
       transformed match
         case Some(newTerm) =>
           logOptimizationStat("constant term", 1, _+1)
