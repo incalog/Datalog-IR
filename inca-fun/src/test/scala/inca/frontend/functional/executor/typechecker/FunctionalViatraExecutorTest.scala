@@ -15,6 +15,9 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   test("TypeChecker") {
     val code = FileUtil.readFileFromResource("functional/typechecker/TypeChecker.finca")
     val compiled = exec.compileFunction(code, options)
+    compiled.compilerOptions.irLogging.logOptimizationStats = true
+    compiled.compilerOptions.irLogging.logStatsBeforeOptimizations = true
+    compiled.compilerOptions.irLogging.logStatsAfterOptimizations = true
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)

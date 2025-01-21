@@ -92,17 +92,21 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
     // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
     // always succeeds.
-    if (relationAlwaysFails(relation))
+    if (relationAlwaysFails(relation)) {
+      logOptimizationStat("constant failed relation", 1, _+1)
       Seq()
-    else
+    } else {
       super.visitRelation(relation)
+    }
   }
 
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
-    if (bodyAlwaysFails(body))
+    if (bodyAlwaysFails(body)) {
+      logOptimizationStat("constant failed body", 1, _+1)
       Seq()
-    else
+    } else {
       super.visitBody(body)
+    }
   }
 
   protected def binCompare(lhs: Term, rhs: Term, op: (Value, Value) => Boolean): Boolean =
@@ -115,34 +119,43 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       // Remove equality constraints that always hold
       case Eq(lhs, rhs, neg) if !atomBindsRelevantVar(atom) =>
         val op = if (neg) eqOps.neq else eqOps.equ
-        if (binCompare(lhs, rhs, op(_, _).isTrue))
+        if (binCompare(lhs, rhs, op(_, _).isTrue)) {
+          logOptimizationStat("constant equation", 1, _+1)
           Seq()
-        else
+        } else {
           super.visitAtom(atom)
+        }
       // A negative call to a failing relation always succeeds
       case Call(ref, args, true) =>
         ref.target match
-          case Some(r: Relation) if relationAlwaysFails(r) => Seq()
+          case Some(r: Relation) if relationAlwaysFails(r) =>
+            logOptimizationStat("constant failed neg-call", 1, _+1)
+            Seq()
           case _ => super.visitAtom(atom)
       // Only relevant for intra-relation analysis, inter-relational analysis should detect this
       case Call(ref, args, false) =>
         ref.target match
-          case Some(r: Relation) if relationAlwaysFails(r) => throw FailedBody
+          case Some(r: Relation) if relationAlwaysFails(r) =>
+            logOptimizationStat("constant failed call", 1, _+1)
+            throw FailedBody
           case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }
 
   // Replace all terms with their constants if possible
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
-    if (!term.typ.get.mode.isBinding)
+    if (!term.typ.get.mode.isBinding) {
       val transformed = term match
         case Cast(t, ty) => transformTerm(term).map(Cast(_, ty))
-        case _ => transformTerm(term).map(Cast(_, term.typ.get.ty))
+        case _ => transformTerm(term)
       transformed match
-        case Some(newTerm) => Seq(newTerm)
+        case Some(newTerm) =>
+          logOptimizationStat("constant term", 1, _+1)
+          Seq(newTerm)
         case _ => super.visitTerm(term)
-    else
+    } else {
       super.visitTerm(term)
+    }
   }
 
 class IRConstantOptimizer(

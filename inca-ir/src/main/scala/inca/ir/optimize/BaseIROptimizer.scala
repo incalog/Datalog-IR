@@ -6,7 +6,7 @@ import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.visitors.IRVisitor
 import inca.util.{DEFAULT_PRINTER, printSteps}
 
-trait BaseIROptimizer[V, RV, TV] extends IRVisitor:
+trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   // Configure
   val computeControlEvents: Boolean
   val assumeEdbIsNotEmpty: Boolean

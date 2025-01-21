@@ -4,7 +4,9 @@ import inca.ir.typing.Mode
 import inca.ir.visitors.IRVisitor
 import inca.ir.*
 
-trait AliasElimination extends IRVisitor:
+import scala.compiletime.uninitialized
+
+trait AliasElimination extends IRVisitor with Optimizer:
   override def name: String = "AliasElimination"
 
   enum Phase:
@@ -19,7 +21,7 @@ trait AliasElimination extends IRVisitor:
     //  e.g. Q(a) :- a != a, R(a)  ~>  Q(a) :- .
     case SimplifyEqualities
 
-  private var phase: Phase = _
+  private var phase: Phase = uninitialized
 
   private var paramAliases: Map[Name, Name] = Map()
   private var aliases: Map[Name, Name] = Map()
@@ -91,19 +93,23 @@ trait AliasElimination extends IRVisitor:
         case (_, _) if isParam(v1.name) && isParam(v2.name) =>
           super.visitAtom(atom)
         case (Some(TermType(_, Mode.Binding)), Some(TermType(_, Mode.Bound))) =>
-          if isParam(v1.name) then
+          if (isParam(v1.name)) {
             addParameterAlias(v2.name, v1.name)
             super.visitAtom(atom)
-          else
+          } else {
+            logOptimizationStat("variable aliases", 1, _+1)
             addAlias(v1.name, v2.name)
             Seq()
+          }
         case (Some(TermType(_, Mode.Bound)), Some(TermType(_, Mode.Binding))) =>
-          if isParam(v2.name) then
+          if (isParam(v2.name)) {
             addParameterAlias(v1.name, v2.name)
             super.visitAtom(atom)
-          else
+          } else {
+            logOptimizationStat("variable aliases", 1, _+1)
             addAlias(v2.name, v1.name)
             Seq()
+          }
         case _ =>
           super.visitAtom(atom)
       case _ => super.visitAtom(atom)
@@ -111,7 +117,9 @@ trait AliasElimination extends IRVisitor:
       super.visitAtom(atom)
     case Phase.SimplifyEqualities => atom match
       case Eq(v1: Var, v2: Var, false) if v1.name == v2.name =>
+        logOptimizationStat("identity equations", 1, _+1)
         Seq()
       case Eq(v1: Var, v2: Var, true) if v1.name == v2.name =>
+        logOptimizationStat("identity inequations", 1, _+1)
         throw FailedBody
       case _ => super.visitAtom(atom)

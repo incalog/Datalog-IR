@@ -1,6 +1,7 @@
 package inca.ir
 
 import inca.ir.Module as IRModule
+import inca.ir.optimize.Optimizer
 import inca.ir.visitors.BaseIRVisitor
 import inca.util.datastructures.Graph
 
@@ -32,7 +33,7 @@ trait CompiledProgram:
   def setPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     compiledUnits.foreach(_.setPipeline(pipeline))
 
-  def setOptimizationPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
+  def setOptimizationPipeline(pipeline: List[() => Optimizer]): Unit =
     compiledUnits.foreach(_.setOptimizationPipeline(pipeline))
 
   private lazy val moduleGraph: ModuleGraph = ModuleGraph(irModules)

@@ -7,7 +7,7 @@ import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.extension.*
 import inca.ir.extension.set.SyntacticOptimizer
 import inca.ir.optimize
-import inca.ir.optimize.BaseIROptimizer
+import inca.ir.optimize.{BaseIROptimizer, Optimizer}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, Module as IRModule}
@@ -146,7 +146,7 @@ object CompiledFunctionalUnit:
     () => new optimize.RemoveDuplicatedRelations {}
   ) // arith + string + data
 
-  val optimizationPipeline: List[() => BaseIRVisitor] = List(
+  val optimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
@@ -155,7 +155,7 @@ object CompiledFunctionalUnit:
     () => new optimize.AliasElimination {},
   )
 
-  val fastOptimizationPipeline: List[() => BaseIRVisitor] = List(
+  val fastOptimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},

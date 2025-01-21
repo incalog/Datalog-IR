@@ -54,6 +54,11 @@ case class IRLoggingSection(override val name: String, defaults: Map[String, Any
 
   def logOptimizations_=(newVal: Boolean): Unit = update("optimizations", newVal)
 
+  // Log optimization statistics
+  def logOptimizationStats: Boolean = readBoolean("optimization_stats")
+
+  def logOptimizationStats_=(newVal: Boolean): Unit = update("optimization_stats", newVal)
+
   // Log all stats before the lowering are applied
   def logStatsBeforeLowering: Boolean = readBoolean("stats_before_lowering")
 

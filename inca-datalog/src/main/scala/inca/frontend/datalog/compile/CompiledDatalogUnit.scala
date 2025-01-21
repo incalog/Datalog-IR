@@ -4,6 +4,7 @@ import inca.frontend.datalog.syntax.Module
 import inca.frontend.datalog.typecheck.Typechecker
 import inca.ir.extension.*
 import inca.ir.optimize
+import inca.ir.optimize.Optimizer
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, Module as IRModule}
@@ -61,7 +62,7 @@ object CompiledDatalogUnit:
     () => new optimize.AliasElimination {}
   ) // arith + string + data
 
-  val optimizationPipeline: List[() => BaseIRVisitor] = List(
+  val optimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},

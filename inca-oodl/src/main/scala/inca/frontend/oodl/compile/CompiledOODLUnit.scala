@@ -11,6 +11,7 @@ import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.ir.optimize
+import inca.ir.optimize.Optimizer
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.util.printStep
 
@@ -116,7 +117,7 @@ object CompiledOODLUnit:
     ) // arith + string + data
 
   // TODO: The gitlab CI does not like the inter-relational analysis
-  val optimizationPipeline: List[() => BaseIRVisitor] = List(
+  val optimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
@@ -125,7 +126,7 @@ object CompiledOODLUnit:
     () => new optimize.AliasElimination {}
   )
 
-  val fastOptimizationPipeline: List[() => BaseIRVisitor] = List(
+  val fastOptimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},

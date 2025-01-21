@@ -1,7 +1,7 @@
 package inca.hazel
 
 import inca.ir.*
-import inca.ir.optimize.{IRConstantOptimizer, AliasElimination}
+import inca.ir.optimize.{AliasElimination, IRConstantOptimizer, Optimizer}
 import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, map, not, set, tuple, typeparam}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
@@ -34,7 +34,7 @@ class CompiledHazelUnit(val ir: Module) extends CompiledUnit:
     () => new tuple.Lowering {}
   ))
 
-  val optimizations: List[() => BaseIRVisitor] = List(
+  val optimizations: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
     () => new IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false) {},
     () => new IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true) {},

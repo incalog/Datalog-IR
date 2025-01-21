@@ -1,6 +1,6 @@
 package inca.ir
 
-import inca.ir.optimize.BaseIROptimizer
+import inca.ir.optimize.{BaseIROptimizer, Optimizer}
 import inca.ir.printer.GenericPrinter
 import inca.ir.typing.{BaseIRTypechecker, DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
@@ -51,10 +51,10 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
 
   private var pipeline: List[() => BaseIRVisitor] = List()
 
-  def setOptimizationPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
+  def setOptimizationPipeline(pipeline: List[() => Optimizer]): Unit =
     this.optimizationPipeline = pipeline
 
-  private var optimizationPipeline: List[() => BaseIRVisitor] = List()
+  private var optimizationPipeline: List[() => Optimizer] = List()
 
   def setPostProcessingPipeline(pipeline: List[() => BaseIRVisitor]): Unit =
     this.postProcessingPipeline = pipeline
@@ -128,6 +128,7 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
     val logTyped = irLogging.logTypeInformation
     val logAnalsis = irLogging.logAnalysis
     val logControlGraph = irLogging.logControlGraph
+    val logOptimizerStats = irLogging.logOptimizationStats
 
     optimizationPipeline.foldLeft(p) { case (ms, optimizer) =>
       val optimFun = optimizer()
@@ -143,7 +144,10 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
         case _ => // nothing
 
       val ls = optimFun.visitProgram(ms, loweredOtherUnits)
-
+      
+      if (logOptimizerStats)
+        println(s"Optimization: ${optimFun.name}\n  " + optimFun.statsString)
+      
       if (logOptimizations && !logTyped)
         printSteps(s"Optimization: ${optimFun.name}", ls)
 
