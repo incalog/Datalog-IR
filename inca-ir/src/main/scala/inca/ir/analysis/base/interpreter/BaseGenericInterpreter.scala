@@ -312,6 +312,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     // rename the argument according to the parameters
     var evalContext = relationOps.project(supplementaryTable.getTable, multiMapping.keys.toSeq)
 
+    // TODO: Optimize this by using a single op
     // duplicate all required values if an argument is passed twice
     multiMapping.foreach { case (supColumn, newNames) =>
       val columnIndex = relationOps.columnIndex(evalContext, supColumn)

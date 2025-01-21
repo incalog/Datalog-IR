@@ -98,8 +98,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
           //fix.iter.outermost[FixIn, FixOut[Value, TRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
         )*/
 
-    // FIXME: Parameters are finite, but their values are not finite. However, if we assign an infinite set of values,
-    //  then the Datalog program does not terminate.
+    // To get the correct Datalog semantics, we need to differentiate callsites.
+    // Otherwise, queries such as R(1) and R(2) would be joined.
     given Finite[Value] = new FiniteV
     val fixPt = fix.contextSensitive(
       fix.context.parameters[FixIn, String, Seq[Value]] {
@@ -115,10 +115,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
         case _: FixIn.EnterRelation => true
         case _ => false // important, filter everything out we don't need
       }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Parameters[String, Seq[Value]]](
-        // TODO: Why is it incorrect to read prior output?
-        StackedStates(readPriorOutput = true)
-        //StackedStates()
-        //StackedCfgNodes()
+        StackedStates()
       ))
     )
 
