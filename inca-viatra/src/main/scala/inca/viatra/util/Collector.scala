@@ -38,7 +38,6 @@ protected[viatra] object VarCollector {
 
 protected[viatra] class LitCollector extends Collector[(String, ScalaType)] {
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
-    case _: Aggregate => Seq()
     case _ => super.visitAtom(atom)
 
   override def visitTerm(term: Term): Seq[Term] = term match
