@@ -9,13 +9,13 @@ import sturdy.values.{Powerset, Topped}
 trait TypeAbstractInterpreter extends GenericInterpreter[TypeValue, Topped[Boolean], TypeRelation, Powerset[BaseIRException], WithJoin]:
   override val dataOps: DataOps[TypeValue, TypeRelation] = new DataOps[TypeValue, TypeRelation]:
 
-    override def construct(dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference, args: Seq[TypeValue]): TypeValue =
-      val ty = TData(dataDef.name)
-      ty.ref.target = Some(dataDef)
+    override def construct(caseDef: CaseDefinitionReference, args: Seq[TypeValue]): TypeValue =
+      val ty = caseDef.data
+      ty.ref.target = Some(caseDef.data.ref.target.get)
       TypeValue.AType(ty)
 
-    override def deconstruct(v: TypeValue, dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference)(matching: Seq[TypeValue] => TypeRelation)(notMatching: => TypeRelation): TypeRelation = v match
-        case TypeValue.AType(tdata: TData) if tdata.ref.target.contains(dataDef) =>
+    override def deconstruct(v: TypeValue, caseDef: CaseDefinitionReference)(matching: Seq[TypeValue] => TypeRelation)(notMatching: => TypeRelation): TypeRelation = v match
+        case TypeValue.AType(tdata: TData) if tdata == caseDef.data =>
           effects.joinComputations {
             matching(caseDef.args.map(TypeValue.AType.apply))
           } {

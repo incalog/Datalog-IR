@@ -140,14 +140,10 @@ object CompiledFunctionalUnit:
     () => new demand.Lowering {},
     //() => new demand.LoweringWithSupplementaries {},
     () => new tuple.Lowering {},
-
-    () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {},
-    () => new optimize.RemoveDuplicatedRelations {}
   ) // arith + string + data
 
   val optimizationPipeline: List[() => Optimizer] = List(
-    //() => new optimize.TypeIROptimizer {},
+    () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {},

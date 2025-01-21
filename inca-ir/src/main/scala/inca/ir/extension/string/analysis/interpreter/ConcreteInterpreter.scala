@@ -1,7 +1,7 @@
 package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{BaseIRException, BaseIRFailure}
-import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -11,6 +11,7 @@ case object InvalidStringConcat extends BaseIRFailure
 
 case class CStringV(value: String) extends Value:
   override def toString: String = value
+  override def isConstant: Boolean = true
 
 private class CStringVOps (using failure: Failure) extends StringOps[Value]:
   override def stringLit(s: String): Value = CStringV(s)

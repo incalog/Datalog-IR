@@ -8,14 +8,15 @@ import sturdy.data.MayJoin.NoJoin
 
 case object InvalidDeconstruct extends BaseIRFailure
 
-case class CDataV(dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference, args: Seq[Value]) extends Value:
+case class CDataV(caseDef: CaseDefinitionReference, args: Seq[Value]) extends Value:
   override def toString: String = s"${caseDef.name}${args.mkString("(", ",", ")")}"
+  override def isConstant: Boolean = args.forall(_.isConstant)
 
 private class CDataVOps[R] extends DataOps[Value, R]:
-  override def construct(dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference, args: Seq[Value]): Value = CDataV(dataDef, caseDef, args)
+  override def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): Value = CDataV(caseDef, args)
 
-  override def deconstruct(v: Value, dataDef: DataDefinitionReference, caseDef: CaseDefinitionReference)(matching: Seq[Value] => R)(notMatching: => R): R = v match
-    case CDataV(`dataDef`, `caseDef`, cArgs) => matching(cArgs)
+  override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => R)(notMatching: => R): R = v match
+    case CDataV(`caseDef`, cArgs) => matching(cArgs)
     case _ => notMatching
 
 

@@ -83,6 +83,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+    compiled.irLogging.logOptimizations = true
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
@@ -186,17 +187,16 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+    compiled.irLogging.logOptimizations = true
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
-    var setAdt = res.entries.head
-    var query = Relation.from("Set$TString$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
-    res = loaded.engine.read(query).project(1)
+    var query = Relation.from("Set$TString$enum", Seq("$elem"), Seq(Seq(null)))
+    res = loaded.engine.read(query).project(0)
     assertResult(Set("1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"))(res.toSet)
 
     res = loaded.execute("flip", Seq())
-    setAdt = res.entries.head
-    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
-    res = loaded.engine.read(query).project(1)
+    query = Relation.from("Set$TInt$enum", Seq("$elem"), Seq(Seq(null)))
+    res = loaded.engine.read(query).project(0)
     assertResult(Set(0, 1))(res.toSet)
   }
 

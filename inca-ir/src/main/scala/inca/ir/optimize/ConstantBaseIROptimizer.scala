@@ -5,8 +5,8 @@ import inca.util.{Memoize, memoize, printStep}
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{ConstantRelation, Value, Top as TopV}
-import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalRelation, ModuleEntry, Relation, Term}
+import inca.ir.analysis.base.values.{ConstantRelation, Value}
+import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, RefByName, Relation, Term, Var}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
@@ -70,7 +70,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, args) = params.map(p => (p.name.name, TopV)).unzip
+          val (paramNames, args) = params.map(p => (p.name.name, Value.Top)).unzip
           val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
           abstractInterpreter.insertEDB(n.name, ConstantRelation(paramNames, args, empty))
         case _ => // nothing
@@ -94,17 +94,30 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     if (relationAlwaysFails(relation)) {
       logOptimizationStat("constant failed relation", 1, _+1)
       Seq()
+    } else if (relation.getHint(MainHint).isEmpty) {
+      val res = getRelationResult(relation).headOption.get
+      val nonconstantParams = relation.params.zip(res.rows).flatMap {
+        case (p, v) if v.isConstant =>
+          logOptimizationStat("constant relation parameter", 1, _ + 1)
+          None
+        case (p, _) => Some(p)
+      }
+      if (nonconstantParams.isEmpty)
+        Seq()
+      else
+        super.visitRelation(relation.copy(params = nonconstantParams))
     } else {
-      super.visitRelation(relation)
+      val r = super.visitRelation(relation)
+      r
     }
   }
 
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
-    // When we don't differentiate call sites, we might end up with two different annotations (e.g. SomeConst and Top)
-    // for the same variable. We can not remove bindings equality constraints for these.
-    relevantBodyVars = body.vars.filter { t =>
-      t.mode.isBound && transformTerm(t).isEmpty
-    }.map(_.ref).toSet
+//    // When we don't differentiate call sites, we might end up with two different annotations (e.g. SomeConst and Top)
+//    // for the same variable. We can not remove bindings equality constraints for these.
+//    relevantBodyVars = body.vars.filter { t =>
+//      t.mode.isBound && transformTerm(t).isEmpty
+//    }.map(_.ref).toSet
 
     if (bodyAlwaysFails(body)) {
       logOptimizationStat("constant failed body", 1, _+1)
@@ -114,20 +127,28 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     }
   }
 
-  protected def binCompare(lhs: Term, rhs: Term, op: (Value, Value) => Boolean): Boolean =
+  protected def binCompare[A](lhs: Term, rhs: Term, op: (Value, Value) => A): Option[A] =
     (getTermResult(lhs).headOption, getTermResult(rhs).headOption) match
-      case (Some(v1), Some(v2)) => op(v1, v2)
-      case _ => false
+      case (Some(v1), Some(v2)) => Some(op(v1, v2))
+      case _ => None
+
+
+  protected def mayEliminate(t: Term): Boolean =
+    !t.typ.get.mode.isBinding || t.isInstanceOf[Var] && !params.contains(t.asInstanceOf[Var].ref)
+
+  protected def mayEliminate(eq: Eq): Boolean = mayEliminate(eq.lhs) && mayEliminate(eq.rhs)
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
-      // Remove equality constraints that always hold
-      case Eq(lhs, rhs, neg) if !atomBindsRelevantVar(atom) =>
+      case eq@Eq(lhs, rhs, neg) if mayEliminate(eq) =>
         val op = if (neg) eqOps.neq else eqOps.equ
-        if (binCompare(lhs, rhs, op(_, _).isTrue)) {
-          logOptimizationStat("constant equation", 1, _+1)
+        val comp = binCompare(lhs, rhs, op(_, _))
+        if (comp.exists(_.isTrue) || eq.isAssignment && getTermResult(eq.lhs).headOption.exists(_.isConstant)) {
+//          println(s"Eq $eq, yes")
+          logOptimizationStat("constant equation", 1, _ + 1)
           Seq()
         } else {
+//          println(s"Eq $eq, no")
           super.visitAtom(atom)
         }
       // A negative call to a failing relation always succeeds
@@ -143,6 +164,18 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
           case Some(r: Relation) if relationAlwaysFails(r) =>
             logOptimizationStat("constant failed call", 1, _+1)
             throw FailedBody
+          case Some(r: Relation) =>
+            super.visitAtom(atom).flatMap { case call: Call =>
+              val res = getRelationResult(r).headOption.get
+              val nonconstantArgs = call.args.zip(res.rows).flatMap {
+                case (a, v) if v.isConstant => None
+                case (a, _) => Some(a)
+              }
+              if (nonconstantArgs.isEmpty)
+                None
+              else
+                Some(call.copy(args = nonconstantArgs))
+            }
           case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }
@@ -164,7 +197,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
           transformTerm(term).map(Cast(_, term.typ.get.ty))
       transformed match
         case Some(newTerm) =>
-          logOptimizationStat("constant term", 1, _+1)
+          if (newTerm != term)
+            logOptimizationStat("constant term", 1, _+1)
           Seq(newTerm)
         case _ => super.visitTerm(term)
     } else {

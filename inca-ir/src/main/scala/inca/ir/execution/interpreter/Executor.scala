@@ -110,7 +110,7 @@ case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) ext
         case CIntV(i) => i
         case CDoubleV(d) => d
         case CStringV(s) => s
-        case v@CDataV(dataName, caseName, args) => v.toString // TODO: Generate Scala ADT class at runtime?
+        case v@CDataV(caseName, args) => v.toString // TODO: Generate Scala ADT class at runtime?
       }
     }
 

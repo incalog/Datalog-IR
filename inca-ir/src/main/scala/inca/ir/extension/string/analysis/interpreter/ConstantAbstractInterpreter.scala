@@ -2,7 +2,7 @@ package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, Bottom, ConstantRelation, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -18,6 +18,7 @@ import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
 case class ConstantStringV(value: String) extends Value:
   override def toString: String = value
+  override def isConstant: Boolean = true
 
 trait ConstantEqOps extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
@@ -42,14 +43,14 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
   override def stringLit(s: String): Value = ConstantStringV(s)
 
   override def toString(v: Value): Value = v match
-    case Top => Top
-    case Bottom => Bottom
+    case Value.Top => Value.Top
+    case Value.Bottom => Value.Bottom
     case _ => ConstantStringV(v.toString)
 
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match
     case (ConstantStringV(s1), ConstantStringV(s2)) => ConstantStringV(s1 ++ s2)
-    case (Top, _) | (_, Top) => Top
-    case (Bottom, _) | (_, Bottom) =>
+    case (Value.Top, _) | (_, Value.Top) => Value.Top
+    case (Value.Bottom, _) | (_, Value.Bottom) =>
       except.throws(AtomFailed("Can not concat bottom"))
     case _ =>
       failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")

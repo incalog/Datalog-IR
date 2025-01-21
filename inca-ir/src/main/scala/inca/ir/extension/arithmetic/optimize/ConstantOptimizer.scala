@@ -29,7 +29,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
           case "<=" => intOrderingOps.le
           case ">" => intOrderingOps.gt
           case ">=" => intOrderingOps.ge
-        if (binCompare(lhs, rhs, opFun(_, _).isTrue))
+        if (binCompare(lhs, rhs, opFun(_, _)).exists(_.isTrue))
           Seq()
         else
           super.visitAtom(atom)

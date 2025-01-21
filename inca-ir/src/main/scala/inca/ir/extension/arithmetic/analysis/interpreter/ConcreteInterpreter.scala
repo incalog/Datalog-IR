@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -16,9 +16,11 @@ import sturdy.values.ordering.{ConcreteOrderingOps, EqOps, OrderingOps}
 
 case class CIntV(value: Int) extends Value:
   override def toString: String = value.toString
+  override def isConstant: Boolean = true
 
 case class CDoubleV(value: Double) extends Value:
   override def toString: String = value.toString
+  override def isConstant: Boolean = true
 
 private def fromInt(value: Int): Value = value match
     case i => CIntV(i)

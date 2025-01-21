@@ -302,6 +302,11 @@ case class Eq(lhs: Term, rhs: Term, neg: Boolean = false) extends Atom:
 
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
 
+  def isAssignment: Boolean =
+    !neg &&
+    lhs.isInstanceOf[Var] && lhs.typ.exists(_.mode.isBinding) ||
+    rhs.isInstanceOf[Var] && rhs.typ.exists(_.mode.isBinding)
+
 case object TAny extends Type
 
 case object TNothing extends Type

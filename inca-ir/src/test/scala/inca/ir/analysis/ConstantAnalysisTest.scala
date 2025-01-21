@@ -8,7 +8,6 @@ import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
-import inca.ir.analysis.base.values.{Bottom as BottomV, Top as TopV}
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.printer.IRDebugPrinter
 
@@ -76,12 +75,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val numRelType = relTypes("nums")
     assert(numRelType.cols == Seq("x"))
-    assert(numRelType.rows == Seq(TopV))
+    assert(numRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(numRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("x"))
-    assert(mainRelType.rows == Seq(TopV))
+    assert(mainRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -116,17 +115,17 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val xsRelType = relTypes("xs")
     assert(xsRelType.cols == Seq("x"))
-    assert(xsRelType.rows == Seq(TopV))
+    assert(xsRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(xsRelType.empty)
 
     val ysRelType = relTypes("ys")
     assert(ysRelType.cols == Seq("y"))
-    assert(ysRelType.rows == Seq(TopV))
+    assert(ysRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(ysRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("x", "y"))
-    assert(mainRelType.rows == Seq(TopV, TopV))
+    assert(mainRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -170,13 +169,13 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     // This already fails
     val xsRelType = relTypes("xs")
     assert(xsRelType.cols == Seq("x"))
-    assert(xsRelType.rows == Seq(BottomV))
+    assert(xsRelType.rows == Seq(Value.Bottom))
     assertResult(Topped.Actual(true))(xsRelType.empty)
 
     // Therefore this fails as well and ys is never evaluated
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("x", "y"))
-    assert(mainRelType.rows == Seq(BottomV, BottomV))
+    assert(mainRelType.rows == Seq(Value.Bottom, Value.Bottom))
     assertResult(Topped.Actual(true))(mainRelType.empty)
   }
 
@@ -244,12 +243,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, TopV))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(TopV, TopV))
+    assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -286,12 +285,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, TopV))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(TopV, TopV))
+    assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -328,12 +327,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, TopV))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(TopV, TopV))
+    assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -377,17 +376,17 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, TopV)) // we are demand driven
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top)) // we are demand driven
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(TopV, TopV))
+    assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("y"))
-    assert(mainRelType.rows == Seq(TopV))
+    assert(mainRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -427,12 +426,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(TopV))
+    assert(inputRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(inputRelType.empty)
 
     val facRelType = relTypes("fac")
     assert(facRelType.cols == Seq("n", "r"))
-    assert(facRelType.rows == Seq(TopV, TopV))
+    assert(facRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(facRelType.empty)
   }
 
@@ -467,12 +466,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(TopV))
+    assert(inputRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(inputRelType.empty)
 
     val sumRelType = relTypes("prefixSum")
     assert(sumRelType.cols == Seq("t", "n"))
-    assert(sumRelType.rows == Seq(TopV, TopV))
+    assert(sumRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(sumRelType.empty)
   }
 
@@ -507,12 +506,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(TopV))
+    assert(inputRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(inputRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("t", "n"))
-    assert(mainRelType.rows == Seq(TopV, TopV))
+    assert(mainRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -543,7 +542,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, TopV))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
   }
 
@@ -570,7 +569,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(BottomV, BottomV))
+    assert(edgeRelType.rows == Seq(Value.Bottom, Value.Bottom))
     assertResult(Topped.Actual(true))(edgeRelType.empty)
   }
 
@@ -600,12 +599,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     relTypes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(TopV, ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, ConstantIntV(2)))
+    assert(edgeRelType.rows == Seq(Value.Top, ConstantIntV(2)))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
   }
 
@@ -636,7 +635,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     relTypes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(TopV, ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = relTypes("edge")
@@ -692,16 +691,16 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     var edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, TopV))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     relTypes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(TopV, ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(TopV, TopV))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -736,7 +735,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(BottomV, BottomV))
+    assert(edgeRelType.rows == Seq(Value.Bottom, Value.Bottom))
     assertResult(Topped.Actual(true))(edgeRelType.empty)
 
     val filterEdgeRelType = relTypes("filterEdge")
@@ -776,7 +775,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TopV))
+    assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
@@ -817,12 +816,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TopV))
+    assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows ==  Seq(TopV))
+    assert(mainEdgeRelType.rows ==  Seq(Value.Top))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -858,7 +857,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TopV))
+    assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
@@ -907,12 +906,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TopV))
+    assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
-    assert(mainEdgeRelType.rows == Seq(TopV, TopV))
+    assert(mainEdgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -956,12 +955,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TopV))
+    assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
-    assert(mainEdgeRelType.rows == Seq(TopV, TopV))
+    assert(mainEdgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -997,7 +996,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(TopV))
+    assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
@@ -1048,12 +1047,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val inputCalcEdgeRelType = relTypes("input_calc")
     assert(inputCalcEdgeRelType.cols == Seq("x"))
-    assert(inputCalcEdgeRelType.rows == Seq(TopV))
+    assert(inputCalcEdgeRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(inputCalcEdgeRelType.empty)
 
     val calcRelType = relTypes("calc")
     assert(calcRelType.cols == Seq("x", "elem"))
-    assert(calcRelType.rows == Seq(TopV, ConstantIntV(3)))
+    assert(calcRelType.rows == Seq(Value.Top, ConstantIntV(3)))
     assertResult(Topped.Top)(calcRelType.empty)
 
     val mainEdgeRelType = relTypes("main")

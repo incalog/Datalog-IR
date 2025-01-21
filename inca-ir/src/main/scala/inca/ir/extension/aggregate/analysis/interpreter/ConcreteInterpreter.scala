@@ -3,7 +3,7 @@ package inca.ir.extension.aggregate.analysis.interpreter
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
-import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Top, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Value}
 import inca.ir.extension.aggregate.{AggregationOperator, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.arithmetic.analysis.interpreter.{CDoubleV, CIntV}
 import sturdy.effect.{Effect, EffectStack}

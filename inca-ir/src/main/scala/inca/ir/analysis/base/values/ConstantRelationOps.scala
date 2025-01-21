@@ -25,7 +25,7 @@ class ConstantRelationOps(using joinV: Join[Value], boolOps: BooleanOps[Topped[B
   override def columns(rv: ConstantRelation): Seq[String] = rv.cols
 
   override def make(cols: Seq[String], vals: Seq[Row]): ConstantRelation =
-    val joinedVals = vals.foldLeft[Row](cols.map(_ => Bottom))((v1, v2) => v1.zip(v2).map((t1, t2) => joinV(t1, t2).get))
+    val joinedVals = vals.foldLeft[Row](cols.map(_ => Value.Bottom))((v1, v2) => v1.zip(v2).map((t1, t2) => joinV(t1, t2).get))
     ConstantRelation(cols, joinedVals, Topped.Actual(vals.isEmpty))
 
   override def rename(rv: ConstantRelation, subst: Map[String, String]): ConstantRelation =

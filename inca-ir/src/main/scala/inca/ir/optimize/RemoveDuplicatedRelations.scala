@@ -14,7 +14,7 @@ import inca.ir.visitors.IRVisitor
  * This optimization will detect these colliding relations, determine the minimum set of parameters,
  * merge these relations together and rewrite all calls accordingly.
  */
-trait RemoveDuplicatedRelations extends IRVisitor:
+trait RemoveDuplicatedRelations extends IRVisitor, Optimizer:
   override def name: String = "RemoveDuplicatedRelations"
 
   // Detect relations with the exact same body
@@ -56,7 +56,11 @@ trait RemoveDuplicatedRelations extends IRVisitor:
   override def visitRelation(relation: Relation): Seq[Relation] = phase match
     case Phase.CollectCollisions =>
       val bodies = relation.bodies.toSet
-      collisionMap += bodies -> (collisionMap.getOrElse(bodies, Seq()) :+ relation)
+      collisionMap.get(bodies) match
+        case None => collisionMap += bodies -> Seq(relation)
+        case Some(rels) =>
+          logOptimizationStat("duplicate relation", 1, _+1)
+          collisionMap += bodies -> (rels :+ relation)
       Seq()
     case Phase.RewriteCalls =>
       super.visitRelation(relation)

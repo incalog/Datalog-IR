@@ -4,9 +4,9 @@ import sturdy.values.Finite
 
 trait BaseJoinV:
   def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (Bottom, _) => rhs
-    case (_, Bottom) => lhs
-    case _ => Top
+    case (Value.Bottom, _) => rhs
+    case (_, Value.Bottom) => lhs
+    case _ => Value.Top
 
 /*trait BaseMeetV:
   def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
@@ -16,7 +16,11 @@ trait BaseJoinV:
 
 class FiniteV extends Finite[Value]
 
-trait Value
+trait Value:
+  def isConstant: Boolean
 
-case object Top extends Value
-case object Bottom extends Value
+object Value:
+  case object Top extends Value:
+    override def isConstant: Boolean = false
+  case object Bottom extends Value:
+    override def isConstant: Boolean = true

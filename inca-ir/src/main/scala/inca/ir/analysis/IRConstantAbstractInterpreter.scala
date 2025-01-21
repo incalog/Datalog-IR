@@ -2,11 +2,10 @@ package inca.ir.analysis
 
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Top, TypeValue, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, TypeValue, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.Top as TopV
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
@@ -70,7 +69,7 @@ class IRConstantAbstractInterpreter(
 
   type RV = ConstantRelation
 
-  override lazy val topV: Value = TopV
+  override lazy val topV: Value = Value.Top
 
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 
