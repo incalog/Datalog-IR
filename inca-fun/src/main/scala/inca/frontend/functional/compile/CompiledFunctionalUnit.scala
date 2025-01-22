@@ -150,10 +150,8 @@ object CompiledFunctionalUnit:
   )
 
   val fastOptimizationPipeline: List[() => Optimizer] = List(
-    //() => new optimize.TypeIROptimizer {},
+    () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
-    //() => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
-    //() => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {}
   )
