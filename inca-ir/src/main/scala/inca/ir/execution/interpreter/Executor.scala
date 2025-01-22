@@ -1,13 +1,16 @@
 package inca.ir.execution.interpreter
 
 import inca.ir
-import inca.ir.CompiledUnit
+import inca.ir.{CompiledUnit, Name}
 import inca.ir.analysis.IRConcreteInterpreter
 import inca.ir.analysis.base.values.{ConcreteRelation, Value}
-import inca.ir.execution.{ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation}
+import inca.ir.execution.{ADT, ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation, transformEDBInput}
+import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.arithmetic.analysis.interpreter.{CDoubleV, CIntV}
+import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.string.analysis.interpreter.CStringV
 import inca.ir.extension.data.analysis.interpreter.CDataV
+import inca.ir.extension.string.TString
 import sturdy.values.references.AllocationSiteAddr
 
 // TODO: Support Scala code
@@ -70,15 +73,22 @@ class Executor extends IRExecutor:
     override def readAll(): Seq[Relation] =
       interp(mods).values.toSeq
 
+    private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
+      val argTys = args.map {
+        case _: CIntV => TInt
+        case _: CDoubleV => TDouble
+        case _: CStringV => TString
+        case CDataV(caseDef, _) => caseDef.data
+      }
+      val caseDef = CaseDefinition(Name(caseName), argTys, TData(Name(dataName)))
+      CDataV(caseDef, args.map(_.asInstanceOf[Value]))
+
+    private def interpretfyTupleEntry(v: Any): Value =
+      transformEDBInput(v)(CStringV.apply, CIntV.apply, CDoubleV.apply, transformADT).asInstanceOf[Value]
+
     private def relationToCRV(rel: Relation) =
       ConcreteRelation[Value](rel.parameterNames, rel.entries.map { e =>
-        rel.flattenEntry(e).map {
-          case i: java.lang.Integer => CIntV(i)
-          case f: java.lang.Float => CDoubleV(f.floatValue())
-          case d: java.lang.Double => CDoubleV(d)
-          case s : String => CStringV(s)
-          case _ => ??? // TODO: Algebraic Data
-        }
+        rel.flattenEntry(e).map(interpretfyTupleEntry)
       }.toSet)
 
     override def insert(edb: Relation): Unit =

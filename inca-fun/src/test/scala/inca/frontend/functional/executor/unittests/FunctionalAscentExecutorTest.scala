@@ -157,7 +157,15 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("main", Seq())
+    val res = loaded.execute("main", Seq(
+      ADT("Nat", "Succ", Seq(
+        ADT("Nat", "Succ", Seq(
+          ADT("Nat", "Succ", Seq(
+            ADT("Nat", "Zero", Seq())
+          ))
+        ))
+      ))
+    ))
     // TODO: Do not compare by string
     assertResult("Succ(Succ(Succ(Succ(Succ(Zero)))))")(res.entries.head.toString)
   }
@@ -169,15 +177,13 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
-    var setAdt = res.entries.head
-    var query = Relation.from("Set$TString$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
-    res = loaded.engine.read(query).project(1)
+    var query = Relation.from("Set$TString$enum", Seq("$elem"), Seq(Seq(null)))
+    res = loaded.engine.read(query).project(0)
     assertResult(Set("1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"))(res.toSet)
 
     res = loaded.execute("flip", Seq())
-    setAdt = res.entries.head
-    query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))
-    res = loaded.engine.read(query).project(1)
+    query = Relation.from("Set$TInt$enum", Seq("$elem"), Seq(Seq(null)))
+    res = loaded.engine.read(query).project(0)
     assertResult(Set(0, 1))(res.toSet)
   }
 

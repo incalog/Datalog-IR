@@ -177,7 +177,15 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
-    val res = loaded.execute("main", Seq())
+    val res = loaded.execute("main", Seq(
+      ADT("Nat", "Succ", Seq(
+        ADT("Nat", "Succ", Seq(
+          ADT("Nat", "Succ", Seq(
+            ADT("Nat", "Zero", Seq())
+          ))
+        ))
+      ))
+    ))
     // TODO: Do not compare by string
     assertResult("Succ(Succ(Succ(Succ(Succ(Zero())))))")(res.entries.head.toString)
   }

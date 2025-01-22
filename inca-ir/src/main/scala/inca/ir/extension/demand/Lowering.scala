@@ -66,23 +66,25 @@ trait Lowering extends BaseLowering:
     m2.copy(contents = m2.contents ++ demandRels)
   }
 
-  override def visitRelation(rel: Relation): Seq[Relation] = phase match
-    case Phase.InsertDemandGuards =>
-      val demanded = rel.params.flatMap {
-        case Param(name, TDemand(ty)) => Some(Param(name, ty))
-        case _ => None
-      }
-      if (demanded.isEmpty)
-        super.visitRelation(rel)
-      else
-        for (vrel <- super.visitRelation(rel)) yield {
-          demandRules += vrel.name -> ListBuffer()
-          val guardedBodies = vrel.bodies.map(b => Body(
-            Call(demandRelationName(vrel.name), demanded.map(p => Var(p.name).arg))
-            +: b.atoms))
-          vrel.copy(bodies = guardedBodies)
+  override def visitRelation(rel: Relation): Seq[Relation] = preserveHints(rel) {
+    phase match
+      case Phase.InsertDemandGuards =>
+        val demanded = rel.params.flatMap {
+          case Param(name, TDemand(ty)) => Some(Param(name, ty))
+          case _ => None
         }
-    case _ => super.visitRelation(rel)
+        if (demanded.isEmpty)
+          super.visitRelation(rel)
+        else
+          for (vrel <- super.visitRelation(rel)) yield {
+            demandRules += vrel.name -> ListBuffer()
+            val guardedBodies = vrel.bodies.map(b => Body(
+              Call(demandRelationName(vrel.name), demanded.map(p => Var(p.name).arg))
+              +: b.atoms))
+            vrel.copy(bodies = guardedBodies)
+          }
+      case _ => super.visitRelation(rel)
+  }
 
   override def visitType(ty: Type): Type = ty match
     case TDemand(tty) => preserveHints(ty)(visitType(tty))

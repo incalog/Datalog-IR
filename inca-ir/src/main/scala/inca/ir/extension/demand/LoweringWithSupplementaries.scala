@@ -86,7 +86,7 @@ trait LoweringWithSupplementaries extends BaseLowering:
 
   private var currentRelation: Relation = _
 
-  override def visitRelation(rel: Relation): Seq[Relation] =
+  override def visitRelation(rel: Relation): Seq[Relation] = preserveHints(rel) {
     currentRelation = rel
     phase match
       case Phase.InsertDemandGuards =>
@@ -110,6 +110,7 @@ trait LoweringWithSupplementaries extends BaseLowering:
             vrel.copy(bodies = guardedBodies)
           }
       case _ => super.visitRelation(rel)
+  }
 
   override def visitType(ty: Type): Type = ty match
     case TDemand(tty) => preserveHints(ty)(visitType(tty))

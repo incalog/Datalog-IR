@@ -2,7 +2,7 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, FunctionalDependencyHint, Module, Name, Param, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
@@ -175,6 +175,7 @@ object GeneratePSystem:
        |import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
        |import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
        |import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
+       |import org.eclipse.viatra.query.runtime.matchers.psystem.annotations._
        |
        |import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
        |
@@ -227,12 +228,25 @@ object GeneratePSystem:
 
   private def compileRelation(moduleName: String, relation: Relation)(indent: Int = 0)(implicit env: RuleEnvironment): Code = gensym.scoped {
     val relName = cleanName(relation.name)
-    val qname = s"${moduleName}_${relName}"
+    val qname = s"${moduleName}_$relName"
+    val paramNames = relation.params.map(_.name.name)
+
+    val funDep = relation.getHint[FunctionalDependencyHint](FunctionalDependencyHint) match
+      case Some(FunctionalDependencyHint(values, determine)) =>
+        // Remove all parameters that have been removed from the relation definition. Those where obviously not needed
+        // for the functional dependency.
+        val filteredValues = values.filter(v => paramNames.contains(v.name))
+        val filteredDetermine = determine.filter(d => paramNames.contains(d.name))
+        "val anno = new PAnnotation(\"FunctionalDependency\")"
+        +: (filteredValues.map(v => s"anno.addAttribute(\"forEach\", new ParameterReference(\"${v.name}\"))")
+        ++ filteredDetermine.map(d => s"anno.addAttribute(\"unique\", new ParameterReference(\"${d.name}\"))"))
+        :+ "addAnnotation(anno)"
+      case _ =>
+        Seq()
 
     val allVars = relation.bodies.flatMap(_.atoms.flatMap(_.vars))
     gensym.register(allVars.map(_.name.name))
 
-    val paramNames = relation.params.map(_.name.name)
     val paramTermNames = paramNames.map { n => s"$PARAMPREFIX$n" }
 
     val bodies = if (relation.bodies.nonEmpty)
@@ -273,6 +287,8 @@ object GeneratePSystem:
        |  lazy val instance: Specification = new Specification(generatedPQuery)
        |
        |  private object generatedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+       |    ${funDep.mkString(s"\n    ")}
+       |
        |    ${relation.params.map(genPParam).mkString(s"\n    ")}
        |
        |    override protected def doGetContainedBodies(): util.Set[PBody] = util.Set.of($bodiesS)

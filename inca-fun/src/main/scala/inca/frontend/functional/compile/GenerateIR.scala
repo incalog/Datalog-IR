@@ -4,7 +4,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, Language, MainHint, Name, RefByName, TermArg, name2string, string2name}
+import inca.ir.{ExtensionalRelation, FunctionalDependencyHint, Language, MainHint, Name, RefByName, TermArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -91,7 +91,13 @@ class GenerateIR {
     val rel = ir.Relation(f.name, params, Seq(ir.Body(
       Seq(ir.Eq(ir.Var(Name(result)), compileExp(f.body))))
     ))
-    parametric(f.tyVars, rel)
+    f.getAnnotation(FunctionalDependencyAnno.KEY) match
+      case Some(FunctionalDependencyAnno(values, determine)) =>
+        val newVals = values.map { case Name("Result") => Name(result); case v => v }
+        val newDetermine = determine.map { case Name("Result") => Name(result); case v => v }
+        parametric(f.tyVars, rel).addHint(FunctionalDependencyHint(newVals, newDetermine))
+      case _ =>
+        parametric(f.tyVars, rel)
 
   private def parametric(tyVars: Seq[ParametricType], entry: ir.ModuleEntry): ir.ModuleEntry =
     if (tyVars.isEmpty)

@@ -1,6 +1,7 @@
 package inca.frontend.functional.syntax
 
 import inca.frontend.functional.syntax.Annotation.Key
+import inca.ir.Name
 import inca.ir.util.SourceLocation
 
 import scala.sys.process.ProcessBuilder.Source
@@ -35,4 +36,13 @@ case class MainFunctionAnno() extends Annotation {
   override def key: Annotation.Key = MainFunctionAnno.KEY
 
   override def toString: String = "@main"
+}
+
+object FunctionalDependencyAnno:
+  val KEY: Annotation.Key = "FUNCTIONAL_DEPENDENCY"
+
+case class FunctionalDependencyAnno(values: Seq[Name], determine: Seq[Name]) extends Annotation {
+  override def key: Annotation.Key = FunctionalDependencyAnno.KEY
+
+  override def toString: String = s"@FunctionalDependency(${values.mkString(",")} -> ${determine.mkString(",")})"
 }

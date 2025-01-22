@@ -6,9 +6,6 @@ import inca.ir.util.SourceLocation
 
 import scala.language.implicitConversions
 
-/**
- * Parser for TIP programs, adapted for cats-parse from https://github.com/cs-au-dk/TIP/blob/master/src/tip/parser/TipParser.scala
- */
 object Parser:
 
   implicit class Ploc[T](p: => P[T]) {
@@ -115,8 +112,10 @@ object Parser:
   val visibility: P0[Visibility] = keyword("private").mapWithLoc(_ => Private())
 
   val mainFuncAnno: P[MainFunctionAnno] = op("@main").mapWithLoc(_ => MainFunctionAnno())
+  lazy val funcDepAnno: P[FunctionalDependencyAnno] = (op("@FunctionalDependency") *> inParens((list(identifier) <* op("->")) ~ list(identifier)))
+    .mapWithLoc((values, determine) => FunctionalDependencyAnno(values, determine))
 
-  val annotation: P[Annotation] = mainFuncAnno
+  lazy val annotation: P[Annotation] = mainFuncAnno | funcDepAnno
 
   /** Types */
 
