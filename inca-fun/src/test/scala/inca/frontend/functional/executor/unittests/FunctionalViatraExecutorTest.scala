@@ -18,6 +18,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+    compiled.irLogging.logOptimizationStats = true
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
@@ -83,7 +84,6 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-    compiled.irLogging.logOptimizations = true
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
@@ -187,7 +187,6 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-    compiled.irLogging.logOptimizations = true
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
     var query = Relation.from("Set$TString$enum", Seq("$elem"), Seq(Seq(null)))

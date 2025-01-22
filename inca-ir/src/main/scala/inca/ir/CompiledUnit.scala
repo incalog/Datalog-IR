@@ -130,6 +130,9 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
     val logControlGraph = irLogging.logControlGraph
     val logOptimizerStats = irLogging.logOptimizationStats
 
+    if (logOptimizations)
+      printSteps(s"Before optimization", p)
+
     optimizationPipeline.foldLeft(p) { case (ms, optimizer) =>
       val optimFun = optimizer()
 
@@ -149,12 +152,12 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       if (logOptimizerStats)
         println(s"Optimization: ${optimFun.name}\n  " + optimFun.statsString)
       
-      if (logOptimizations && !logTyped)
+      if (logOptimizations && !logTyped && optimFun.stats.nonEmpty)
         printSteps(s"Optimization: ${optimFun.name}", ls)
 
       val checker = typechecker
       try checker.checkProgram(ls, header)
-      finally if (logOptimizations && logTyped)
+      finally if (logOptimizations && logTyped && optimFun.stats.nonEmpty)
         printSteps(s"Optimization: ${optimFun.name}", ls)
       ls
     }

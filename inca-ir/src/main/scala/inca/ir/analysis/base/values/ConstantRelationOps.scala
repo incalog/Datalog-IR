@@ -106,7 +106,7 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
     val newEmpty = boolOps.and(rv.empty, other.empty)
     if (newEmpty.isActual && newEmpty.get)
       // Empty tables should not have bindings
-      ConstantRelation(rv.cols, rv.cols.map(_ => Bottom), newEmpty)
+      ConstantRelation(rv.cols, rv.cols.map(_ => Value.Bottom), newEmpty)
     else
       val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
       ConstantRelation(rv.cols, newRows, newEmpty)

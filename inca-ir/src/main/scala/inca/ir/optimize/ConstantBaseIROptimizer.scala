@@ -84,8 +84,11 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   def valueToTermInternal(value: Value): Option[Term] =
     None
 
-  private def transformTerm(term: Term): Option[Term] =
-    getTermResult(term).headOption.flatMap(valueToTerm.apply)
+  private def transformTerm(term: Term): Option[Term] = {
+    val option = getTermResult(term).headOption
+//    println(s"  elim $term => $option")
+    option.flatMap(valueToTerm.apply)
+  }
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
@@ -134,7 +137,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
 
 
   protected def mayEliminate(t: Term): Boolean =
-    !t.typ.get.mode.isBinding || t.isInstanceOf[Var] && !params.contains(t.asInstanceOf[Var].ref)
+    val b = !t.typ.get.mode.isBinding || t.isInstanceOf[Var] && !params.contains(t.asInstanceOf[Var].ref)
+//    if (b) println(s"may elim $t") else println(s"may NOT elim $t")
+    b
 
   protected def mayEliminate(eq: Eq): Boolean = mayEliminate(eq.lhs) && mayEliminate(eq.rhs)
 
@@ -182,7 +187,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
 
   // Replace all terms with their constants if possible
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
-    if (!term.typ.get.mode.isBinding) {
+    if (mayEliminate(term)) {
       val transformed = term match
         case Cast(t, ty) => transformTerm(term).map(Cast(_, ty))
         case _ =>

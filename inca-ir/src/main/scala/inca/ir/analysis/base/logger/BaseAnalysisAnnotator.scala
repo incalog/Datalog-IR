@@ -61,7 +61,10 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
   def updateAtomResult(at: Atom): Unit = at match
     case Call(ref, args, neg) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        updateTermResult(term, extractTermValue(varName))
+        if (term.typ.get.mode.isBinding)
+          updateTermResult(term, extractTermValue(varName))
+        else
+          () // TODO: meet old and new term result to increase precision
       }
     case ExtensionalCall(ref, args, neg) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
