@@ -101,14 +101,17 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       val res = getRelationResult(relation).headOption.get
       val nonconstantParams = relation.params.zip(res.rows).flatMap {
         case (p, v) if v.isConstant =>
-          logOptimizationStat("constant relation parameter", 1, _ + 1)
           None
         case (p, _) => Some(p)
       }
-      if (nonconstantParams.isEmpty)
+      if (nonconstantParams.isEmpty) {
+        logOptimizationStat("constant relation", 1, _+1)
         Seq()
-      else
+      } else {
+        val k = params.size - nonconstantParams.size
+        logOptimizationStat("constant relation parameter", k, _ + k)
         super.visitRelation(relation.copy(params = nonconstantParams))
+      }
     } else {
       val r = super.visitRelation(relation)
       r
