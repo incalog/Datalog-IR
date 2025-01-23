@@ -26,7 +26,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
       case Some(termType: TermType) => termType
       case _ => throw new IllegalStateException(s"Untyped Term $term in normalization")
     }
-    if (typ.ty == TDouble && !normalizeDoubles) return term
+    if (typ.ty == TDouble && !normalizeDoubles) return super.normalize(term) // term might be a cast to double
 
     val newTerm = term match {
       case BinOp(lhs, rhs, "+") => normalizeAdd(lhs, rhs, typ)

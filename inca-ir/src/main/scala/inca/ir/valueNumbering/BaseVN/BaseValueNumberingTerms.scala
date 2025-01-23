@@ -111,12 +111,13 @@ trait BaseValueNumberingTerms extends IRVisitor {
 
   protected def getIdOf(t: Term): ValueId = vnTables.getIdOf(t)
 
-  protected def normalize(term: Term): Term = term
-
-  protected def isConst(term: Term): Boolean = term match {
-    case Cast(t, ty) => isConst(t)
-    case _ => false
+  
+  protected def normalize(term: Term): Term = term match {
+    case Cast(t, ty) if t.typ.get.ty == ty => t
+    case _ => term
   }
+
+  protected def isConst(term: Term): Boolean = false
 
 
   private var currentRelationParams: Seq[Name] = Seq()
@@ -266,7 +267,10 @@ trait BaseValueNumberingTerms extends IRVisitor {
 
 
   // prevent terms that contain Vars with unknown value from being replaced (while not preventing Vars from being replaced)
-  protected def isAllowedToReplace(term: Term): Boolean = term.vars.isEmpty || term.isInstanceOf[Var]
+  protected def isAllowedToReplace(term: Term): Boolean = (term.vars.isEmpty || term.isInstanceOf[Var])
+    // Cast might contain a constant and thus be needed to constraint variables
+    // (if the constants type and the type of the cast does not match it is not a constant itself)
+    && !term.isInstanceOf[Cast]
 
 
   private def valueNumberVar(vari: Var, t: Term, dontRemove: Boolean = false): Seq[Eq] = {

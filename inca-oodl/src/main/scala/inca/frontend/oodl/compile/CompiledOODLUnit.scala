@@ -110,8 +110,8 @@ object CompiledOODLUnit:
       () => new tuple.Lowering {},
 
 //      () => new optimize.IdentityCastElimination {},
-      () => new optimize.AliasElimination {},
-      () => new optimize.RemoveDuplicatedRelations {},
-      () => new optimize.RemoveUnusedParameters {},
+//      () => new optimize.AliasElimination {},
+//      () => new optimize.RemoveDuplicatedRelations {},
+//      () => new optimize.RemoveUnusedParameters {},
       () => new ValueNumbering {}
     ) // arith + string + data

@@ -3482,7 +3482,7 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
     performTest(expected, input)
   }
 
-  test("Cast") {
+  test("Cast: Double to Int -> no constant") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
@@ -3496,30 +3496,75 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
       Seq(
         Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
           Body(Seq(
-            Eq(Var("a"), Cast(DoubleNum(123), TInt)),
-            Eq(Var("param$0"), Var("a"))
+            Eq(Var("param$0"), Cast(DoubleNum(123), TInt)),
+//            Eq(Var("param$0"), Var("a"))
           ))
         ))
       ))
     performTest(expected, input)
   }
 
-  /*
-  A$$v$input(this$0: ID, value$0: TInt, ts$0: TInt) {
-    A$input(this$0: >ID<, v: >TInt<, Mutation$1: >TInt<)
-    Object(this$0: <ID>)
-    value$0: >TInt< == Cast v: <TInt>
-    ts$0: >TInt< == Mutation$1: <TInt>
+  test("Cast: Int to Int -> normalize Cast away") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), Cast(IntNum(123), TInt)),
+            Eq(Var("param$0"), Var("a"))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
+          Body(Seq(
+            //            Eq(Var("a"), Cast(IntNum(123), TInt)),
+            Eq(Var("param$0"), IntNum(123))
+          ))
+        ))
+      ))
+    performTest(expected, input)
   }
-   */
-  test("Cast 2") {
+
+  test("Cast: Double to Double -> normalize Cast away") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TDouble)), Seq(
+          Body(Seq(
+            Eq(Var("a"), Cast(DoubleNum(123), TDouble)),
+            Eq(Var("param$0"), Var("a"))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("R"), Seq(Param("param$0", TDouble)), Seq(
+          Body(Seq(
+//            Eq(Var("a"), Cast(DoubleNum(123), TDouble)),
+            Eq(Var("param$0"), DoubleNum(123))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Cast: No change") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(
         Relation(Name("R"), Seq(Param("param$0", TInt)), Seq(
           Body(Seq(
             Call("S", Seq(TermArg(Var("a")))),
             Eq(Var("param$0"), Cast(DoubleNum(123), TInt)),
-          ))
+          )),
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("a")))),
+            Eq(Var("a"), Cast(IntNum(0), TDouble)),
+            Eq(Var("param$0"), IntNum(1))
+          )),
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("a")))),
+            Eq(Var("param$0"), Cast(Var("a"), TInt))
+          )),
         )),
         Relation(Name("S"), Seq(Param("param$0", TDouble)), Seq(
           Body(Seq(
@@ -3536,7 +3581,16 @@ class ArithmeticTest extends ValueNumberingTestAbstract{
           Body(Seq(
             Call("S", Seq(TermArg(Var("a")))),
             Eq(Var("param$0"), Cast(DoubleNum(123), TInt)),
-          ))
+          )),
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("a")))),
+            Eq(Var("a"), Cast(IntNum(0), TDouble)),
+            Eq(Var("param$0"), IntNum(1))
+          )),
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("a")))),
+            Eq(Var("param$0"), Cast(Var("a"), TInt))
+          )),
         )),
         Relation(Name("S"), Seq(Param("param$0", TDouble)), Seq(
           Body(Seq(
