@@ -4,8 +4,6 @@ import sturdy.values.Finite
 
 trait BaseJoinV:
   def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (Value.Bottom, _) => rhs
-    case (_, Value.Bottom) => lhs
     case _ => Value.Top
 
 /*trait BaseMeetV:
@@ -22,5 +20,3 @@ trait Value:
 object Value:
   case object Top extends Value:
     override def isConstant: Boolean = false
-  case object Bottom extends Value:
-    override def isConstant: Boolean = true

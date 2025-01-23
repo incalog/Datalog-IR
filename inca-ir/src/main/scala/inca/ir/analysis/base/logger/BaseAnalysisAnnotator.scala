@@ -15,7 +15,7 @@ import scala.collection.immutable.{AbstractSet, SortedSet}
  Extensions may choose to override this class to guarantee that all AST nodes are annotated.
  */
 trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV]) extends Logger[FixIn, FixOut[V, RV]]:
-  def extractTermValue(col: SupColumn): TV
+  def extractTermValue(col: SupColumn): Option[TV]
 
   case object TermKey extends AnalysisKey:
     override val key: String = "Term"
@@ -62,18 +62,18 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
     case Call(ref, args, neg) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
         if (term.typ.get.mode.isBinding)
-          updateTermResult(term, extractTermValue(varName))
+          extractTermValue(varName).foreach(updateTermResult(term, _))
         else
           () // TODO: meet old and new term result to increase precision
       }
     case ExtensionalCall(ref, args, neg) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        updateTermResult(term, extractTermValue(varName))
+        extractTermValue(varName).foreach(updateTermResult(term, _))
       }
     case Eq(lhs@Var(ref), rhs, false) if lhs.typ.get.mode.isBinding =>
-      updateTermResult(lhs, extractTermValue(ref.name.name))
+      extractTermValue(ref.name.name).foreach(updateTermResult(lhs, _))
     case Eq(lhs, rhs@Var(ref), false) if rhs.typ.get.mode.isBinding =>
-      updateTermResult(rhs, extractTermValue(ref.name.name))
+      extractTermValue(ref.name.name).foreach(updateTermResult(rhs, _))
     case _ => // nothing
 
   def updateRelationResult(rel: Relation, value: RV): Unit =
@@ -89,7 +89,7 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
     body.storeAnalysisResult(newResult)
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
-    case (FixIn.Term(t), Some(FixOut.Term(supName))) => updateTermResult(t, extractTermValue(supName))
+    case (FixIn.Term(t), Some(FixOut.Term(supName))) => extractTermValue(supName).foreach(updateTermResult(t, _))
     case (FixIn.Atom(at, _), Some(FixOut.Atom())) => updateAtomResult(at)
     case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv))) => updateBodyResult(rel.bodies(ix), rv)
     case (FixIn.EnterRelation(r, _), Some(FixOut.Relation(rv))) => updateRelationResult(r, rv)

@@ -94,6 +94,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
     // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
     // always succeeds.
+
     if (relationAlwaysFails(relation)) {
       logOptimizationStat("constant failed relation", 1, _+1)
       Seq()
@@ -108,8 +109,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
         logOptimizationStat("constant relation", 1, _+1)
         Seq()
       } else {
-        val k = params.size - nonconstantParams.size
-        logOptimizationStat("constant relation parameter", k, _ + k)
+        val k = relation.params.size - nonconstantParams.size
+        if (k != 0)
+          logOptimizationStat("constant relation parameter", k, _ + k)
         super.visitRelation(relation.copy(params = nonconstantParams))
       }
     } else {

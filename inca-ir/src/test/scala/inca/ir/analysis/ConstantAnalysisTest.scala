@@ -169,13 +169,13 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     // This already fails
     val xsRelType = relTypes("xs")
     assert(xsRelType.cols == Seq("x"))
-    assert(xsRelType.rows == Seq(Value.Bottom))
+    assert(xsRelType.rows == Seq(/*Value.Bottom*/))
     assertResult(Topped.Actual(true))(xsRelType.empty)
 
     // Therefore this fails as well and ys is never evaluated
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("x", "y"))
-    assert(mainRelType.rows == Seq(Value.Bottom, Value.Bottom))
+    assert(mainRelType.rows == Seq(/*Value.Bottom, Value.Bottom*/))
     assertResult(Topped.Actual(true))(mainRelType.empty)
   }
 
@@ -569,7 +569,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(Value.Bottom, Value.Bottom))
+    assert(edgeRelType.rows == Seq(/*Value.Bottom, Value.Bottom*/))
     assertResult(Topped.Actual(true))(edgeRelType.empty)
   }
 
@@ -735,7 +735,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(Value.Bottom, Value.Bottom))
+    assert(edgeRelType.rows == Seq(/*Value.Bottom, Value.Bottom*/))
     assertResult(Topped.Actual(true))(edgeRelType.empty)
 
     val filterEdgeRelType = relTypes("filterEdge")

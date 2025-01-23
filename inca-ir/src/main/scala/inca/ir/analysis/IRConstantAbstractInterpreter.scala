@@ -101,7 +101,7 @@ class IRConstantAbstractInterpreter(
   }
   override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
 
-  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps
+  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps(using except)
 
   override def resetIDB(): Unit = idb.setState(Map())
 
@@ -111,11 +111,14 @@ class IRConstantAbstractInterpreter(
       with irdata.logger.AnalysisAnnotator[Value, RV, Value]
       with irstr.logger.AnalysisAnnotator[Value, RV, Value]:
 
-    override def extractTermValue(supName: SupColumn): Value =
+    override def extractTermValue(supName: SupColumn): Option[Value] =
       val supTable = supplementaryTable.getTable
       val termTRV = relationOps.project(supTable, Seq(supName))
-      assert(termTRV.rows.size == 1)
-      termTRV.rows.head
+      termTRV match
+        case ConstantRelation.Empty(cs) => None
+        case ConstantRelation.NonEmpty(cs, rows, emp) => 
+          assert(rows.size == 1)
+          Some(rows.head)
 
   // annotate information about constants
   val analysisAnnotator = new AnalysisAnnotator

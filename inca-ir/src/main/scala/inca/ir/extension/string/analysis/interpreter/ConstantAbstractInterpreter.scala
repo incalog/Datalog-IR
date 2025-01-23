@@ -44,14 +44,11 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
 
   override def toString(v: Value): Value = v match
     case Value.Top => Value.Top
-    case Value.Bottom => Value.Bottom
     case _ => ConstantStringV(v.toString)
 
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match
     case (ConstantStringV(s1), ConstantStringV(s2)) => ConstantStringV(s1 ++ s2)
     case (Value.Top, _) | (_, Value.Top) => Value.Top
-    case (Value.Bottom, _) | (_, Value.Bottom) =>
-      except.throws(AtomFailed("Can not concat bottom"))
     case _ =>
       failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 

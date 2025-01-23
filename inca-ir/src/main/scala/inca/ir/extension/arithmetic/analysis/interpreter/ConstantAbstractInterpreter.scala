@@ -46,13 +46,11 @@ private def constantDoubleFromToppedDouble(value: Topped[Double]): Value = value
 private def toppedIntAsConstantInt(v: Value)(using except: Except[BaseIRException, ?, ?]): Topped[Int] = v match
     case ConstantIntV(i) => Topped.Actual(i)
     case Value.Top => Topped.Top
-    case Value.Bottom => except.throws(AtomFailed("Can not compare with bottom"))
     case _ => throw IllegalArgumentException(s"Can not convert $v to int")
 
 private def toppedDoubleAsConstantDouble(v: Value)(using except: Except[BaseIRException, ?, ?]): Topped[Double] = v match
     case ConstantDoubleV(d) => Topped.Actual(d)
     case Value.Top => Topped.Top
-    case Value.Bottom => except.throws(AtomFailed("Can not compare with bottom"))
     case _ => throw IllegalArgumentException(s"Can not convert $v to double")
 
 private class ConstantDoubleVOps (using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])

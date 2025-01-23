@@ -8,5 +8,5 @@ trait AnalysisAnnotator[V, RV, TV] extends BaseAnalysisAnnotator[V, RV, TV]:
   override def updateAtomResult(at: Atom): Unit = at match
     case Aggregate(rel, args, op) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        updateTermResult(term, extractTermValue(varName))
+        extractTermValue(varName).foreach(updateTermResult(term, _))
       }

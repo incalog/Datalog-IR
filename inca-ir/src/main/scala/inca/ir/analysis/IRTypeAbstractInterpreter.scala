@@ -104,11 +104,11 @@ class IRTypeAbstractInterpreter(
     with irdata.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]
     with irstr.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]:
 
-      override def extractTermValue(supName: SupColumn): TypeValue =
+      override def extractTermValue(supName: SupColumn): Option[TypeValue] =
         val supTable = supplementaryTable.getTable
         val termTRV = supTable.project(Seq(supName))
         assert(termTRV.rows.size == 1)
-        termTRV.rows.head
+        Some(termTRV.rows.head)
 
   val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
   
