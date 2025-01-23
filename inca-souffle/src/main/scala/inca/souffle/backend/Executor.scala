@@ -246,7 +246,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     // write Souffle program to file
     val souffleProgFile = File.createTempFile(m.name.name + "_syntax", ".dl")
 
-    val Seq(lowered) = m.lowered
+    val Seq(lowered) = m.compiled
     val souffleProg = GenerateSouffle.compileModule(lowered)
 
     //println(m.lowered)

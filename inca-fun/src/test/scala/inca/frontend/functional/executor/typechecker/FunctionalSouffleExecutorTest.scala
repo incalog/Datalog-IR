@@ -21,7 +21,7 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     //println(loaded.engine.measure(UnitRelation("main")))
     //println(loaded.engine.readAll().map(_.size).sum)
-    println(loaded.compiled.lowered)
+    println(loaded.unit.compiled)
     val res = loaded.execute("main", Seq(prog1))
     assertResult(
       "$Some_Type($TFun($TFun($TFun($TInt, $TInt), $TFun($TInt, $TInt)), $TFun($TFun($TFun($TInt, $TInt), $TFun($TInt, $TInt)), $TFun($TFun($TInt, $TInt), $TFun($TInt, $TInt)))))"

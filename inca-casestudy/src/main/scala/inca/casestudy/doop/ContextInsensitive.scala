@@ -29,7 +29,7 @@ object ContextInsensitive:
       () => new module.Lowering {}
     ))
 
-    println(compiled.mainUnit.lowered)
+    println(compiled.mainUnit.compiled)
 
   /*println("Load edb from files...")
   val edbFacts = compiled.loadEdbInputs(baseDir)

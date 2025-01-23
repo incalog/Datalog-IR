@@ -1,8 +1,9 @@
 package inca.bddbddb.frontend.compile
 
-import cats.parse.{Parser as P}
+import cats.parse.Parser as P
 import inca.bddbddb.syntax.Parser
 import inca.ir.typing.IRTypechecker
+import inca.util.FileUtil
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -54,14 +55,14 @@ class CompilerTest extends AnyFunSuite:
     })
   }
 
-/*test("Can compile PointsTo") {
-  val content = FileUtil.readFileFromResource("inca/bddbddb/pa.datalog")
-  val prog = Parser.parseModule(content)
-  val generateIR = new GenerateIR
-  val mod = generateIR.compileProgram(prog, "PointsTo")
-  println(mod)
+  test("Can compile PointsTo") {
+    val content = FileUtil.readFileFromResource("inca/bddbddb/pa.datalog")
+    val prog = Parser.parseModule(content)
+    val generateIR = new GenerateIR
+    val mod = generateIR.compileProgram(prog, "PointsTo")
+    println(mod)
 
-  val typechecker = new IRTypechecker
-  typechecker.checkProgram(Seq(mod))
-  typechecker.printTypeIO()
-}*/
+    val typechecker = new IRTypechecker
+    typechecker.checkProgram(Seq(mod))
+    typechecker.printTypeIO()
+  }

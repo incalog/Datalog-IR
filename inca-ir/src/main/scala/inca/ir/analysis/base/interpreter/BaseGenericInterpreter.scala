@@ -180,7 +180,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case FixOut.Relation(p) => p
       case _ => throw new IllegalStateException()
 
+  var indent = 0
   def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
+    println(s"${" " * indent}EVAL ${r.name} in ${supplementaryTable.getTable}")
+    indent += 2
+    try {
     gensym.register(r.bodies.flatMap(_.vars.map(_.name.name)))
 
     val paramNames = r.params.map(p => p.name.name)
@@ -203,7 +207,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     relRes = mapJoin(Seq(relRes, idbRes), identity)
 
     insertIDB(r.name, relRes)
-    relRes
+    relRes } finally  indent -= 2
   }}
 
   def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {

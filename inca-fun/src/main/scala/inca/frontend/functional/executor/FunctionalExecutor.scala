@@ -9,8 +9,8 @@ import inca.ir.execution.{IRExecutor, Relation, UnitRelation}
 import scala.jdk.CollectionConverters.*
 
 class FunctionalExecutor(val exec: IRExecutor):
-  case class Loaded(engine: exec.Engine, compiled: CompiledFunctionalUnit):
-    val logAllRelations: Boolean = compiled.compilerOptions.funLogging.verboseOutput
+  case class Loaded(engine: exec.Engine, unit: CompiledFunctionalUnit):
+    val logAllRelations: Boolean = unit.compilerOptions.funLogging.verboseOutput
 
     def output(pat: String, tuple: Seq[Any]): Relation = {
       if (logAllRelations)

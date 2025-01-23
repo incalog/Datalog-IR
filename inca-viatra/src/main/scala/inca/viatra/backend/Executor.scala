@@ -95,7 +95,7 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
 
   def instantiate(m: CompiledUnit, dataModel: DataModel): Engine =
     val options = m.compilerOptions
-    val code = GeneratePSystem.compileModules(m.lowered, options)
+    val code = GeneratePSystem.compileModules(m.compiled, options)
     val loadSource = s"$code;\n${m.name}"
     val compiler = new ScalaCompiler(options)
     val psystemModule: PSystem.Module = compiler.compileAndLoadScala(loadSource)

@@ -126,7 +126,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     val cargoFilePath = Paths.get(rustProjectDir, "Cargo.toml")
     FileUtil.writeFile(cargoFilePath.toFile.getCanonicalPath, cargoFile)
 
-    val Seq(lowered) = m.lowered
+    val Seq(lowered) = m.compiled
     val contents = GenerateAscent.compileModule(lowered)
 
     // all inputs and outputs

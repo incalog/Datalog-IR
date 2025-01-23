@@ -560,7 +560,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
   }
 
 
-  def compiled = new CompiledUnit:
+  def unit = new CompiledUnit:
     override def name: Name = "AbstractSyntaxGraph"
 
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -578,16 +578,16 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
   test("AbstractSyntaxGraph is well-typed") {
     //println(mod)
     try
-      compiled.checked
+      unit.checked
     //println(compiled.dependencyGraph.toGraphViz)
     //finally println(mod)
   }
 
   test("AbstractSyntaxGraph can be lowered") {
     try
-      compiled.lowered
+      unit.compiled
       val typechecker = new IRTypechecker
-      typechecker.checkProgram(compiled.lowered)
+      typechecker.checkProgram(unit.compiled)
     //println(typechecker.getDependencyGraph.toGraphViz)
     //finally println(compiled.lowered)
   }
@@ -609,7 +609,7 @@ class AbstractSyntaxGraphPlayground extends AnyFunSuiteLike:
 
     val runs = 1
     val executionTimes = (0 until runs).map { _ =>
-      val engine = new Executor().instantiate(compiled)
+      val engine = new Executor().instantiate(unit)
       edbs.foreach(engine.insert)
       //edbs.foreach(e => println(e.asTable))
       val start = System.nanoTime()

@@ -70,7 +70,7 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
           case Some(_) => outputs = outputs :+ UnitRelation(relation.name.name)
           case _ => // nothing
         super.visitRelation(relation)
-    }.visitProgram(mainUnit.lowered)
+    }.visitProgram(mainUnit.compiled)
     outputs
 
   /**
@@ -88,7 +88,7 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
           case Some(SouffleInputHint(attrs)) => inputs += relation.name.name -> (relation.params, attrs)
           case _ => // nothing
         super.visitExtensionalRelation(relation)
-    }.visitProgram(mainUnit.lowered)
+    }.visitProgram(mainUnit.compiled)
 
     inputs.map { case (name, (params, attrs)) =>
       val tys = params.map(_.ty)

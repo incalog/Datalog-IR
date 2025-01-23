@@ -19,6 +19,8 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
   def irModules: Seq[Module]
   def otherUnits: Seq[CompiledUnit]
 
+  def compiled: Seq[Module] = closed
+  
   lazy val header: Seq[Module] = dependencies.map(_.header)
   private lazy val dependencies: Seq[Module] = otherUnits.flatMap(_.irModules)
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
@@ -62,7 +64,7 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
   private var postProcessingPipeline: List[() => BaseIRVisitor] = List()
 
   private lazy val loweredOtherUnits: Seq[Module] =
-    val low = otherUnits.flatMap(_.lowered)
+    val low = otherUnits.flatMap(_.compiled)
     /*val checker = typechecker
     checker.checkProgram(low)*/
     low
@@ -73,8 +75,7 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
     val logModule = irLogging.logModule
     val logLowerings = irLogging.logLowerings
     val logStatsBeforeLowering = irLogging.logStatsBeforeLowering
-    val logStatsBeforeOptimization = irLogging.logStatsBeforeOptimizations
-    val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
+
 
     //println(s"Lower $name :: ${header.size}")
     //header.foreach(println)
@@ -103,24 +104,19 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
         printSteps(s"Lowering: ${lowFun.name}", ls)
       ls
     }
+    loweredMods
+
+  lazy val optimized: Seq[Module] =
+    val irLogging = compilerOptions.irLogging
+    val logStatsBeforeOptimization = irLogging.logStatsBeforeOptimizations
+    val logStatsAfterOptimization = irLogging.logStatsAfterOptimizations
 
     if (logStatsBeforeOptimization)
-      printStatistics(loweredMods, s"before optimization")
-    val p1 = optimize(loweredMods)
+      printStatistics(lowered, s"before optimization")
+    val mods = optimize(lowered)
     if (logStatsAfterOptimization)
-      printStatistics(p1, s"after optimization")
-
-    if isClosedWorld then
-      postProcessingPipeline.foldLeft(p1) { case (ms, lowering) =>
-        val lowFun = lowering()
-        val ls = lowFun.visitProgram(ms)
-        // Don't typecheck after postprocessing
-        if (logLowerings)
-          printSteps(s"Post processing lowering: ${lowFun.name}", ls)
-        ls
-      }
-    else
-      p1
+      printStatistics(mods, s"after optimization")
+    mods
 
   def optimize(p: Seq[Module]): Seq[Module] =
     val irLogging = compilerOptions.irLogging
@@ -144,14 +140,14 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       // log control events
       optimFun match
         case optimizer: BaseIROptimizer[?, ?, ?] if logControlGraph && optimizer.computeControlEvents =>
-            printStep(s"Control-Graph: ${optimFun.name}", optimizer.controlGraph.get)
+          printStep(s"Control-Graph: ${optimFun.name}", optimizer.controlGraph.get)
         case _ => // nothing
 
       val ls = optimFun.visitProgram(ms, loweredOtherUnits)
-      
+
       if (logOptimizerStats)
         println(s"Optimization: ${optimFun.name}\n  " + optimFun.statsString)
-      
+
       if (logOptimizations && !logTyped && optimFun.stats.nonEmpty)
         printSteps(s"Optimization: ${optimFun.name}", ls)
 
@@ -160,6 +156,21 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       finally if (logOptimizations && logTyped && optimFun.stats.nonEmpty)
         printSteps(s"Optimization: ${optimFun.name}", ls)
       ls
+    }
+
+  lazy val closed: Seq[Module] =
+    val logLowerings = compilerOptions.irLogging.logLowerings
+    if (isClosedWorld) {
+      postProcessingPipeline.foldLeft(optimized) { case (ms, lowering) =>
+        val lowFun = lowering()
+        val ls = lowFun.visitProgram(ms)
+        // Don't typecheck after postprocessing
+        if (logLowerings)
+          printSteps(s"Post processing optimization: ${lowFun.name}", ls)
+        ls
+      }
+    } else {
+      optimized
     }
 
 

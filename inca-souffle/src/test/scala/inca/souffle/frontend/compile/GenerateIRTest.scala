@@ -70,7 +70,7 @@ class GenerateIRTest extends AnyFunSuite:
     compiledProg.compiledUnits.foreach { u =>
       println()
       println("After lowering:")
-      println(u.lowered)
+      println(u.compiled)
     }
 
     val engine = new Executor().instantiate(compiledProg.mainUnit)

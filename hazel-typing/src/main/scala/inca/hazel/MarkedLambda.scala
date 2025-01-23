@@ -650,19 +650,19 @@ class MarkedLambda:
 
 object MarkedLambda extends App:
   private val module = new MarkedLambda().module
-  private val compiled = new CompiledHazelUnit(module)
+  private val unit = new CompiledHazelUnit(module)
   println(module)
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nChecked:")
-  try compiled.checked
+  try unit.checked
   finally println(module)
 
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
-  println(compiled.lowered)
+  println(unit.compiled)
 
   val dataModel = DataModel.from(edb.allNodes: _*)
 
   val exec = new Executor()
-  val engine = exec.instantiate(compiled, dataModel)
+  val engine = exec.instantiate(unit, dataModel)
 
   {
     import edb.*

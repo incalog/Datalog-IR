@@ -7,6 +7,7 @@ import inca.ir.optimize.DisjointRuleAnalysis
 import inca.util.FileUtil
 import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
+import sturdy.fix.Fixpoint
 
 class FunctionalViatraExecutorTest extends AnyFunSuite:
   val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
@@ -235,11 +236,15 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
   }
 
   test("Complex set intersection") {
+    Fixpoint.DEBUG = false
+
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
-    val compiled = exec.compileFunction(code, options)
-    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-    val loaded = exec.loadFunction(compiled)
+    val unit = exec.compileFunction(code, options)
+    unit.setPipeline(CompiledFunctionalUnit.pipeline)
+    unit.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+    println(unit.compiled)
+
+    val loaded = exec.loadFunction(unit)
     var res = loaded.execute("main", Seq())
     var setAdt = res.entries.head
     var query = Relation.from("Set$TInt$enum", Seq("$set", "$elem"), Seq(Seq(setAdt, null)))

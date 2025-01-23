@@ -107,7 +107,7 @@ class Executor extends IRExecutor:
       throw IllegalArgumentException("Update listener is not supported")
 
   override def instantiate(m: CompiledUnit): Engine =
-    new Engine(m.lowered)
+    new Engine(m.compiled)
 
 // Lazy conversion of values
 case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) extends Relation:

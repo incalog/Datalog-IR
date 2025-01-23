@@ -21,7 +21,7 @@ class SimpleTest extends AnyFunSuite:
 
       def otherUnits: Seq[CompiledUnit] = Seq()
     }
-    compiledUnit.lowered
+    compiledUnit.compiled
 
   test("Test ") {
     case class Edge(from: String, to: String)

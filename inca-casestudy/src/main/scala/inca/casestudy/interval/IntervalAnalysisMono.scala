@@ -502,7 +502,7 @@ object IntervalAnalysisMono:
     //    val exec = new Executor()
     val exec = new Executor(DRedReteBackendFactory.INSTANCE)
     val module = compiled(false)
-    println(module.lowered)
+    println(module.compiled)
     val engine = exec.instantiate(module, dataModel)
 
     val a1 = edb.Assign(
