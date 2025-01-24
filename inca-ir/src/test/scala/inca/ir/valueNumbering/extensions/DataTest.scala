@@ -270,5 +270,75 @@ class DataTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Deconstruct: param that was bound before in deconstruct") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("res"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
+            Eq(Var("num"), IntNum(123)),
+            Deconstruct(Var("res"), RefByName(Name("Cons")), Seq(TermArg(Var("num")), TermArg(Var("tail"))), false),
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("a"), Seq(Param("res", TData("List")), Param("num", TInt)), Seq(
+          Body(Seq(
+            //            Eq(Var("tempRes"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
+            Eq(Var("res"), Construct(Name("Cons"), Seq(IntNum(123), Construct(Name("Nil"), Seq())))),
+            Eq(Var("num"), IntNum(123)),
+              Deconstruct(Var("res"), RefByName(Name("Cons")),
+                Seq(TermArg(Var("num")), TermArg(Construct(Name("Nil"), Seq()))), false),
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
+  test("Deconstruct: with global propagation of leaders") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("R"), Seq(Param("tail", TData("List"))), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("tail")))),
+            Deconstruct(Var("tail"), RefByName(Name("Nil")), Seq(), false),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("res", TData("List"))), Seq(
+          Body(Seq(
+            Eq(Var("res"), Construct(Name("Nil"), Seq()))
+          ))
+        ))
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {}, new data.IR {})),
+      Seq(
+        DataDefinition("List"),
+        CaseDefinition("Nil", Seq(), TData("List")),
+        CaseDefinition("Cons", Seq(TInt, TData("List")), TData("List")),
+        Relation(Name("R"), Seq(Param("tail", TData("List"))), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("tail")))),
+            Deconstruct(Var("tail"), RefByName(Name("Nil")), Seq(), false),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("res", TData("List"))), Seq(
+          Body(Seq(
+            Eq(Var("res"), Construct(Name("Nil"), Seq()))
+          ))
+        ))
+      ))
+    performTest(expected, input)
+  }
+
 
 }

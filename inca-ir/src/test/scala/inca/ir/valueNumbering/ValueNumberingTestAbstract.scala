@@ -13,6 +13,7 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
                       useDefiningTerm: Boolean = false,
                       useFixPointIteration: Boolean = true,
                       printVNResults: Boolean = true,
+                      printBeforeAfter: Boolean = true,
                       printVNStatistics: Boolean = true
                      )
   

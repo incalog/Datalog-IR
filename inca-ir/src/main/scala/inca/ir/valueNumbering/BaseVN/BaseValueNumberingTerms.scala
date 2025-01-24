@@ -15,7 +15,8 @@ trait BaseValueNumberingTerms extends IRVisitor {
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
-  def printVNResults: Boolean = true
+  def printVNResults: Boolean = false
+  def printBeforeAfter: Boolean = false
   def printVNStatistics: Boolean = false
 
   protected case class CongrClass(valueId: ValueId, var leader: Term) extends CongruenceClassTerms {
@@ -51,7 +52,6 @@ trait BaseValueNumberingTerms extends IRVisitor {
   private[BaseVN] var phase: Phase = Phase.initial
 
   protected var oldRelation: Relation = _
-  private var currentRelationName: Name = _
   private var currentBodyIndex: Int = -1
 
   def printResults(): Unit = {
