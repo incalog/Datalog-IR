@@ -85,9 +85,7 @@ trait BaseValueNumberingTerms extends IRVisitor {
 
   private[BaseVN] def visit(module: Module): Module = {
     currentIteration += 1
-    val result = super.visitModule(module)
-//    println(s"\nintermediate result in iteration $currentIteration: \n $result\n")
-    result
+    super.visitModule(module)
   }
 
   private[BaseVN] def repetitionPhase(module: Module): Module = {
