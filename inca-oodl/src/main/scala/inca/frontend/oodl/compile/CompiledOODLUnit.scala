@@ -116,17 +116,9 @@ object CompiledOODLUnit:
       () => new optimize.RemoveDuplicatedRelations {}
     ) // arith + string + data
 
-  // TODO: The gitlab CI does not like the inter-relational analysis
   val optimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
-    () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {}
-  )
-
-  val fastOptimizationPipeline: List[() => Optimizer] = List(
-    //() => new optimize.TypeIROptimizer {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {}
   )

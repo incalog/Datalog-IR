@@ -212,12 +212,15 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val loaded = exec.loadFunction(compiled)
     var res = loaded.execute("grades", Seq())
     var query = Relation.from("Set$TString$enum", Seq("$elem"), Seq(Seq(null)))
-    res = loaded.engine.read(query).project(0)
+    // Depending on how aggressive we optimize, we might remove or keep the first "set" column
+    res = loaded.engine.read(query)
+    res = res.project(res.arity - 1)
     assertResult(Set("1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"))(res.toSet)
 
     res = loaded.execute("flip", Seq())
     query = Relation.from("Set$TInt$enum", Seq("$elem"), Seq(Seq(null)))
-    res = loaded.engine.read(query).project(0)
+    res = loaded.engine.read(query)
+    res = res.project(res.arity - 1)
     assertResult(Set(0, 1))(res.toSet)
   }
 

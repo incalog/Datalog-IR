@@ -6,7 +6,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{ConstantRelation, Value}
-import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Ref, RefByName, Relation, Term, TermArg, Var, WildcardArg}
+import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
@@ -152,6 +152,11 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     case AggregateColumnArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
     case _ => None
 
+  protected def argTy(arg: Arg): Type = arg match
+    case TermArg(t) => t.typ.get.ty
+    case AggregateColumnArg(t) => t.typ.get.ty
+    case w@WildcardArg() => w.typ.get.ty
+
 
   protected def mayEliminate(eq: Eq): Boolean = mayEliminate(eq.lhs) && mayEliminate(eq.rhs)
 
@@ -189,12 +194,15 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
               if (nonconstantArgs.isEmpty)
                 Seq()
               else
-               Seq(call.copy(args = nonconstantArgs.map(_._1)))
+               Seq(call.copy(args = nonconstantArgs.flatMap((a, _) => visitArg(a))))
 
             // In case we have removed an argument that was binding a parameter, we need to insert an equality
             // constraint for that parameter.
-            // Test: Datalog frontend -> lecture 5 -> nat relation
-            ats ++ constantArgs.flatMap((a, v) => extractBindingVarRef(a).map(ref => Eq(Var(ref), valueToTerm(v).get)))
+            // Test (general problem): Datalog frontend -> lecture 5 -> nat relation
+            // Test (why cast is needed): OODL -> Unit Test -> Subtyping
+            ats ++ constantArgs.flatMap { (a, v) =>
+              extractBindingVarRef(a).map(ref => Eq(Var(ref), Cast(valueToTerm(v).get, argTy(a))))
+            }
           case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }

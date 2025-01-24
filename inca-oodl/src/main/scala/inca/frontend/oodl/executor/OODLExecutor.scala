@@ -15,8 +15,8 @@ class OODLExecutor(val exec: IRExecutor):
     val verboseOutput: Boolean = compiled.compilerOptions.oodlLogging.verboseOutput
 
     private def throwTypeCastExceptionIfRequired(): Unit = {
-      def flattenAndProject(rel: Relation): Set[Seq[AnyRef]] = {
-        val projectedRel = rel.project(0, 2)
+      def flattenAndProject(rel: Relation, size: Int): Set[Seq[AnyRef]] = {
+        val projectedRel = rel.project(0, size)
         projectedRel.toSet.map(t => projectedRel.flattenEntry(t))
       }
 
@@ -25,10 +25,13 @@ class OODLExecutor(val exec: IRExecutor):
       val castInputRelOption = allRelations.get(s"$castRelationName$$input")
       (castRelOption, castInputRelOption) match {
         case (Some(castRel), Some(castInputRel)) =>
-          val diff = flattenAndProject(castInputRel).diff(flattenAndProject(castRel))
+          val size = castInputRel.arity.min(castRel.arity)
+          if (castInputRel.arity != castRel.arity)
+            println(s"Warning: Can not reliably detect cast errors, since \"${castRel.name}\" and \"${castInputRel.name}\" have different arity.")
+          val diff = flattenAndProject(castInputRel, size).diff(flattenAndProject(castRel, size))
           diff.foreach {
             case List(obj, ty) => throw TypeCastException(s"Can not cast object $obj to type $ty")
-            case d => throw IllegalStateException(s"Unexpected cast entry $d")
+            case obj => throw TypeCastException(s"Unexpected cast entry: $obj")
           }
         case _ => // nothing
       }

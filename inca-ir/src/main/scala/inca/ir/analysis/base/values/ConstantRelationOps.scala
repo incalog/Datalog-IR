@@ -59,10 +59,9 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def make(cols: Seq[String], vals: Seq[Row]): ConstantRelation =
     if (vals.isEmpty)
       ConstantRelation.Empty(cols)
-    else {
+    else
       val joinedVals = vals.tail.foldLeft[Row](vals.head)((v1, v2) => v1.zip(v2).map((t1, t2) => joinV(t1, t2).get))
       ConstantRelation(cols, joinedVals, Topped.Actual(vals.isEmpty))
-    }
 
   override def rename(rv: ConstantRelation, subst: Map[String, String]): ConstantRelation =
     val newColumns = rv.cols.map(c => subst.getOrElse(c, c))
@@ -75,25 +74,22 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def map(rv: ConstantRelation, columnName: String)(f: Seq[Value] => Value): ConstantRelation =
     rv.withRows(rv.cols :+ columnName, rows => rows :+ f(rows))
 
-  override def fold(rv: ConstantRelation, initial: Row)(f: (Row, Row) => Row): ConstantRelation =
-    rv match
-      case ConstantRelation.Empty(cols) =>
-        ConstantRelation(rv.cols, initial, empty = Topped.Actual(false))
-      case ConstantRelation.NonEmpty(cols, rows, empty) =>
-        ConstantRelation(cols, f(initial, rows), empty = Topped.Actual(false))
+  override def fold(rv: ConstantRelation, initial: Row)(f: (Row, Row) => Row): ConstantRelation = rv match
+    case ConstantRelation.Empty(cols) =>
+      ConstantRelation(rv.cols, initial, empty = Topped.Actual(false))
+    case ConstantRelation.NonEmpty(cols, rows, empty) =>
+      ConstantRelation(cols, f(initial, rows), empty = Topped.Actual(false))
   
-  override def flatMap(rv: ConstantRelation)(f: Seq[Value] => ConstantRelation): ConstantRelation =
-    rv match
-      case ConstantRelation.Empty(cols) => naturalJoin(rv, f(Seq()))
-      case ConstantRelation.NonEmpty(cols, rows, empty) => naturalJoin(rv, f(rows))
+  override def flatMap(rv: ConstantRelation)(f: Seq[Value] => ConstantRelation): ConstantRelation = rv match
+    case ConstantRelation.Empty(cols) => naturalJoin(rv, f(Seq()))
+    case ConstantRelation.NonEmpty(cols, rows, empty) => naturalJoin(rv, f(rows))
 
-  override def filter(rv: ConstantRelation)(f: Seq[Value] => Topped[Boolean]): ConstantRelation =
-    rv match
-      case ConstantRelation.Empty(cols) => rv
-      case rv@ConstantRelation.NonEmpty(cols, rows, empty) => f(rv.rows) match
-        case Topped.Top => rv.copy(emp = Topped.Top)
-        case Topped.Actual(true) => rv // unchanged
-        case Topped.Actual(false) => rv.copy(emp = Topped.Actual(true)) // definitely empty
+  override def filter(rv: ConstantRelation)(f: Seq[Value] => Topped[Boolean]): ConstantRelation = rv match
+    case ConstantRelation.Empty(cols) => rv
+    case rv@ConstantRelation.NonEmpty(cols, rows, empty) => f(rv.rows) match
+      case Topped.Top => rv.copy(emp = Topped.Top)
+      case Topped.Actual(true) => rv // unchanged
+      case Topped.Actual(false) => rv.copy(emp = Topped.Actual(true)) // definitely empty
 
   override def naturalJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
     val rvCols = rv.cols.zipWithIndex.toMap
@@ -121,7 +117,9 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
               joinV(rv.rows(rvIx), other.rows(otherIx)).get
             case (None, None) => throw new IllegalStateException()
         }
-        ConstantRelation(newCols, newVals, newEmpty)
+        newEmpty match
+          case Topped.Actual(true) => ConstantRelation.Empty(newCols)
+          case _ => ConstantRelation(newCols, newVals, newEmpty)
 
 
   override def antiJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
@@ -131,9 +129,9 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
     (rv, other) match
       case (ConstantRelation.Empty(_), _) | (_, ConstantRelation.Empty(_)) => rv
       case (rv: ConstantRelation.NonEmpty, other: ConstantRelation.NonEmpty) =>
-        val (newRows, newEmpty) = (rv.empty, other.empty) match
-          case (Topped.Actual(true), Topped.Actual(true)) => (Seq(), Topped.Actual(true))
-          case (Topped.Actual(false), Topped.Actual(true)) => (rv.rows, Topped.Actual(false))
+        (rv.empty, other.empty) match
+          case (Topped.Actual(true), Topped.Actual(true)) => ConstantRelation.Empty(rv.cols)
+          case (Topped.Actual(false), Topped.Actual(true)) => ConstantRelation(rv.cols, rv.rows, Topped.Actual(false))
           case (Topped.Actual(false), Topped.Actual(false)) =>
             val sameColsIndices = sharedCols.map(rv.cols.indexOf)
             val sameOtherColsIndices = sharedCols.map(other.cols.indexOf)
@@ -142,10 +140,10 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
             }
             val isEmpty = comparison.foldLeft(Topped.Actual(true))((acc, b) => boolOps.and(acc, b))
             isEmpty match
-              case Topped.Actual(true) => (Seq(), isEmpty)
-              case _ => (rv.rows, isEmpty)
-          case _ => (rv.rows, Topped.Top)
-        ConstantRelation(rv.cols, newRows, newEmpty)
+              case Topped.Actual(true) => ConstantRelation.Empty(rv.cols)
+              case _ => ConstantRelation(rv.cols, rv.rows, isEmpty)
+          case _ => ConstantRelation(rv.cols, rv.rows, Topped.Top)
+
 
 given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]): Join[ConstantRelation] with {
   def join(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
