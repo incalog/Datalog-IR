@@ -6,11 +6,12 @@ import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{ConstantRelation, Value}
-import inca.ir.{Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, RefByName, Relation, Term, Var}
+import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Ref, RefByName, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import inca.ir.extension.aggregate as iragg
+import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.visitors.BaseIRVisitor
 import sturdy.values.Topped
 
@@ -91,6 +92,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   }
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
+    println(s"Visit ${relation.name}")
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
     // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
     // always succeeds.
@@ -131,7 +133,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       logOptimizationStat("constant failed body", 1, _+1)
       Seq()
     } else {
-      super.visitBody(body)
+      super.visitBody(body).filter(_.atoms.nonEmpty)
     }
   }
 
@@ -143,8 +145,13 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
 
   protected def mayEliminate(t: Term): Boolean =
     val b = !t.typ.get.mode.isBinding || t.isInstanceOf[Var] && !params.contains(t.asInstanceOf[Var].ref)
-//    if (b) println(s"may elim $t") else println(s"may NOT elim $t")
+    //if (b) println(s"may elim $t") else println(s"may NOT elim $t")
     b
+
+  protected def extractVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
+    case TermArg(v@Var(ref)) => Some(v.ref)
+    case WildcardArg() => None
+    case AggregateColumnArg(v@Var(ref)) => Some(v.ref)
 
   protected def mayEliminate(eq: Eq): Boolean = mayEliminate(eq.lhs) && mayEliminate(eq.rhs)
 
@@ -177,14 +184,17 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
           case Some(r: Relation) =>
             super.visitAtom(atom).flatMap { case call: Call =>
               val res = getRelationResult(r).headOption.get
-              val nonconstantArgs = call.args.zip(res.rows).flatMap {
-                case (a, v) if v.isConstant => None
-                case (a, _) => Some(a)
-              }
-              if (nonconstantArgs.isEmpty)
-                None
-              else
-                Some(call.copy(args = nonconstantArgs))
+              val (constantArgs, nonconstantArgs) = call.args.zip(res.rows).partition(_._2.isConstant)
+              val ats =
+                if (nonconstantArgs.isEmpty)
+                  Seq()
+                else
+                 Seq(call.copy(args = nonconstantArgs.map(_._1)))
+
+              // In case we have removed an argument that was binding a parameter, we need to insert an equality
+              // constraint for that parameter.
+              // Test: Datalog frontend -> lecture 5 -> nat relation
+              ats ++ constantArgs.flatMap((a, v) => extractVarRef(a).map(ref => Eq(Var(ref), valueToTerm(v).get)))
             }
           case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
@@ -204,6 +214,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
           // }
           // The program was well-typed before, but after replacing i with 4 in the Eq-Constraint, we get a type error.
           // i had type TAny, however, the constant 4 has type TInt. That is, we now compare >TAny< to <TInt>.
+          // Test: OODL -> Unit Test -> Subtyping
           transformTerm(term).map(Cast(_, term.typ.get.ty))
       transformed match
         case Some(newTerm) =>

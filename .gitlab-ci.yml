@@ -26,6 +26,7 @@ image: registry.gitlab.rlp.net/plmz/inca-scala:latest
 
 before_script:
   - export PATH="$HOME/.cargo/bin:$PATH"
+  - export DDLOG_HOME="$HOME/DDlog"
   - export JAVA_OPTS="-Xss1000m"
 
 stages:

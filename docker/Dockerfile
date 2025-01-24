@@ -23,3 +23,10 @@ RUN sbt sbtVersion && \
 # Install and publish sturdy locally
 RUN git clone https://gitlab.rlp.net/plmz/sturdy.scala.git
 RUN cd sturdy.scala && sbt sturdy_core/publishLocal
+
+# Install DDLog
+RUN apt-get update -y && \ 
+	apt-get install -y make gnupg build-essential libtinfo-dev zlib1g-dev libgmp-dev libc6-dev libgmp-dev
+RUN wget -qO- https://get.haskellstack.org/ | sh
+RUN git clone https://github.com/BonoboBoss/DDlog
+RUN export DDLOG_HOME="$HOME/DDlog" && cd DDlog && stack build && stack install
