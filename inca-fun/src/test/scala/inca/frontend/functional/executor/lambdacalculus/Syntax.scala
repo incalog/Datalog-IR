@@ -42,3 +42,11 @@ import Type._
 
 val interpProg1: ADT = App(Lam("y", Lam("x", Var("y"))), Num(1)).toADT
 val typeProg1: ADT = TApp(TLam("x", TInt(), TVar("x")), TNum(1337)).toADT
+
+private def generateAST(i: Int, end: Int): TExp =
+  if (i < end)
+    TApp(TLam("x" + i, TInt(), TVar("x" + i)), generateAST(i+1, end))
+  else
+    TNum(1337)
+
+def generateTypedProg(size: Int) = generateAST(0, size).toADT

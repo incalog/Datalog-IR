@@ -9,14 +9,12 @@ import inca.viatra.runtime.Query.Specification
 import inca.viatra.runtime.context.{DataModel, QueryScope}
 import inca.viatra.runtime.db.Database
 import inca.viatra.runtime.{EnginePool, Query}
-import inca.viatra.backend.{ViatraRelation, ViatraUpdateListener}
 import org.apache.log4j.{BasicConfigurator, Level}
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 import org.eclipse.viatra.query.runtime.util.ViatraQueryLoggingUtil
-import java.lang.reflect._
 
 object Executor:
   def initializeLogging(): Unit =

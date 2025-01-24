@@ -13,6 +13,7 @@ data MaybeVal = NoVal() | SomeVal(Val)
 
 @main def mainTypeOf(exp: TExp): MaybeType = typeOf(EmptyCtx(), exp)
 
+@FunctionalDependency(exp -> Result)
 def typeOf(ctx: Ctx, exp: TExp): MaybeType = exp match {
   case TNum(v) => SomeType(TInt())
   case TLam(n, ty, b) =>
@@ -58,6 +59,7 @@ def erase(texp: TExp): Exp = texp match {
 
 @main def mainInterp(exp: Exp): MaybeVal = interp(EmptyEnv(), exp)
 
+@FunctionalDependency(exp -> Result)
 def interp(env: Env, exp: Exp): MaybeVal = exp match {
   case Num(v) => SomeVal(VNum(v))
   case Lam(n, b) => SomeVal(VClosure(n, b, env))
@@ -81,7 +83,7 @@ def envLookup(env: Env, n: String): MaybeVal = env match {
     else envLookup(rest, n)
 }
 
-/*@main def main(exp: TExp): MaybeVal = typeOf(EmptyCtx(), exp) match {
+@main def main(exp: TExp): MaybeVal = typeOf(EmptyCtx(), exp) match {
   case SomeType(ty) => interp(EmptyEnv(), erase(exp))
   case NoType() => NoVal()
-}*/
+}

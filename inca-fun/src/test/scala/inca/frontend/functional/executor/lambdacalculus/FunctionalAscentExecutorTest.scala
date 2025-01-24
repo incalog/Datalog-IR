@@ -53,3 +53,19 @@ class FunctionalAscentExecutorTest extends AnyFunSuite:
       res.entries.head.toString
     )
   }
+
+  test("Lambda Calculus - Main") {
+    //Executor.initializeLogging()
+    //Executor.enableDebugLogging()
+
+    val code = FileUtil.readFileFromResource("functional/lambdacalculus/LambdaCalculus.finca")
+    val compiled = exec.compileFunction(code, options)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+
+    val prog = generateTypedProg(10)
+
+    val loaded = exec.loadFunction(compiled)
+    val res = loaded.execute("main", Seq(prog))
+    assertResult("SomeVal(VNum(1337))")(res.entries.head.toString)
+  }

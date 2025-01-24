@@ -19,6 +19,13 @@ class FunctionalExecutor(val exec: IRExecutor):
       rel.project(tuple.size, Int.MaxValue)
     }
 
+    def measure(main: String, args: Seq[Any]): Long = {
+      if (args.nonEmpty)
+        val edbEntry = Relation.from(extensionalRelationName(main), args)
+        engine.insert(edbEntry)
+      engine.measure(UnitRelation(main))
+    }
+
     def execute(main: String, args: Seq[Any]): Relation = {
       if (args.nonEmpty)
         val edbEntry = Relation.from(extensionalRelationName(main), args)
