@@ -8,6 +8,7 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.typing.IRTypechecker
 import org.scalatest.funsuite.AnyFunSuiteLike
+import sturdy.fix.Fixpoint
 
 
 class ConcreteInterpreterTest extends AnyFunSuiteLike:
@@ -176,6 +177,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   }
 
   test("Right Recursion") {
+    Fixpoint.DEBUG = true
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
         Param("x", TInt),
@@ -1213,7 +1215,6 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
         )),
       )).addHint(MainHint)
     ))
-
     val res = interp(mod)
     val mainRel = res("main")
     assert(mainRel.size == 1)

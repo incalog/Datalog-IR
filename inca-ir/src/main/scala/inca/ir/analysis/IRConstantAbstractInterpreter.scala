@@ -19,7 +19,7 @@ import sturdy.effect.store.{AStoreThreaded, Store}
 import sturdy.fix
 import sturdy.data.finiteUnit
 import sturdy.effect.except.{Except, JoinedExcept}
-import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint, Logger, StackConfig}
+import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint, HasFixpointCache, Logger, StackConfig}
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
@@ -99,11 +99,7 @@ class IRConstantAbstractInterpreter(
   override lazy val supplementaryTable: SupplementaryTable[ConstantRelation] = new ASupplementaryTable[RV]() {
     override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
   }
-  override lazy val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, RV](Map())
-
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps(using except)
-
-  override def resetIDB(): Unit = idb.setState(Map())
 
   class AnalysisAnnotator
     extends BaseAnalysisAnnotator[Value, RV, Value]
@@ -136,12 +132,25 @@ class IRConstantAbstractInterpreter(
   else
     StackedStates()
 
+  var looper: HasFixpointCache[FixIn, FixOut[Value, RV]] = null
+  def setLooper[A <: HasFixpointCache[FixIn, FixOut[Value, RV]]](a: A): A =
+    looper = a
+    a
+  override def getIDB: Map[String, RV] =
+    val collected = looper.getCache.collect {
+      case (FixIn.EnterRelation(rel, adorn), TrySturdy.Success(FixOut.Relation(rv))) => (rel.name.name, adorn) -> rv
+    }
+    val reduced = collected.groupBy(_._1._1).view.mapValues { m =>
+      m.values.reduce((r1,r2) => Join(r1,r2).get)
+    }.toMap
+    reduced
+
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     var fixPt =
         fix.log(analysisAnnotator,
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
             fix.filter(_.isInstanceOf[FixIn.EnterRelation],
-              fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](stackConfig)
+              setLooper(fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](stackConfig))
             )
           )
         )

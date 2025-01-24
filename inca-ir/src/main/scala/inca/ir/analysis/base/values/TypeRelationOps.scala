@@ -8,6 +8,7 @@ import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.*
 import sturdy.values.booleans.BooleanOps
 
+// TODO eliminate Bootom value, as done for ConstantRelation
 enum TypeValue:
   case Bottom
   case AType(ty: Type)

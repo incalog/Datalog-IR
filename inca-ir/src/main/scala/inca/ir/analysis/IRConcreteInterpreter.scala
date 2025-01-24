@@ -14,14 +14,17 @@ import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.CollectedFailures
 import sturdy.effect.store.AStoreThreaded
-import sturdy.effect.EffectStack
+import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.fix
+import sturdy.fix.HasFixpointCache
 import sturdy.fix.StackConfig.{StackedCfgNodes, StackedStates}
 import sturdy.fix.context.Parameters
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ConcreteBooleanOps}
 import sturdy.values.ordering.EqOps
 import sturdy.values.references.{AllocationSiteAddr, given_Finite_AllocationSiteAddr}
 import sturdy.values.*
+
+import scala.compiletime.uninitialized
 
 // Implicits
 import sturdy.data.given
@@ -76,16 +79,24 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   override val joinUnit: NoJoin[Unit] = implicitly
 
   override val supplementaryTable: CSupplementaryTable = new CSupplementaryTable
-  override val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, CRV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, CRV](Map())
-
-  override def resetIDB(): Unit = idb.setState(Map())
 
   given EqOps[Value, Boolean] = eqOps
 
   override val relationOps: RelationOps[Value, Boolean, CRV] = new ConcreteRelationOps[Value]
 
 
-  fix.Fixpoint.DEBUG = false
+  var looper: HasFixpointCache[FixIn, FixOut[Value, CRV]] = null
+  def setLooper[A <: HasFixpointCache[FixIn, FixOut[Value, CRV]]](a: A): A =
+    looper = a
+    a
+  override def getIDB: Map[String, ConcreteRelation[Value]] =
+    val collected = looper.getCache.collect {
+      case (FixIn.EnterRelation(rel, adorn), TrySturdy.Success(FixOut.Relation(rv))) => (rel.name.name, adorn) -> rv
+    }
+    val reduced = collected.groupBy(_._1._1).view.mapValues { m =>
+      m.values.reduce((r1,r2) => Join(r1,r2).get)
+    }.toMap
+    reduced
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
     /*val fixPt =
@@ -101,6 +112,10 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
     // To get the correct Datalog semantics, we need to differentiate callsites.
     // Otherwise, queries such as R(1) and R(2) would be joined.
     given Finite[Value] = new FiniteV
+
+
+
+
     val fixPt = fix.contextSensitive(
       fix.context.parameters[FixIn, String, Seq[Value]] {
         case FixIn.EnterRelation(r, adorn) =>
@@ -114,9 +129,11 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
       fix.filter({
         case _: FixIn.EnterRelation => true
         case _ => false // important, filter everything out we don't need
-      }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Parameters[String, Seq[Value]]](
-        StackedStates()
-      ))
+      }, {
+        setLooper(fix.iter.innermost[FixIn, FixOut[Value, CRV], Parameters[String, Seq[Value]]](
+          StackedStates()
+        ))
+      })
     )
 
     if (enableLogging)

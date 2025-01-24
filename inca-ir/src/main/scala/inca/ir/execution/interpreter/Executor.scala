@@ -3,6 +3,7 @@ package inca.ir.execution.interpreter
 import inca.ir
 import inca.ir.{CompiledUnit, Name}
 import inca.ir.analysis.IRConcreteInterpreter
+import inca.ir.analysis.base.interpreter.{FixIn, FixOut}
 import inca.ir.analysis.base.values.{ConcreteRelation, Value}
 import inca.ir.execution.{ADT, ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation, transformEDBInput}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
@@ -11,6 +12,7 @@ import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.string.analysis.interpreter.CStringV
 import inca.ir.extension.data.analysis.interpreter.CDataV
 import inca.ir.extension.string.TString
+import sturdy.effect.TrySturdy
 import sturdy.values.references.AllocationSiteAddr
 
 // TODO: Support Scala code
@@ -24,13 +26,12 @@ class Executor extends IRExecutor:
 
     private def interp(mods: Seq[ir.Module], useCache: Boolean = true): Map[String, Relation] =
       if (!useCache || inputDirty || cachedResult.isEmpty) {
-        interp.resetIDB()
         interp.evalProgram(mods)
-        val idb = interp.idb.getState
+        val idb = interp.getIDB
+        println(idb)
         val allRels = mods.flatMap(_.relations.values)
         val res = allRels.map { rel =>
-          val addr = AllocationSiteAddr.Variable(rel.name.name)(true)
-          val out = idb.get(addr) match
+          val out = idb.get(rel.name.name) match
             case Some(crv) => 
               InterpreterRelation(rel.name.name, crv)
             case None =>

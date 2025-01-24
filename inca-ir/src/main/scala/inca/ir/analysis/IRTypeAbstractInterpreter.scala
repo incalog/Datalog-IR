@@ -12,11 +12,12 @@ import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
 import sturdy.data.MayJoin.WithJoin
-import sturdy.effect.EffectStack
+import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.CollectedFailures
 import sturdy.effect.store.AStoreThreaded
 import sturdy.fix
+import sturdy.fix.HasFixpointCache
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ToppedBooleanBranching, ToppedBooleanOps}
@@ -92,10 +93,6 @@ class IRTypeAbstractInterpreter(
     override def initialTable: TRV = TypeRelation(Seq(), Seq(), Topped.Actual(false))
   }
 
-  override val idb: AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, TRV] = AStoreThreaded[AllocationSiteAddr, AllocationSiteAddr, TRV](Map())
-
-  override def resetIDB(): Unit = idb.setState(Map())
-
   override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
 
   class AnalysisAnnotator
@@ -114,13 +111,27 @@ class IRTypeAbstractInterpreter(
   
   //fix.Fixpoint.DEBUG = true
 
+  var looper: HasFixpointCache[FixIn, FixOut[TypeValue, TRV]] = null
+  def setLooper[A <: HasFixpointCache[FixIn, FixOut[TypeValue, TRV]]](a: A): A =
+    looper = a
+    a
+  override def getIDB: Map[String, TRV] =
+    val collected = looper.getCache.collect {
+      case (FixIn.EnterRelation(rel, adorn), TrySturdy.Success(FixOut.Relation(rv))) => (rel.name.name, adorn) -> rv
+    }
+    val reduced = collected.groupBy(_._1._1).view.mapValues { m =>
+      m.values.reduce((r1,r2) => Join(r1,r2).get)
+    }.toMap
+    reduced
+
+  private val stackConfig = StackedStates()
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[TypeValue, TRV]] =
     val fixPt =
       fix.notContextSensitive[FixIn, FixOut[TypeValue, TRV], fix.Combinator[FixIn, FixOut[TypeValue, TRV]]](
         fix.filter({
           case _: FixIn.EnterRelation => true
           case _ => false // important, filter everything out we don't need
-        }, fix.iter.innermost[FixIn, FixOut[TypeValue, TRV], Unit](StackedStates()))
+        }, setLooper(fix.iter.innermost[FixIn, FixOut[TypeValue, TRV], Unit](stackConfig)))
         )
 
     val analysisFixPt = fix.log(analysisAnnotator, fixPt)

@@ -19,7 +19,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val abstractInterp = IRTypeAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
-    abstractInterp.idb.getState.map(kv => kv._1.toString.drop(1) -> kv._2)
+    abstractInterp.getIDB
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(

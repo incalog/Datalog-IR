@@ -96,6 +96,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   lazy val topV: V
 
   var edb: Map[String, RV] = Map()
+  def getIDB: Map[String, RV]
 
   implicit val joinRV: Join[RV]
 
@@ -107,8 +108,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     })
 
   given EffectStack = effects
-
-  def idb: Store[AllocationSiteAddr, RV, WithJoin]
 
   def supplementaryTable: SupplementaryTable[RV]
 
@@ -132,14 +131,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
     case FixIn.Atom(atom, _) => evalAtomOpen(atom); FixOut.Atom()
     case FixIn.Body(rel, ix, paramNames) => FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
-    case FixIn.EnterRelation(rel, adornment) => FixOut.Relation(enterRelationOpen(rel))
+    case FixIn.EnterRelation(rel, adornment) => FixOut.Relation(evalRelationOpen(rel, adornment))
   }
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
 
   protected val gensym = Gensym()
-
-  def resetIDB(): Unit
 
   def insertEDB(relName: String, rv: RV): Unit =
     edb += relName -> rv
@@ -172,20 +169,17 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     }.toMap
   }
 
-  protected def insertIDB(name: ir.Name, rv: RV): Unit =
-    idb.write(AllocationSiteAddr.Variable(name.name)(true), rv)
-
   inline def evalRelation(r: ir.Relation, adornment: Adornment)(using rec: Fixed): RV =
     rec(FixIn.EnterRelation(r, adornment)) match
       case FixOut.Relation(p) => p
       case _ => throw new IllegalStateException()
 
-  def evalRelationOpen(r: ir.Relation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
+  def evalRelationOpen(r: ir.Relation, adorn: Adornment)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
     gensym.register(r.bodies.flatMap(_.vars.map(_.name.name)))
 
     val paramNames = r.params.map(p => p.name.name)
 
-    var relRes = if (r.bodies.isEmpty)
+    val relRes = if (r.bodies.isEmpty)
       relationOps.make(paramNames, Seq())
     else
       mapJoin(r.bodies.indices, { ix =>
@@ -199,11 +193,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val relName = AllocationSiteAddr.Variable(r.name.name)(true)
     val emptyRes = relationOps.make(paramNames, Seq())
     val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
-    val idbRes = relationOps.naturalJoin(idb.readOrElse(relName, emptyRes), boundSup)
-    relRes = mapJoin(Seq(relRes, idbRes), identity)
-
-    insertIDB(r.name, relRes)
-    relRes
+    effects.joinComputations {
+      val idbRes = relationOps.naturalJoin(evalRelation(r, adorn), boundSup)
+      Join(idbRes, relRes).get
+    } {
+      relRes
+    }
   }}
 
   def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
@@ -244,8 +239,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Atom() => ()
     case _ => throw new IllegalStateException()
 
-  def enterRelationOpen(rel: ir.Relation)(using rec: Fixed): RV =
-    evalRelationOpen(rel)
 
   // I don't think that anything else can be binding in an equality. But if so, subclasses may override this
   def extractVarName(term: ir.Term): Option[ir.Name] = term match
