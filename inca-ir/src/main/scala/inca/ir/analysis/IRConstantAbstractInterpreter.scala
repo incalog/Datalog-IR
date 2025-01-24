@@ -150,7 +150,7 @@ class IRConstantAbstractInterpreter(
         fix.log(analysisAnnotator,
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
             fix.filter(_.isInstanceOf[FixIn.EnterRelation],
-              setLooper(fix.iter.innermost[FixIn, FixOut[Value, RV], Unit](stackConfig))
+              setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Unit](stackConfig))
             )
           )
         )

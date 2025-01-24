@@ -235,7 +235,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     assertResult(Set(1, 3))(res.toSet)
   }
 
-  ignore("Complex set intersection") {
+  test("Complex set intersection") {
     val code = FileUtil.readFileFromResource("functional/unittests/ComplexSetIntersection.finca")
     val unit = exec.compileFunction(code, options)
     unit.setPipeline(CompiledFunctionalUnit.pipeline)
