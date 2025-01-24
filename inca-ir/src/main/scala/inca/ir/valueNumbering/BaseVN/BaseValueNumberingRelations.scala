@@ -2,7 +2,9 @@ package inca.ir.valueNumbering.BaseVN
 
 import inca.ir
 import inca.ir.*
+import inca.ir.typing.IRTypechecker
 import inca.ir.valueNumbering.VNTables.*
+import inca.ir.visitors.IRVisitor
 
 
 
@@ -11,6 +13,24 @@ trait BaseValueNumberingRelations extends BaseValueNumberingBodies {
   private var vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]())
 
   private var oldVNTablesRelations: VNTablesRelations = vnTablesRelations // saved for replacement in repetition phase
+
+  private var removedRelation: Boolean = false
+
+
+  private class updateRefsToRemovedRelation extends IRVisitor { // TODO
+    // otherwise it can happen that a relation was removed but a call not renamed if the call stands before the relation
+    // -> typechecker in repetition phase throws error
+    override def visitRef[Target](ref: Ref[Target]): Ref[Target] = ref.target match {
+      case Some(rel : Relation) if relations.contains(ref.name.name) =>
+        val relation = relations(ref.name.name)
+        // in repetition phase it might happen that relation not in congrClass anymore -> used tables of previous iteration
+        val newName = vnTablesRelations.getReplacement(relation).name
+        val newRef = RefByName[Relation](newName)
+        newRef.target = Some(rel)
+        newRef.asInstanceOf[Ref[Target]]
+      case _ => ref
+    }
+  }
 
 
   def printResultsRelations(): Unit = {
@@ -21,10 +41,25 @@ trait BaseValueNumberingRelations extends BaseValueNumberingBodies {
 
 
   override private[BaseVN] def repetitionPhase(module: Module): Module = {
+    removedRelation = false
     oldVNTablesRelations = vnTablesRelations
     vnTablesRelations = new VNTablesRelations(CongrClassesTable[Relation](), ValueIds[Relation]())
     printResultsRelations()
-    super.repetitionPhase(module)
+
+    var result = super.visit(module)
+    if (removedRelation) {
+      result = new updateRefsToRemovedRelation().visitModule(result)
+    }
+//    println(s"\nintermediate result in iteration $currentIteration: \n $result\n")
+
+    val typechecker = new IRTypechecker {}
+    typechecker.checkProgram(Seq(result))
+    if (result != module && useFixPointIteration) {
+      return repetitionPhase(result)
+    }
+    else {
+      return result
+    }
   }
 
 
@@ -53,6 +88,7 @@ trait BaseValueNumberingRelations extends BaseValueNumberingBodies {
     val vn: ValueId = vnTablesRelations.getIdOf(relation)
 
     if (vnTablesRelations.isCongrClassContained(vn)) {
+      removedRelation = true // then it might be necessary to rename references to the relation
       return Seq()
     }
     else {

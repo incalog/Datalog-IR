@@ -300,6 +300,139 @@ class RelationsVNTest extends ValueNumberingTestAbstract {
     performTest(expected, input)
   }
 
+  test("Duplicated Relation: replace names in Calls (calls before relation)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("T"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("a")))),
+            Eq(Var("res"), IntNum(0)),
+          )),
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("res"))))
+          ))
+        )),
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("T"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(IntNum(0)))),
+            Eq(Var("res"), IntNum(0)),
+          )),
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("res"))))
+          ))
+        )),
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        //        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+        //          Body(Seq(
+        //            Eq(Var("a"), IntNum(0)),
+        //          ))
+        //        )),
+      ))
+    performTest(expected, input)
+  }
+
+  test("Duplicated Relation: replace names in Calls (calls before relation & discovered in repetition phase)") {
+    val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("V"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Call("T", Seq(TermArg(Var("a")))),
+            Eq(Var("res"), IntNum(123)),
+          )),
+          Body(Seq(
+            Call("U", Seq(TermArg(Var("res"))))
+          ))
+        )),
+        Relation(Name("T"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("a")))),
+            Eq(Var("res"), IntNum(1)),
+          )),
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("res"))))
+          ))
+        )),
+        Relation(Name("U"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("a")))),
+            Eq(Var("res"), IntNum(1)),
+          )),
+          Body(Seq(
+            Call("S", Seq(TermArg(Var("res"))))
+          ))
+        )),
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+      ))
+    val expected = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
+      Seq(
+        Relation(Name("V"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Call("T", Seq(TermArg(Var("a")))),
+            Eq(Var("res"), IntNum(123)),
+          )),
+          Body(Seq(
+            Call("T", Seq(TermArg(Var("res"))))
+          ))
+        )),
+        Relation(Name("T"), Seq(Param("res", TInt)), Seq(
+          Body(Seq(
+            Call("R", Seq(TermArg(IntNum(0)))),
+            Eq(Var("res"), IntNum(1)),
+          )),
+          Body(Seq(
+            Call("R", Seq(TermArg(Var("res"))))
+          ))
+        )),
+//        Relation(Name("U"), Seq(Param("res", TInt)), Seq(
+//          Body(Seq(
+//            Call("S", Seq(TermArg(Var("a")))),
+//            Eq(Var("res"), IntNum(1)),
+//          )),
+//          Body(Seq(
+//            Call("S", Seq(TermArg(Var("res"))))
+//          ))
+//        )),
+        Relation(Name("R"), Seq(Param("a", TInt)), Seq(
+          Body(Seq(
+            Eq(Var("a"), IntNum(0)),
+          ))
+        )),
+//        Relation(Name("S"), Seq(Param("a", TInt)), Seq(
+//          Body(Seq(
+//            Eq(Var("a"), IntNum(0)),
+//          ))
+//        )),
+      ))
+    performTest(expected, input)
+  }
+
+
   test("Duplicated Relation 3-times: replace names in Calls") {
     val input = IRModule(Name("Datalog"), Language(Set(new BaseIR {}, new arithmetic.IR {}, new string.IR {})),
       Seq(

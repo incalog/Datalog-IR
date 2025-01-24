@@ -83,10 +83,15 @@ trait BaseValueNumberingTerms extends IRVisitor {
       result
   }
 
-
-  private[BaseVN] def repetitionPhase(module: Module): Module = {
+  private[BaseVN] def visit(module: Module): Module = {
     currentIteration += 1
     val result = super.visitModule(module)
+//    println(s"\nintermediate result in iteration $currentIteration: \n $result\n")
+    result
+  }
+
+  private[BaseVN] def repetitionPhase(module: Module): Module = {
+    val result = visit(module)
     val typechecker = new IRTypechecker{}
     typechecker.checkProgram(Seq(result))
     if (result != module && useFixPointIteration){
@@ -175,7 +180,10 @@ trait BaseValueNumberingTerms extends IRVisitor {
       // reset congrClasses (otherwise not known when variables are unbound)
       vnTables = VNTables()
     case Phase.repetition =>
-      val bodyVNTables = body.getAnalysisResult(BodyVNKey).get.vnTables
+      val bodyVNTables = body.getAnalysisResult(BodyVNKey) match {
+        case Some(res) => res.vnTables
+        case None => VNTables()
+      }
       vnTables = bodyVNTables.asInstanceOf[VNTables]
   }
 
