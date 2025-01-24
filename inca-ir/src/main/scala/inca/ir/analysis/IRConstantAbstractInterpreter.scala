@@ -2,7 +2,7 @@ package inca.ir.analysis
 
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, TypeValue, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps

@@ -17,16 +17,13 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    //println(mod)
-
     val abstractInterp = IRConstantAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
-    //println(abstractInterp.graphBuilder.get.toGraphViz)
     val res = abstractInterp.getIDB
 
-    val printer = new IRDebugPrinter {}
-    println(printer.prettyPrint(mod))
+    //val printer = new IRDebugPrinter {}
+    //println(printer.prettyPrint(mod))
 
     res
 

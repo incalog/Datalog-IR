@@ -4,21 +4,21 @@ import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.{Body, ExtensionalRelation, Relation, Term}
 import inca.ir.analysis.IRTypeAbstractInterpreter
-import inca.ir.analysis.base.values.{TypeRelation, TypeValue}
+import inca.ir.analysis.base.values.{AType, TypeRelation, Value}
 import sturdy.values.Topped
 
 /*
   We can not really optimize anything with just the type information. This class is just here
   to be a proof of concept to show how the abstract interpreter results can be used in the end.
  */
-class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val computeControlEvents: Boolean) extends BaseIROptimizer[TypeValue, TypeRelation, TypeValue]:
+class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val computeControlEvents: Boolean) extends BaseIROptimizer[Value, TypeRelation, Value]:
   override def name: String = "Type Optimizer"
 
   override val abstractInterpreter: IRTypeAbstractInterpreter = new IRTypeAbstractInterpreter()
 
   import abstractInterpreter.analysisAnnotator.{ TermKey, RelationKey, BodyKey }
 
-  override def getTermResult(term: Term): Set[TypeValue] =
+  override def getTermResult(term: Term): Set[Value] =
     term.getAnalysisResult(TermKey).map(_.value)
 
   override def getBodyResult(body: Body): Set[TypeRelation] =
@@ -31,7 +31,7 @@ class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val co
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, tys) = params.map(p => (p.name.name, TypeValue.AType(p.ty))).unzip
+          val (paramNames, tys) = params.map(p => (p.name.name, AType(p.ty))).unzip
           abstractInterpreter.insertEDB(n.name, TypeRelation(paramNames, tys, Topped.Top))
         case _ => // nothing
       }

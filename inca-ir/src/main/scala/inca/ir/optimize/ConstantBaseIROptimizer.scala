@@ -92,7 +92,6 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   }
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
-    println(s"Visit ${relation.name}")
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
     // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
     // always succeeds.
@@ -148,10 +147,11 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     //if (b) println(s"may elim $t") else println(s"may NOT elim $t")
     b
 
-  protected def extractVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
-    case TermArg(v@Var(ref)) => Some(v.ref)
-    case WildcardArg() => None
-    case AggregateColumnArg(v@Var(ref)) => Some(v.ref)
+  protected def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
+    case TermArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
+    case AggregateColumnArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
+    case _ => None
+
 
   protected def mayEliminate(eq: Eq): Boolean = mayEliminate(eq.lhs) && mayEliminate(eq.rhs)
 
@@ -176,26 +176,25 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
             Seq()
           case _ => super.visitAtom(atom)
       // Only relevant for intra-relation analysis, inter-relational analysis should detect this
-      case Call(ref, args, false) =>
+      case call@Call(ref, args, false) =>
         ref.target match
           case Some(r: Relation) if relationAlwaysFails(r) =>
             logOptimizationStat("constant failed call", 1, _+1)
             throw FailedBody
           case Some(r: Relation) =>
-            super.visitAtom(atom).flatMap { case call: Call =>
-              val res = getRelationResult(r).headOption.get
-              val (constantArgs, nonconstantArgs) = call.args.zip(res.rows).partition(_._2.isConstant)
-              val ats =
-                if (nonconstantArgs.isEmpty)
-                  Seq()
-                else
-                 Seq(call.copy(args = nonconstantArgs.map(_._1)))
+            //super.visitAtom(atom).flatMap { case call: Call =>
+            val res = getRelationResult(r).headOption.get
+            val (constantArgs, nonconstantArgs) = call.args.zip(res.rows).partition(_._2.isConstant)
+            val ats =
+              if (nonconstantArgs.isEmpty)
+                Seq()
+              else
+               Seq(call.copy(args = nonconstantArgs.map(_._1)))
 
-              // In case we have removed an argument that was binding a parameter, we need to insert an equality
-              // constraint for that parameter.
-              // Test: Datalog frontend -> lecture 5 -> nat relation
-              ats ++ constantArgs.flatMap((a, v) => extractVarRef(a).map(ref => Eq(Var(ref), valueToTerm(v).get)))
-            }
+            // In case we have removed an argument that was binding a parameter, we need to insert an equality
+            // constraint for that parameter.
+            // Test: Datalog frontend -> lecture 5 -> nat relation
+            ats ++ constantArgs.flatMap((a, v) => extractBindingVarRef(a).map(ref => Eq(Var(ref), valueToTerm(v).get)))
           case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }

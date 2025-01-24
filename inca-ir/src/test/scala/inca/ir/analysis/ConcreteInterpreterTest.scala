@@ -14,8 +14,6 @@ import sturdy.fix.Fixpoint
 class ConcreteInterpreterTest extends AnyFunSuiteLike:
 
   def interp(mod: Module, edb: Seq[execution.Relation] = Seq()): Map[String, execution.Relation] =
-    println(mod)
-
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
@@ -23,11 +21,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     val compiled = CompiledTestUnit(mod)
     val engine = interp.instantiate(compiled)
     edb.foreach(engine.insert)
-    val res = engine.readAll()
-    res.foreach { r =>
-      println(r.asTable)
-    }
-    res.map(r => r.name -> r).toMap
+    engine.readAll().map(r => r.name -> r).toMap
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
@@ -177,7 +171,6 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   }
 
   test("Right Recursion") {
-    Fixpoint.DEBUG = true
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("edge", Seq(
         Param("x", TInt),

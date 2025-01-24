@@ -113,9 +113,6 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
     // Otherwise, queries such as R(1) and R(2) would be joined.
     given Finite[Value] = new FiniteV
 
-
-
-
     val fixPt = fix.contextSensitive(
       fix.context.parameters[FixIn, String, Seq[Value]] {
         case FixIn.EnterRelation(r, adorn) =>

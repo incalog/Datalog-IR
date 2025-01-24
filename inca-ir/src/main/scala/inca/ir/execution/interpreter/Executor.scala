@@ -28,7 +28,6 @@ class Executor extends IRExecutor:
       if (!useCache || inputDirty || cachedResult.isEmpty) {
         interp.evalProgram(mods)
         val idb = interp.getIDB
-        println(idb)
         val allRels = mods.flatMap(_.relations.values)
         val res = allRels.map { rel =>
           val out = idb.get(rel.name.name) match

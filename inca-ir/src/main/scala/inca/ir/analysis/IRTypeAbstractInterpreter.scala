@@ -6,7 +6,7 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
-import inca.ir.analysis.base.values.{TypeValue, *}
+import inca.ir.analysis.base.values._
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
@@ -38,7 +38,7 @@ class IRTypeAbstractInterpreter(
      val enableLogging: Boolean = false,
      override val interRelational: Boolean = false
   )
-  extends BaseGenericInterpreter[TypeValue, Topped[Boolean], TypeRelation, Powerset[BaseIRException], WithJoin]
+  extends BaseGenericInterpreter[Value, Topped[Boolean], TypeRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.TypeAbstractInterpreter
   with irstr.interpreter.TypeAbstractInterpreter
   with irdata.interpreter.TypeAbstractInterpreter
@@ -46,7 +46,7 @@ class IRTypeAbstractInterpreter(
 
   type TRV = TypeRelation
 
-  override lazy val topV: TypeValue = TypeValue.Top
+  override lazy val topV: Value = Value.Top
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
@@ -58,29 +58,21 @@ class IRTypeAbstractInterpreter(
 
   override val branchOps: BooleanBranching[Topped[Boolean], TRV] = new ToppedBooleanBranching[Boolean, TRV]
 
-  override lazy val eqOps: EqOps[TypeValue, Topped[Boolean]] = new EqOps[TypeValue, Topped[Boolean]] {
-    def equ(v1: TypeValue, v2: TypeValue): Topped[Boolean] = (v1, v2) match
-      case (TypeValue.AType(ty1), TypeValue.AType(ty2)) => if (ty1 != ty2) Topped.Actual(false) else Topped.Top
-      case (TypeValue.Bottom, TypeValue.Bottom) => Topped.Actual(true)
-      case (TypeValue.Bottom, _) => Topped.Actual(false)
-      case (_, TypeValue.Bottom) => Topped.Actual(false)
-      case (TypeValue.Top, TypeValue.Top) => Topped.Top
-      case (TypeValue.Top, _) => Topped.Top
-      case (_, TypeValue.Top) => Topped.Top
+  override lazy val eqOps: EqOps[Value, Topped[Boolean]] = new EqOps[Value, Topped[Boolean]] {
+    def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
+      case (AType(ty1), AType(ty2)) => if (ty1 != ty2) Topped.Actual(false) else Topped.Top
+      case (Value.Top, Value.Top) => Topped.Top
 
-    def neq(v1: TypeValue, v2: TypeValue): Topped[Boolean] = (v1, v2) match
-      case (TypeValue.AType(ty1), TypeValue.AType(ty2)) => if (ty1 != ty2) Topped.Actual(true) else Topped.Top
-      case (TypeValue.Bottom, TypeValue.Bottom) => Topped.Actual(false)
-      case (TypeValue.Bottom, _) => Topped.Actual(true)
-      case (_, TypeValue.Bottom) => Topped.Actual(true)
-      case (TypeValue.Top, TypeValue.Top) => Topped.Top
-      case (TypeValue.Top, _) => Topped.Top
-      case (_, TypeValue.Top) => Topped.Top
+    def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
+      case (AType(ty1), AType(ty2)) => if (ty1 != ty2) Topped.Actual(true) else Topped.Top
+      case (Value.Top, Value.Top) => Topped.Top
+      case (Value.Top, _) => Topped.Top
+      case (_, Value.Top) => Topped.Top
   }
 
-  given EqOps[TypeValue, Topped[Boolean]] = eqOps
+  given EqOps[Value, Topped[Boolean]] = eqOps
   
-  override val joinV: WithJoin[TypeValue] = implicitly
+  override val joinV: WithJoin[Value] = implicitly
   override val joinRV: Join[TRV] = implicitly
   
   given Widen[TRV] with {
@@ -93,17 +85,17 @@ class IRTypeAbstractInterpreter(
     override def initialTable: TRV = TypeRelation(Seq(), Seq(), Topped.Actual(false))
   }
 
-  override val relationOps: RelationOps[TypeValue, Topped[Boolean], TypeRelation] = new TypeRelationOps
+  override val relationOps: RelationOps[Value, Topped[Boolean], TypeRelation] = new TypeRelationOps(using except)
 
   class AnalysisAnnotator
-    extends BaseAnalysisAnnotator[TypeValue, TRV, TypeValue]
-    with irarith.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]
-    with irdata.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]
-    with irstr.logger.AnalysisAnnotator[TypeValue, TRV, TypeValue]:
+    extends BaseAnalysisAnnotator[Value, TRV, Value]
+    with irarith.logger.AnalysisAnnotator[Value, TRV, Value]
+    with irdata.logger.AnalysisAnnotator[Value, TRV, Value]
+    with irstr.logger.AnalysisAnnotator[Value, TRV, Value]:
 
-      override def extractTermValue(supName: SupColumn): Option[TypeValue] =
+      override def extractTermValue(supName: SupColumn): Option[Value] =
         val supTable = supplementaryTable.getTable
-        val termTRV = supTable.project(Seq(supName))
+        val termTRV = relationOps.project(supTable, Seq(supName))
         assert(termTRV.rows.size == 1)
         Some(termTRV.rows.head)
 
@@ -111,8 +103,8 @@ class IRTypeAbstractInterpreter(
   
   //fix.Fixpoint.DEBUG = true
 
-  var looper: HasFixpointCache[FixIn, FixOut[TypeValue, TRV]] = null
-  def setLooper[A <: HasFixpointCache[FixIn, FixOut[TypeValue, TRV]]](a: A): A =
+  var looper: HasFixpointCache[FixIn, FixOut[Value, TRV]] = null
+  def setLooper[A <: HasFixpointCache[FixIn, FixOut[Value, TRV]]](a: A): A =
     looper = a
     a
   override def getIDB: Map[String, TRV] =
@@ -125,13 +117,13 @@ class IRTypeAbstractInterpreter(
     reduced
 
   private val stackConfig = StackedStates()
-  override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[TypeValue, TRV]] =
+  override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, TRV]] =
     val fixPt =
-      fix.notContextSensitive[FixIn, FixOut[TypeValue, TRV], fix.Combinator[FixIn, FixOut[TypeValue, TRV]]](
+      fix.notContextSensitive[FixIn, FixOut[Value, TRV], fix.Combinator[FixIn, FixOut[Value, TRV]]](
         fix.filter({
           case _: FixIn.EnterRelation => true
           case _ => false // important, filter everything out we don't need
-        }, setLooper(fix.iter.innermost[FixIn, FixOut[TypeValue, TRV], Unit](stackConfig)))
+        }, setLooper(fix.iter.innermost[FixIn, FixOut[Value, TRV], Unit](stackConfig)))
         )
 
     val analysisFixPt = fix.log(analysisAnnotator, fixPt)
