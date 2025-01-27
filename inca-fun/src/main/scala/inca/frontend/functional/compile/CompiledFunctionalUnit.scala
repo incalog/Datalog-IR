@@ -143,8 +143,9 @@ object CompiledFunctionalUnit:
   ) // arith + string + data
 
   val optimizationPipeline: List[() => Optimizer] = List(
+    () => new optimize.ReorderAtoms {},
     () => new optimize.RemoveDuplicatedRelations {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {},
   )

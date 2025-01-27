@@ -52,7 +52,7 @@ object StudentProg:
       Seq(
         Body(Seq(
           ExtensionalCall("enrollment", Seq(Var("studentID"), Var("course"), Var("grade"))),
-          Call("studentIDB", Seq(Var("studentID"), Var("name"), StringLit("CS"))),
+          Call("studentIDB", Seq(Var("studentID"), Var("name"), Var("major"))),
         ))
       )
     )
@@ -128,7 +128,7 @@ object StudentProg:
   private def runModInEngine(executor: IRExecutor, mod: Module): execution.Relation =
     val compiled = createCompiled(mod)
 
-    val data = generateFakeData(100000, 100000, 10000000)
+    val data = generateFakeData(100, 100, 100)
 
     // Get result
     var engine = executor.instantiate(compiled)
