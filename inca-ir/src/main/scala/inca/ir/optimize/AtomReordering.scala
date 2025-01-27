@@ -24,10 +24,9 @@ class AtomOrdering(atoms: Seq[Atom]) extends Ordering[Atom]:
 
 trait AtomReordering extends Optimizer, IRVisitor:
   override def name: String = s"Atom reordering"
-  
+
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
     val ordering = new AtomOrdering(body.atoms)
     val reordered = body.atoms.sorted(using ordering)
-    println(s"was: ${body.atoms}\nnow: ${reordered}")
     Seq(Body(reordered))
   }
