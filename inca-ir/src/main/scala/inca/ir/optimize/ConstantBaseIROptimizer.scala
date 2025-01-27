@@ -20,7 +20,11 @@ extension [T](topped: Topped[T])
   def isFalse: Boolean = topped.isActual && topped.get == false
 
 trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimizer[Value, ConstantRelation, Value]:
-  override def name: String = "Constant Optimizer"
+  override def name: String =
+    if (interRelational)
+      "Constant optimizer (inter)"
+    else
+      "Constant optimizer (intra)"
 
   override val abstractInterpreter: IRConstantAbstractInterpreter = new IRConstantAbstractInterpreter(
     logControlEvents = computeControlEvents,

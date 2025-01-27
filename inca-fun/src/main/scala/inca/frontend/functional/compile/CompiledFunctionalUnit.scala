@@ -6,11 +6,10 @@ import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.extension.*
 import inca.ir.extension.set.SyntacticOptimizer
-import inca.ir.optimize
+import inca.ir.{Body, CompiledUnit, Name, optimize, Module as IRModule}
 import inca.ir.optimize.{BaseIROptimizer, Optimizer}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{CompiledUnit, Name, Module as IRModule}
 import inca.util.printStep
 
 case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
@@ -140,6 +139,7 @@ object CompiledFunctionalUnit:
     () => new demand.Lowering {},
     //() => new demand.LoweringWithSupplementaries {},
     () => new tuple.Lowering {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
   ) // arith + string + data
 
   val optimizationPipeline: List[() => Optimizer] = List(

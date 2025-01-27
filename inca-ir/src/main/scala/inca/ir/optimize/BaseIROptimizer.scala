@@ -29,10 +29,17 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   // You need to enable computeControlEvents to get a control graph
   def controlGraph: Option[String] = None
 
+  private var analysisHasRun: Boolean = false
+  /** Important, evaluate the program first */
   override def analyzeProgram(modules: Seq[Module]): Unit =
-    // Important, evaluate the program first
+    analysisHasRun = true
     abstractInterpreter.evalProgram(modules)
 
+  override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
+    if (!analysisHasRun)
+    analyzeProgram(modules)  
+    super.visitProgram(modules, dependencies)
+  
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     params = relation.params.map(p => RefByName(p.name)).toSet
     super.visitRelation(relation)
