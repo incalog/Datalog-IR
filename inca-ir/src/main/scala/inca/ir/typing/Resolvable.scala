@@ -2,6 +2,9 @@ package inca.ir.typing
 
 trait Resolvable[T] {
   var target: Option[T] = None
+  
+  def isResolved: Boolean = target.nonEmpty
+  def isUnresolved: Boolean = target.isEmpty
 
   def resolved(t: T, force: Boolean = true): this.type = {
     if (!force && this.target.nonEmpty)

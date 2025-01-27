@@ -149,6 +149,8 @@ case class RefByQualifiedName[Target](ns: Seq[Name]) extends Ref[Target]:
 
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
+  def boundVars: Seq[Var] = vars.filter(_.ref.isResolved)
+  def unboundVars: Seq[Var] = vars.filter(_.ref.isUnresolved)
 
 trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
