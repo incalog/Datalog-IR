@@ -12,6 +12,7 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
   case class ConfigVN(normalizeDoubles: Boolean = false,
                       useDefiningTerm: Boolean = false,
                       useFixPointIteration: Boolean = true,
+                      useGlobalPropagationOfConstLeaders: Boolean = true,
                       printVNResults: Boolean = true,
                       printBeforeAfter: Boolean = true,
                       printVNStatistics: Boolean = true
@@ -25,7 +26,10 @@ abstract class ValueNumberingTestAbstract extends AnyFunSuite{
       override val normalizeDoubles: Boolean = config.normalizeDoubles
       override val useDefiningTerm: Boolean = config.useDefiningTerm
       override val useFixPointIteration: Boolean = config.useFixPointIteration
+      override val useGlobalPropagationOfConstLeaders: Boolean = config.useGlobalPropagationOfConstLeaders
       override val printVNResults: Boolean = config.printVNResults
+      override val printBeforeAfter: Boolean = config.printBeforeAfter
+      override val printVNStatistics: Boolean = config.printVNStatistics
     }
     performTestInternal(expected, input, VN)
   }

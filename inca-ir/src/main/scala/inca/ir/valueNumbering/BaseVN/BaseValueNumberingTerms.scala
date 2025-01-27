@@ -15,6 +15,7 @@ trait BaseValueNumberingTerms extends IRVisitor {
   def normalizeDoubles: Boolean = false
   def useDefiningTerm: Boolean = false
   def useFixPointIteration: Boolean = true
+  def useGlobalPropagationOfConstLeaders: Boolean = false // TODO true can cause problems because of a bug in ascent backend
   def printVNResults: Boolean = false
   def printBeforeAfter: Boolean = false
   def printVNStatistics: Boolean = false
@@ -156,7 +157,7 @@ trait BaseValueNumberingTerms extends IRVisitor {
   private def saveResultsInRelation(newRelation: Relation): Unit = {
     newRelation.storeAnalysisResult(ParamVNResults(getResultsFromRelation(oldRelation)))
     relations = relations + (oldRelation.name.name -> newRelation)
-    joinParams(newRelation)
+    if (useGlobalPropagationOfConstLeaders) joinParams(newRelation)
   }
 
   override def visitRelation(relation: Relation): Seq[Relation] = {

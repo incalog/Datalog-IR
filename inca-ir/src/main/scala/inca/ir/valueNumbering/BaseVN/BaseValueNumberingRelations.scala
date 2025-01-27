@@ -17,7 +17,7 @@ trait BaseValueNumberingRelations extends BaseValueNumberingBodies {
   private var removedRelation: Boolean = false
 
 
-  private class updateRefsToRemovedRelation extends IRVisitor { // TODO
+  private class updateRefsToRemovedRelation extends IRVisitor {
     // otherwise it can happen that a relation was removed but a call not renamed if the call stands before the relation
     // -> typechecker in repetition phase throws error
     override def visitRef[Target](ref: Ref[Target]): Ref[Target] = ref.target match {
@@ -50,8 +50,6 @@ trait BaseValueNumberingRelations extends BaseValueNumberingBodies {
     if (removedRelation) {
       result = new updateRefsToRemovedRelation().visitModule(result)
     }
-//    println(s"\nintermediate result in iteration $currentIteration: \n $result\n")
-
     val typechecker = new IRTypechecker {}
     typechecker.checkProgram(Seq(result))
     if (result != module && useFixPointIteration) {

@@ -15,3 +15,4 @@ class ValueNumbering
     with StringValueNumbering
     with DataValueNumbering
     with AggregateValueNumbering 
+    with ForeignValueNumbering
