@@ -77,7 +77,7 @@ class IRConstantAbstractInterpreter(
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures with ObservableFailure(this)
 
-  override lazy val boolOps: BooleanOps[Topped[Boolean]] = new ToppedBooleanOps
+  override lazy val boolOps: BooleanOps[Topped[Boolean]] = ToppedBooleanOps
 
   given BooleanOps[Topped[Boolean]] = boolOps
 

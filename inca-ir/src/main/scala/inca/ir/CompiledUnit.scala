@@ -133,9 +133,11 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       val optimFun = optimizer()
 
       // log analysis phase
+      val anStart = System.currentTimeMillis()
       optimFun.analyzeProgram(ms)
+      val anTime = System.currentTimeMillis() - anStart
       if (logAnalsis)
-        printSteps(s"Analysis: ${optimFun.name}", ms)
+        printSteps(s"Analysis: ${optimFun.name}, ${anTime}ms", ms)
 
       // log control events
       optimFun match
@@ -143,10 +145,12 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
           printStep(s"Control-Graph: ${optimFun.name}", optimizer.controlGraph.get)
         case _ => // nothing
 
+      val optStart = System.currentTimeMillis()
       val ls = optimFun.visitProgram(ms, loweredOtherUnits)
+      val optTime = System.currentTimeMillis() - optStart
 
       if (logOptimizerStats)
-        println(s"Optimization: ${optimFun.name}\n  " + optimFun.statsString)
+        println(s"Optimization: ${optimFun.name}, ${anTime + optTime}ms\n  " + optimFun.statsString)
 
       if (logOptimizations && !logTyped && optimFun.stats.nonEmpty)
         printSteps(s"Optimization: ${optimFun.name}", ls)

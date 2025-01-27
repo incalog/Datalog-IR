@@ -52,7 +52,7 @@ class IRTypeAbstractInterpreter(
 
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 
-  override lazy val boolOps: BooleanOps[Topped[Boolean]] = new ToppedBooleanOps
+  override lazy val boolOps: BooleanOps[Topped[Boolean]] = ToppedBooleanOps
 
   given BooleanOps[Topped[Boolean]] = boolOps
 
