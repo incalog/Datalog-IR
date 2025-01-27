@@ -128,9 +128,9 @@ class IRConstantAbstractInterpreter(
   val graphBuilder: ControlEventGraphBuilder[Int, SupColumn, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
 
   private val stackConfig: StackConfig = if (logControlEvents)
-    StackedStates().withObservers(Seq(triggerControlEvent))
+    StackedStates(storeNonrecursiveOutput = true).withObservers(Seq(triggerControlEvent))
   else
-    StackedStates()
+    StackedStates(storeNonrecursiveOutput = true)
 
   var looper: HasFixpointCache[FixIn, FixOut[Value, RV]] = null
   def setLooper[A <: HasFixpointCache[FixIn, FixOut[Value, RV]]](a: A): A =

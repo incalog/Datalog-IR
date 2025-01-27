@@ -193,12 +193,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val relName = AllocationSiteAddr.Variable(r.name.name)(true)
     val emptyRes = relationOps.make(paramNames, Seq())
     val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
-    effects.joinComputations {
-      val idbRes = relationOps.naturalJoin(evalRelation(r, adorn), boundSup)
-      Join(idbRes, relRes).get
-    } {
-      relRes
-    }
+    relRes
   }}
 
   def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
@@ -327,15 +322,17 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
       // evaluate the call
       val relRes = r match
-        case rel: ir.Relation if interRelational => evalRelation(rel, adornment)
-        // TODO: We could evaluate across module boundaries here. For now we just assume top.
+        case rel: ir.Relation if interRelational =>
+          evalRelation(rel, adornment)
+        case extRel: ir.ExtensionalRelation =>
+          evalExtensionalRelation(extRel)
         case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
+          // TODO: We could evaluate across module boundaries here. For now we just assume top.
           // assume top for all unbound arguments
           val unboundArgIndices = argMapping.zipWithIndex.filter(_._1.isEmpty).map(_._2)
           unboundArgIndices.map(params).foldLeft[RV](evalContext) {
             case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
           }
-        case extRel: ir.ExtensionalRelation => evalExtensionalRelation(extRel)
 
       // add all variables from the call to the context
       val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap

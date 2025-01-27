@@ -116,7 +116,7 @@ class IRTypeAbstractInterpreter(
     }.toMap
     reduced
 
-  private val stackConfig = StackedStates()
+  private val stackConfig = StackedStates(storeNonrecursiveOutput = true)
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, TRV]] =
     val fixPt =
       fix.notContextSensitive[FixIn, FixOut[Value, TRV], fix.Combinator[FixIn, FixOut[Value, TRV]]](

@@ -16,7 +16,7 @@ import sturdy.effect.failure.CollectedFailures
 import sturdy.effect.store.AStoreThreaded
 import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.fix
-import sturdy.fix.HasFixpointCache
+import sturdy.fix.{HasFixpointCache, StackConfig}
 import sturdy.fix.StackConfig.{StackedCfgNodes, StackedStates}
 import sturdy.fix.context.Parameters
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ConcreteBooleanOps}
@@ -98,6 +98,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
     }.toMap
     reduced
 
+  val stackConfig: StackConfig = StackedStates(storeNonrecursiveOutput = true)
+
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
     /*val fixPt =
       fix.notContextSensitive[FixIn, FixOut[Value, CRV], fix.Combinator[FixIn, FixOut[Value, CRV]]](
@@ -113,25 +115,12 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
     // Otherwise, queries such as R(1) and R(2) would be joined.
     given Finite[Value] = new FiniteV
 
-    val fixPt = fix.contextSensitive(
-      fix.context.parameters[FixIn, String, Seq[Value]] {
-        case FixIn.EnterRelation(r, adorn) =>
-          val sup = supplementaryTable.getTable
-          val paramMap = sup.cols.zipWithIndex.map { case (c, idx) =>
-            c -> sup.rows.toSeq.map(_.apply(idx))
-          }.toMap
-          Some(paramMap)
-        case _ => None
-      },
-      fix.filter({
-        case _: FixIn.EnterRelation => true
-        case _ => false // important, filter everything out we don't need
-      }, {
-        setLooper(fix.iter.innermost[FixIn, FixOut[Value, CRV], Parameters[String, Seq[Value]]](
-          StackedStates()
-        ))
-      })
-    )
+    val fixPt =
+      fix.notContextSensitive[FixIn, FixOut[Value, CRV], fix.Combinator[FixIn, FixOut[Value, CRV]]](
+        fix.filter(_.isInstanceOf[FixIn.EnterRelation], {
+          setLooper(fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](stackConfig))
+        })
+      )
 
     if (enableLogging)
       fix.log(new PrintLogger, fixPt).fixpoint

@@ -68,6 +68,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
+    println(mod)
     val relTypes = interp(mod)
 
     val numRelType = relTypes("nums")
@@ -241,7 +242,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))

@@ -148,7 +148,7 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
 given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]): Join[ConstantRelation] with {
   def join(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
     if (rv.cols.toSet != other.cols.toSet)
-      throw new IllegalArgumentException("Schemas must match for join")
+      throw new IllegalArgumentException(s"Schemas must match for join: $rv ++ $other")
 
     (rv, other) match
       case (ConstantRelation.Empty(_), _) => other
