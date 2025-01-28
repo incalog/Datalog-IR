@@ -229,6 +229,11 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+//    compiled.irLogging.logLowerings = false
+//    compiled.irLogging.logStatsBeforeOptimizations = true
+//    println(compiled.lowered)
+//    Fixpoint.DEBUG = true
+//    Fixpoint.DEBUG_PRIOR_OUTPUT = true
     val loaded = exec.loadFunction(compiled)
     // Query main to get the set ADT, afterwards query the set relation
     var res = loaded.execute("main", Seq())
