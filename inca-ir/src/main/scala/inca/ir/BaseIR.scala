@@ -149,11 +149,14 @@ case class RefByQualifiedName[Target](ns: Seq[Name]) extends Ref[Target]:
 
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
-  def boundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBound)
-  def unboundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBinding)
+  lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))
+  lazy val unboundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBinding)
 
 trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
+
+  lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))
+  lazy val unboundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBinding)
 
   def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
 

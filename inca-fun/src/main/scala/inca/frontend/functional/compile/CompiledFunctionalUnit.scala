@@ -3,13 +3,12 @@ package inca.frontend.functional.compile
 import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
-import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.extension.*
 import inca.ir.extension.set.SyntacticOptimizer
-import inca.ir.{Body, CompiledUnit, Name, optimize, Module as IRModule}
-import inca.ir.optimize.{AtomReordering, BaseIROptimizer, Optimizer}
+import inca.ir.optimize.Optimizer
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
+import inca.ir.{CompiledUnit, Name, optimize, Module as IRModule}
 import inca.util.printStep
 
 case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: FunctionalCompilerOptions)
