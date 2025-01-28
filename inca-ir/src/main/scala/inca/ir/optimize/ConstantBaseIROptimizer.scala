@@ -89,11 +89,12 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   def valueToTermInternal(value: Value): Option[Term] =
     None
 
-  private def transformTerm(term: Term): Option[Term] = {
+  private def transformTerm(term: Term): Option[Term] =
     val option = getTermResult(term).headOption
 //    println(s"  elim $term => $option")
-    option.flatMap(valueToTerm.apply)
-  }
+    option.flatMap(valueToTerm.apply) match
+      case Some(value) => if (value == term) None else Some(value)
+      case None => None
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
@@ -214,25 +215,24 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   // Replace all terms with their constants if possible
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     if (mayEliminate(term)) {
-      val transformed = term match
-        case Cast(t, ty) => transformTerm(term).map(Cast(_, ty))
-        case _ =>
-          // We need this cast here to guarantee that we don't break programs.
-          // E.g. consider the following simple example:
-          // R(return$2: TAny) {
-          //	Q(i: >TAny< :: 4)
-          //	return$2: >TAny< == i :: 4
-          // }
-          // The program was well-typed before, but after replacing i with 4 in the Eq-Constraint, we get a type error.
-          // i had type TAny, however, the constant 4 has type TInt. That is, we now compare >TAny< to <TInt>.
-          // Test: OODL -> Unit Test -> Subtyping
-          transformTerm(term).map(Cast(_, term.typ.get.ty))
-      transformed match
-        case Some(newTerm) =>
-          if (newTerm != term)
-            logOptimizationStat("constant term", 1, _+1)
-          Seq(newTerm)
-        case _ => super.visitTerm(term)
+      transformTerm(term) match
+        case None => super.visitTerm(term)
+        case Some(trans) =>
+          logOptimizationStat("constant term", 1, _+1)
+          term match
+            case Cast(_, ty) =>
+              /* We need this cast here to guarantee that we don't break programs.
+               * E.g. consider the following simple example:
+               * R(return$2: TAny) {
+               *	Q(i: >TAny< :: 4)
+               *	return$2: >TAny< == i :: 4
+               * }
+               * The program was well-typed before, but after replacing i with 4 in the Eq-Constraint, we get a type error.
+               * i had type TAny, however, the constant 4 has type TInt. That is, we now compare >TAny< to <TInt>.
+               * Test: OODL -> Unit Test -> Subtyping
+               */
+              Seq(Cast(trans, ty))
+            case _ => Seq(Cast(trans, term.typ.get.ty))
     } else {
       super.visitTerm(term)
     }

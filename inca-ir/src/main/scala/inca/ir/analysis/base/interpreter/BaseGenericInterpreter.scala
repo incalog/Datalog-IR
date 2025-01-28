@@ -4,13 +4,15 @@ import inca.ir
 import inca.ir.analysis.base.effect.*
 import inca.ir.analysis.base.ordering.AtomOrderingOps
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
+import inca.ir.MainHint
+import inca.ir.analysis.base.effect
 import inca.ir.{Atom, MainHint, ModuleEntry, TermType}
 import inca.ir.typing.Mode
 import inca.util.Gensym
 import sturdy.data.MayJoin.WithJoin
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 import sturdy.effect.except.Except
-import sturdy.effect.failure.Failure
+import sturdy.effect.failure.{CollectedFailures, Failure}
 import sturdy.effect.store.Store
 import sturdy.effect.{EffectList, EffectStack}
 import sturdy.fix.Fixpoint
@@ -88,7 +90,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   lazy val eqOps: EqOps[V, B]
 
-  lazy val failure: Failure
+  lazy val failure: CollectedFailures[effect.BaseIRFailure]
 
   given Failure = failure
 
@@ -131,8 +133,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
-    case FixIn.Atom(atom, _) => evalAtomOpen(atom); FixOut.Atom()
-    case FixIn.Body(rel, ix, paramNames) => FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
+    case FixIn.Atom(atom, _) =>
+//      println(s"  ## Eval $atom")
+      evalAtomOpen(atom); FixOut.Atom()
+    case FixIn.Body(rel, ix, paramNames) =>
+//      println(s"## Eval ${rel.name} body $ix")
+      FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
     case FixIn.EnterRelation(rel, adornment) => FixOut.Relation(evalRelationOpen(rel, adornment))
   }
 
@@ -229,13 +235,19 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       while (rest.nonEmpty) {
         val sup = supplementaryTable.getTable
         val supCols = relationOps.columns(sup)
-        val (now, later) = rest.partition(_.boundVars.map(_.name.name).forall(supCols.contains))
+        val (now, later) = rest.partition { at =>
+          at.boundVars.map(_.name.name).forall(supCols.contains) || (at match
+            case ir.Eq(lhs, rhs, false) =>
+              rhs.typ.get.mode.isBinding && lhs.boundVars.map(_.name.name).forall(supCols.contains) ||
+                lhs.typ.get.mode.isBinding && rhs.boundVars.map(_.name.name).forall(supCols.contains)
+            case _ => false
+          )
+        }
         val ordered = now.sortBy(at => atomOrderingOps.priority(at))
-
         if (rest.size == later.size)
           throw new IllegalStateException()
-        rest = later
         ordered.foreach(evalAtom(_, b))
+        rest = later
       }
       relationOps.project(supplementaryTable.getTable, paramNames)
     } /*catch*/ { exc =>
@@ -275,11 +287,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   protected def boundInSupplementary(s: String): Boolean =
     relationOps.hasColumn(supplementaryTable.getTable, s)
 
-  protected def boundInSupplementary(t: ir.Term): Boolean = t.typ match
-    case Some(TermType(_, Mode.Bound)) => true /* term is always bound, independent of current query */
-    case _ =>
-      val sup = supplementaryTable.getTable
-      t.vars.forall { v => relationOps.hasColumn(sup, v.name.name) }
+  protected def boundInSupplementary(t: ir.Term): Boolean =
+    val sup = supplementaryTable.getTable
+    t.vars.forall { v => relationOps.hasColumn(sup, v.name.name) }
 
   protected final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match

@@ -5,6 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.visitors.IRVisitor
 import inca.util.{DEFAULT_PRINTER, printSteps}
+import sturdy.effect.failure.{AFallible, CollectedFailures}
 
 trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   // Configure
@@ -33,11 +34,13 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   /** Important, evaluate the program first */
   override def analyzeProgram(modules: Seq[Module]): Unit =
     analysisHasRun = true
-    abstractInterpreter.evalProgram(modules)
+    abstractInterpreter.failure.fallible {
+      abstractInterpreter.evalProgram(modules)
+    }.get
 
   override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
     if (!analysisHasRun)
-    analyzeProgram(modules)  
+      analyzeProgram(modules)
     super.visitProgram(modules, dependencies)
   
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {

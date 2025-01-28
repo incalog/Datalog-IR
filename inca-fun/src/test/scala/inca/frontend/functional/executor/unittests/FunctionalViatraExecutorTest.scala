@@ -20,7 +20,6 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-    compiled.irLogging.logOptimizationStats = true
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(43)(res.entries.head)
@@ -229,7 +228,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-//    compiled.irLogging.logLowerings = false
+//    compiled.irLogging.logOptimizations = true
 //    compiled.irLogging.logStatsBeforeOptimizations = true
 //    println(compiled.lowered)
 //    Fixpoint.DEBUG = true
