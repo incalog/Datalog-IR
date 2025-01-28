@@ -6,7 +6,8 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
-import inca.ir.analysis.base.values._
+import inca.ir.analysis.base.ordering.BaseAtomOrderingOps
+import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
@@ -45,6 +46,11 @@ class IRTypeAbstractInterpreter(
   with iragg.interpreter.TypeAbstractInterpreter:
 
   type TRV = TypeRelation
+
+  private class IRAtomOrderingOps extends BaseAtomOrderingOps
+    with irdata.ordering.AtomOrderingOps
+
+  override val atomOrderingOps = new IRAtomOrderingOps
 
   override lazy val topV: Value = Value.Top
 

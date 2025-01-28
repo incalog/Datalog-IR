@@ -246,7 +246,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
@@ -288,7 +288,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
@@ -330,7 +330,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
@@ -429,7 +429,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
     assert(inputRelType.rows == Seq(AType(TInt)))
-    assertResult(Topped.Top)(inputRelType.empty)
+    assertResult(Topped.Actual(false))(inputRelType.empty)
 
     val facRelType = relTypes("fac")
     assert(facRelType.cols == Seq("n", "r"))
@@ -469,7 +469,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
     assert(inputRelType.rows == Seq(AType(TInt)))
-    assertResult(Topped.Top)(inputRelType.empty)
+    assertResult(Topped.Actual(false))(inputRelType.empty)
 
     val sumRelType = relTypes("prefixSum")
     assert(sumRelType.cols == Seq("t", "n"))
@@ -545,7 +545,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
   }
 
   test("Body Failing") {

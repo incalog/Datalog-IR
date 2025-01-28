@@ -2,10 +2,10 @@ package inca.ir.analysis.base.interpreter
 
 import inca.ir
 import inca.ir.analysis.base.effect.*
+import inca.ir.analysis.base.ordering.AtomOrderingOps
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
-import inca.ir.MainHint
+import inca.ir.{Atom, MainHint, ModuleEntry, TermType}
 import inca.ir.typing.Mode
-import inca.ir.{ModuleEntry, TermType}
 import inca.util.Gensym
 import sturdy.data.MayJoin.WithJoin
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
@@ -83,6 +83,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   lazy val boolOps: BooleanOps[B]
 
   val branchOps: BooleanBranching[B, RV]
+
+  val atomOrderingOps: AtomOrderingOps
 
   lazy val eqOps: EqOps[V, B]
 
@@ -228,11 +230,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         val sup = supplementaryTable.getTable
         val supCols = relationOps.columns(sup)
         val (now, later) = rest.partition(_.boundVars.map(_.name.name).forall(supCols.contains))
-        val ordered = now.sortBy {
-          case _: ir.Eq => 0
-          case _: ir.extension.data.Deconstruct => 1
-          case _ => 2
-        }
+        val ordered = now.sortBy(at => atomOrderingOps.priority(at))
+
         if (rest.size == later.size)
           throw new IllegalStateException()
         rest = later

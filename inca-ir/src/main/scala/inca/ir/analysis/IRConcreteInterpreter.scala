@@ -5,6 +5,7 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut, given}
 import inca.ir.analysis.base.logger.PrintLogger
+import inca.ir.analysis.base.ordering.{AtomOrderingOps, BaseAtomOrderingOps}
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.string.analysis as irstr
@@ -37,7 +38,6 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.fix.context.FiniteParameters
 import inca.ir.analysis.base.values.FiniteV
 
-
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]
   with irarith.interpreter.ConcreteInterpreter
@@ -47,6 +47,11 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
 
   type CRV = ConcreteRelation[Value]
 
+  private class IRAtomOrderingOps extends BaseAtomOrderingOps
+    with irdata.ordering.AtomOrderingOps
+  
+  override val atomOrderingOps = new IRAtomOrderingOps
+  
   // Concrete interpretation must always be inter-relational
   override val interRelational: Boolean = true
 
