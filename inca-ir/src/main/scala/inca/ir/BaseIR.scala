@@ -166,8 +166,6 @@ trait Type extends SourceLocation with Hints:
 
   def bound: TermType = TermType(this, Mode.Bound)
 
-  def boundCouldBeBinding: TermType = TermType(this, Mode.BoundCouldBeBinding)
-
   def binding: TermType = TermType(this, Mode.Binding)
 
   def collapsed: TermType = TermType(this, Mode.Collapse)
@@ -192,9 +190,7 @@ case class WildcardArg() extends Arg with Typeable[TermType] with Analyzable:
 
 case class TermType(ty: Type, mode: Mode):
   override def toString: String =
-    if (mode.isBoundCouldBeBinding)
-      s"<$ty<"
-    else if (mode.isBound)
+    if (mode.isBound)
       s"<$ty>"
     else if (mode.isBinding)
       s">$ty<"

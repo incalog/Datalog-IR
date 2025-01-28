@@ -60,9 +60,7 @@ trait BaseIRPrinter extends GenericPrinter:
 
   override def prettyPrint(termTy: TermType): String =
     val TermType(ty, mode) = termTy
-    if (mode.isBoundCouldBeBinding)
-      s"<$ty<"
-    else if (mode.isBound)
+    if (mode.isBound)
       s"<${prettyPrint(ty)}>"
     else if (mode.isBinding)
       s">${prettyPrint(ty)}<"

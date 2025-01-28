@@ -14,7 +14,6 @@ trait Typechecker extends BaseIRTypechecker:
         error(s"Expected ${paramTys.size} arguments but got: ${args.size}", atom)
       val argMode = mode match
         case Mode.Binding => Mode.Bound
-        case Mode.BoundCouldBeBinding => Mode.Collapse
         case Mode.Bound => Mode.Collapse
         case Mode.Collapse => Mode.Collapse
       val aggregands = args.zipAll(paramTys, null, null).flatMap {

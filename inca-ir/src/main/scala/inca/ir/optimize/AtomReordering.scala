@@ -68,7 +68,16 @@ class UseDefAnalysis extends IRVisitor:
   private var currentPath: Path = uninitialized
 
   private def trueStrictnessPoint(term: Term): Boolean =
-    term.typ.get.mode.isBound && !term.typ.get.mode.isBoundCouldBeBinding
+    // FIXME: Make this more precise by introducing a notion of "bound, but could be binding".
+    //  E.g.
+    //    A: fib$input(n: >TInt<)
+    //    B: n: <TInt> == 0
+    //    C: fib_result$0: >TInt< == 0
+    //  For this body the analysis detects: A -> {}, B -> {A}, C -> {}. That is, A always appears before B, eventhough
+    //  it would be nice if B should appear before A for performance reasons.
+    //  All call arguments, all destruct arguments (expect the first) and equation params are bound, but could be
+    //  binding.
+    term.typ.get.mode.isBound //&& !term.typ.get.mode.isBoundCouldBeBinding
 
   private var bindingSites: Map[Ref[Var.Target], Set[Path]] = Map()
   private def addBindingSite(ref: Ref[Var.Target]): Unit = bindingSites += ref -> (bindingSites.getOrElse(ref, Set()) + currentPath)
@@ -107,7 +116,7 @@ class UseDefAnalysis extends IRVisitor:
   }
 
 
-class ReorderAtoms extends IRVisitor with Optimizer:
+class AtomReordering extends IRVisitor with Optimizer:
   override val name: String = "Reorder atoms"
 
   val preferEqOrdering: Ordering[Atom] = (x: Atom, y: Atom) => (x, y) match
