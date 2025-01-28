@@ -2,7 +2,7 @@ package inca.ir.analysis
 
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, FiniteV, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps
@@ -10,22 +10,18 @@ import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
-import sturdy.control.{ControlEventGraphBuilder, PrintingControlObserver}
+import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.WithJoin
-import sturdy.values.{Changed, Combine, Finite, Join, MaybeChanged, Powerset, Topped, Widen, Widening, finitely}
+import sturdy.values.{Changed, Join, MaybeChanged, Powerset, Topped, Widen}
 import sturdy.effect.{EffectStack, TrySturdy}
-import sturdy.effect.failure.{CollectedFailures, Failure, ObservableFailure}
-import sturdy.effect.store.{AStoreThreaded, Store}
+import sturdy.effect.failure.{CollectedFailures, ObservableFailure}
 import sturdy.fix
-import sturdy.data.finiteUnit
 import sturdy.effect.except.{Except, JoinedExcept}
-import sturdy.fix.{Combinator, ContextInsensitiveFixpoint, Contextual, Fixpoint, HasFixpointCache, Logger, StackConfig}
+import sturdy.fix.{HasFixpointCache, StackConfig}
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.MaybeChanged.Unchanged
-import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
+import sturdy.values.booleans.{BooleanBranching, BooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
-import sturdy.values.references.AllocationSiteAddr
-import sturdy.values.references.given_Finite_AllocationSiteAddr
 
 // Implicits
 import sturdy.data.given 

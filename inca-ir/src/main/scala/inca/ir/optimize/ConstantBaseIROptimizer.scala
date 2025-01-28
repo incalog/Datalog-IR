@@ -204,9 +204,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
             // constraint for that parameter.
             // Test (general problem): Datalog frontend -> lecture 5 -> nat relation
             // Test (why cast is needed): OODL -> Unit Test -> Subtyping
-            ats ++ constantArgs.flatMap { (a, v) =>
+            constantArgs.flatMap { (a, v) =>
               extractBindingVarRef(a).map(ref => Eq(Var(ref), Cast(valueToTerm(v).get, argTy(a))))
-            }
+            } ++ ats
           case _ => super.visitAtom(atom)
       case _ => super.visitAtom(atom)
   }

@@ -68,7 +68,7 @@ class UseDefAnalysis extends IRVisitor:
   private var currentPath: Path = uninitialized
 
   private def trueStrictnessPoint(term: Term): Boolean =
-    // FIXME: Make this more precise by introducing a notion of "bound, but could be binding".
+    // TODO: Make this more precise by introducing a notion of "bound, but could be binding".
     //  E.g.
     //    A: fib$input(n: >TInt<)
     //    B: n: <TInt> == 0
