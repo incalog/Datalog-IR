@@ -140,12 +140,10 @@ object CompiledFunctionalUnit:
     //() => new demand.LoweringWithSupplementaries {},
     () => new tuple.Lowering {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
-    () => new AtomReordering {},
   ) // arith + string + data
 
   val optimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
-    //() => new optimize.ReorderAtoms {},
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},

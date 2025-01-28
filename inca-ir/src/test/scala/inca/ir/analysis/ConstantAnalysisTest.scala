@@ -699,7 +699,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Top)(edgeRelType.empty)
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
   }
 
   test("Call - negative") {

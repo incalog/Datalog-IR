@@ -223,7 +223,21 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): RV = supplementaryTable.scoped {
     except.tryCatch {
-      b.atoms.foreach(a => evalAtom(a, b))
+      var rest = b.atoms
+      while (rest.nonEmpty) {
+        val sup = supplementaryTable.getTable
+        val supCols = relationOps.columns(sup)
+        val (now, later) = rest.partition(_.boundVars.map(_.name.name).forall(supCols.contains))
+        val ordered = now.sortBy {
+          case _: ir.Eq => 0
+          case _: ir.extension.data.Deconstruct => 1
+          case _ => 2
+        }
+        if (rest.size == later.size)
+          throw new IllegalStateException()
+        rest = later
+        ordered.foreach(evalAtom(_, b))
+      }
       relationOps.project(supplementaryTable.getTable, paramNames)
     } /*catch*/ { exc =>
       relationOps.make(paramNames, Seq())

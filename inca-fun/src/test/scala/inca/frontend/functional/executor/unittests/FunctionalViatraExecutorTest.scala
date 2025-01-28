@@ -243,8 +243,6 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val unit = exec.compileFunction(code, options)
     unit.setPipeline(CompiledFunctionalUnit.pipeline)
     unit.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-    println(unit.compiled)
-
     val loaded = exec.loadFunction(unit)
     var res = loaded.execute("main", Seq())
     var setAdt = res.entries.head
