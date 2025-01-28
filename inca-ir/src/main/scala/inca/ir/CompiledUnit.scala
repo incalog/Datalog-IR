@@ -152,12 +152,12 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       if (logOptimizerStats)
         println(s"Optimization: ${optimFun.name}, ${anTime + optTime}ms\n  " + optimFun.statsString)
 
-      if (logOptimizations && !logTyped && optimFun.stats.nonEmpty)
+      if (logOptimizations && !logTyped)
         printSteps(s"Optimization: ${optimFun.name}", ls)
 
       val checker = typechecker
       try checker.checkProgram(ls, header)
-      finally if (logOptimizations && logTyped && optimFun.stats.nonEmpty)
+      finally if (logOptimizations && logTyped)
         printSteps(s"Optimization: ${optimFun.name}", ls)
       ls
     }

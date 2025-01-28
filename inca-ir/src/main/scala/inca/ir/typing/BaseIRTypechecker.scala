@@ -192,17 +192,17 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           assertComparable(ty, expected, v)
           Mode.Bound
-      case Mode.Bound => lookupVar(ref) match
+      case Mode.Bound | Mode.BoundCouldBeBinding => lookupVar(ref) match
         case None =>
           error(s"Undefined variable $v at closed position", v)
-          Mode.Bound
+          mode
         case Some(VarInfo(_, ty, VarMode.Unbound)) =>
           error(s"Unbound variable $v at closed position", v)
           assertComparable(ty, expected, v)
-          Mode.Bound
+          mode
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           assertComparable(ty, expected, v)
-          Mode.Bound
+          mode
       case Mode.Collapse => lookupVar(ref) match
         case None =>
           Mode.Collapse
@@ -240,6 +240,15 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           ty.bound
         case Some(VarInfo(_, ty, VarMode.Bound)) =>
           ty.bound
+      case Mode.BoundCouldBeBinding => lookupVar(ref) match
+        case None =>
+          error(s"Undefined variable $v at closed position", v)
+          TAny.boundCouldBeBinding
+        case Some(VarInfo(_, ty, VarMode.Unbound)) =>
+          error(s"Unbound variable $v at closed position", v)
+          ty.boundCouldBeBinding
+        case Some(VarInfo(_, ty, VarMode.Bound)) =>
+          ty.boundCouldBeBinding
       case Mode.Collapse => lookupVar(ref) match
         case None =>
           TAny.collapsed
@@ -273,6 +282,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     val argMode = mode match
       case Mode.Binding => Mode.Binding
       case Mode.Bound => Mode.Collapse
+      case Mode.BoundCouldBeBinding => Mode.Collapse
       case Mode.Collapse => Mode.Collapse
     args.zipAll(paramTys, null, null).foreach {
       case (wildcard@WildcardArg(), null) =>
@@ -371,13 +381,13 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
       checkTerm(lhs, rty, mode)
     case Eq(lhs, rhs, false) =>
       val action = startContextTransaction()
-      withErrors(inferTerm(lhs, Mode.Bound)) match
+      withErrors(inferTerm(lhs, Mode.BoundCouldBeBinding)) match
         case (TermType(lty, _), Nil) =>
           action.commit()
           checkTerm(rhs, lty, mode)
         case (_, lerrs) =>
           action.abort()
-          withErrors(inferTerm(rhs, Mode.Bound)) match
+          withErrors(inferTerm(rhs, Mode.BoundCouldBeBinding)) match
             case (TermType(rty, _), Nil) => checkTerm(lhs, rty, mode)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)

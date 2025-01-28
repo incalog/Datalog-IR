@@ -8,6 +8,8 @@ import inca.ir.util.SourceLocation
 import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Ref, Relation, Term, Var}
 import inca.ir.visitors.IRVisitor
 
+import scala.collection.{immutable, mutable}
+import scala.collection.immutable.Queue
 import scala.compiletime.uninitialized
 
 case class Path(ps: Seq[SourceLocation]):
@@ -65,6 +67,9 @@ class UseDefAnalysis extends IRVisitor:
 
   private var currentPath: Path = uninitialized
 
+  private def trueStrictnessPoint(term: Term): Boolean =
+    term.typ.get.mode.isBound && !term.typ.get.mode.isBoundCouldBeBinding
+
   private var bindingSites: Map[Ref[Var.Target], Set[Path]] = Map()
   private def addBindingSite(ref: Ref[Var.Target]): Unit = bindingSites += ref -> (bindingSites.getOrElse(ref, Set()) + currentPath)
   private def lookupBindingSites(ref: Ref[Var.Target]): Set[Path] = bindingSites(ref)
@@ -77,7 +82,7 @@ class UseDefAnalysis extends IRVisitor:
       visited += curRef
       queue = queue.tail
       paths ++= lookupBindingSites(curRef)
-      val transitiveBindingRefs = paths.flatMap(_.atoms.flatMap(_.vars.filter(_.typ.get.mode.isBound)).map(_.ref))
+      val transitiveBindingRefs = paths.flatMap(_.atoms.flatMap(_.vars.filter(trueStrictnessPoint)).map(_.ref))
       queue ++= (transitiveBindingRefs -- visited)
     }
     paths
@@ -94,7 +99,7 @@ class UseDefAnalysis extends IRVisitor:
     term match
       case Var(ref) if term.typ.get.mode.isBinding =>
         addBindingSite(ref)
-      case Var(ref) =>
+      case Var(ref) if trueStrictnessPoint(term) =>
         val paths = lookupTransitiveBindingSites(ref)
         paths.foreach(p => currentPath.atoms.map(_.updateAnalysisResult(UseDefResult(p))))
       case _ => // nothing
@@ -105,29 +110,44 @@ class UseDefAnalysis extends IRVisitor:
 class ReorderAtoms extends IRVisitor with Optimizer:
   override val name: String = "Reorder atoms"
 
-  given Ordering[Atom] = (x: Atom, y: Atom) =>
-    val xRes = x.getAnalysisResult(UseDefKey)
-    val yRes = y.getAnalysisResult(UseDefKey)
-    val xUsesY = xRes.exists(_.contains(y))
-    val yUsesX = yRes.exists(_.contains(x))
+  val preferEqOrdering: Ordering[Atom] = (x: Atom, y: Atom) => (x, y) match
+    case (_: Eq, _) => 1
+    case (_, _: Eq) => -1
+    case _ => 0
 
-    println(s"$x <-> $y :: $xUsesY")
-    println(s"$y <-> $x :: $yUsesX")
-    println()
+  private def topologicalSort[T](dependencies: Map[T, Set[T]])(using baseOrdering: Ordering[T]): Seq[T] = {
+    var inDegree = Map[T, Int]().withDefaultValue(0)
+    var adjacencyList = Map[T, Set[T]]()
 
-    if (xUsesY) {
-      // x after y
-      1
-    } else if (yUsesX) {
-      // y after x
-      -1
-    } else {
-      // independent, order by king
-      (x, y) match
-        case (_: Eq, _) => -1
-        case (_, _: Eq) => 1
-        case _ => 0
+    dependencies.foreach { case (node, deps) =>
+      adjacencyList += node -> deps
+      deps.foreach(d => inDegree += d -> (inDegree(d) + 1))
+      if (!inDegree.contains(node))
+        inDegree += node -> 0
     }
+
+    val inDegreeZero = inDegree.collect { case (node, 0) => node }
+    var zeroInDegree = Queue.from(inDegreeZero).sorted(using baseOrdering)
+
+    val sorted = mutable.Buffer[T]()
+    while (zeroInDegree.nonEmpty) {
+      val (node, updatedQueue) = zeroInDegree.dequeue
+      zeroInDegree = updatedQueue
+      sorted.append(node)
+
+      adjacencyList.getOrElse(node, Set()).foreach { neighbor =>
+        inDegree += neighbor -> (inDegree(neighbor) - 1)
+        if (inDegree(neighbor) == 0)
+          zeroInDegree = zeroInDegree.enqueue(neighbor).sorted(using baseOrdering)
+      }
+    }
+
+    // Check for cycles (if there's still an in-degree > 0, it's a cycle)
+    if (sorted.size != inDegree.size)
+      throw new IllegalArgumentException("Topological sort not possible")
+
+    sorted.reverse.toSeq
+  }
 
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
     val analysis = UseDefAnalysis()
@@ -137,7 +157,12 @@ class ReorderAtoms extends IRVisitor with Optimizer:
     //println(printer.prettyPrint(modules))
 
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
-    val bs = Body(body.atoms.sorted)
-    println(bs)
+    val dependencies = body.atoms.map { at =>
+      at -> at.getAnalysisResult(UseDefKey).flatMap(_.path.atoms)
+    }.toMap
+
+    val sorted = topologicalSort(dependencies)(using preferEqOrdering)
+
+    val bs = Body(sorted.flatMap(visitAtom))
     Seq(bs)
   }

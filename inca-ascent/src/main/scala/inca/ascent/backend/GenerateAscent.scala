@@ -15,7 +15,7 @@ import inca.ir.extension.data.*
 import inca.ir.extension.string.TString
 import inca.util.Gensym
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.{MaxDouble, MaxInt, MinDouble, MinInt, SumDouble, SumInt, Count as CountAgg}
-import inca.ir.typing.Mode.{Binding, Bound, Collapse}
+import inca.ir.typing.Mode.{Binding, Bound, Collapse, BoundCouldBeBinding}
 
 import scala.annotation.tailrec
 
@@ -130,16 +130,16 @@ object GenerateAscent:
   private def compileAtom(atom: ir.Atom): Seq[Atom] = atom match {
     case ir.Eq(lhs, rhs, false) => (lhs.typ, rhs.typ) match {
       case (Some(ir.TermType(ty1, m1)), Some(ir.TermType(ty2, m2))) =>
-        (m1, m2) match {
-          case (Bound, Bound) =>
+        (m1.isBound, m2.isBound) match {
+          case (true, true) =>
             Seq(Atom.Equal(compileTerm(lhs, noClone = true), compileTerm(rhs, noClone = true)))
-          case (Bound, Binding) =>
+          case (true, false) =>
             val at = Atom.Let(compileTerm(rhs, noClone = true), compileTerm(lhs, noDeref = true))
             (lhs, rhs) match
               case (ir.Var(n1), ir.Var(n2)) if varRefs.contains(n1.name.name) => varRefs += n2.name.name
               case _ => // nothing
             Seq(at)
-          case (Binding, Bound) =>
+          case (false, true) =>
             val at = Atom.Let(compileTerm(lhs, noClone = true), compileTerm(rhs, noDeref = true))
             (lhs, rhs) match
               case (ir.Var(n1), ir.Var(n2)) if varRefs.contains(n2.name.name) => varRefs += n1.name.name
@@ -226,7 +226,7 @@ object GenerateAscent:
           Seq(
             Atom.Aggregator(resultName, ascentAgg, Atom.Call(aggRelName, aggArgs))
           )
-        case Bound =>
+        case Bound | BoundCouldBeBinding =>
           val tmpName = freshTmpName()
           Seq(
             Atom.Aggregator(tmpName, ascentAgg, Atom.Call(aggRelName, aggArgs)),
