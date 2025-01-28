@@ -21,12 +21,7 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   def getRelationResult(relation: Relation): Set[RV]
 
   var params: Set[Ref[Var.Target]] = Set()
-  var relevantBodyVars: Set[Ref[Var.Target]] = Set()
-
-  def atomBindsRelevantVar(atom: Atom): Boolean =
-    val boundVars = atom.vars.filter(_.mode.isBinding)
-    boundVars.exists(bind => relevantBodyVars.contains(bind.ref) || params.contains(bind.ref))
-
+  
   // You need to enable computeControlEvents to get a control graph
   def controlGraph: Option[String] = None
 
@@ -47,8 +42,3 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
     params = relation.params.map(p => RefByName(p.name)).toSet
     super.visitRelation(relation)
   }
-
-  /*override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
-    relevantBodyVars = body.vars.filter(_.mode.isBound).map(_.ref).toSet
-    super.visitBody(body)
-  }*/
