@@ -4,6 +4,7 @@ import inca.ir.analysis.RelationOps
 import inca.ir.analysis.base.effect.{BaseIRException, EmptyTable}
 import sturdy.data.WithJoin
 import sturdy.effect.except.Except
+import sturdy.values.Topped.Top
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.EqOps
 import sturdy.values.{Join, MaybeChanged, Topped}
@@ -30,7 +31,7 @@ enum ConstantRelation:
     case ConstantRelation.NonEmpty(cols, rows, empty) => empty
 
   override def toString: String = this match
-    case Empty(cols) => s"[${cols.mkString(", ")}, empty]"
+    case Empty(cols) => s"[${cols.mkString(", ")}, true]"
     case NonEmpty(cols, rows, empty) => s"[${cols.zip(rows).toMap.mkString(", ")}, $empty]"
 
   def withColumns(newCols: Seq[String]): ConstantRelation = this match
@@ -96,27 +97,30 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
     val otherCols = other.cols.zipWithIndex.toMap
 
     val newCols = rv.cols ++ other.cols.filterNot(rv.cols.contains)
-    var newEmpty = (rv.empty, other.empty) match
-      case (Topped.Actual(true), _) | (_, Topped.Actual(true)) => Topped.Actual(true) // definitely empty
-      case (Topped.Top, _) | (_, Topped.Top) => Topped.Top // we don't know
-      case _ => Topped.Actual(false) // we need to refine the result
 
     (rv, other) match
       case (ConstantRelation.Empty(_), _) | (_, ConstantRelation.Empty(_)) => ConstantRelation.Empty(newCols)
       case (rv: ConstantRelation.NonEmpty, other: ConstantRelation.NonEmpty) =>
-        val newVals = for (c <- newCols) yield {
+        val (newVals, comp) = (for (c <- newCols) yield {
           (rvCols.get(c), otherCols.get(c)) match
-            case (Some(rvIx), None) => rv.rows(rvIx)
-            case (None, Some(otherIx)) => other.rows(otherIx)
+            case (Some(rvIx), None) => (rv.rows(rvIx), Topped.Actual(true))
+            case (None, Some(otherIx)) => (other.rows(otherIx), Topped.Actual(true))
             case (Some(rvIx), Some(otherIx)) =>
-              // If both entries are constants, we can decide if the join succeeds
+              // If both entries are constants, we might decide if the join succeeds
               val compare = eqOps.equ(rv.rows(rvIx), other.rows(otherIx))
-              newEmpty = compare match
-                case Topped.Actual(b) => boolOps.or(newEmpty, Topped.Actual(!b))
-                case _ => Topped.Top //boolOps.or(newEmpty, compare)
-              joinV(rv.rows(rvIx), other.rows(otherIx)).get
+              val v = joinV(rv.rows(rvIx), other.rows(otherIx)).get
+              (v, compare)
             case (None, None) => throw new IllegalStateException()
-        }
+        }).unzip
+
+        val newEmpty = (rv.empty, other.empty) match
+          case (Topped.Actual(true), _) | (_, Topped.Actual(true)) =>
+            throw IllegalStateException("Comparison should already be handled!")
+          case (Topped.Top, _) | (_, Topped.Top) => Topped.Top // we don't know
+          case _ if comp.forall(t => t.isActual && t.get) => Topped.Actual(false) // if all comparison succeeded
+          case _ if comp.exists(t => t.isActual && !t.get) => Topped.Actual(true) // at least one comparison failed
+          case _ => Topped.Top
+
         newEmpty match
           case Topped.Actual(true) => ConstantRelation.Empty(newCols)
           case _ => ConstantRelation(newCols, newVals, newEmpty)
@@ -138,10 +142,14 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
             val comparison = sameColsIndices.zip(sameOtherColsIndices).map { (rvIx, oIx) =>
               eqOps.equ(rv.rows(rvIx), other.rows(oIx))
             }
-            val isEmpty = comparison.foldLeft(Topped.Actual(true))((acc, b) => boolOps.and(acc, b))
-            isEmpty match
-              case Topped.Actual(true) => ConstantRelation.Empty(rv.cols)
-              case _ => ConstantRelation(rv.cols, rv.rows, isEmpty)
+            val allComparisonSucceeded = comparison.forall(t => t.isActual && t.get)
+            val atLeastOneComparisonFailed = comparison.exists(t => t.isActual && !t.get)
+            if (allComparisonSucceeded)
+              ConstantRelation.Empty(rv.cols)
+            else if (atLeastOneComparisonFailed)
+              ConstantRelation(rv.cols, rv.rows, Topped.Actual(false))
+            else
+              ConstantRelation(rv.cols, rv.rows, Topped.Top)
           case _ => ConstantRelation(rv.cols, rv.rows, Topped.Top)
 
 
@@ -155,7 +163,13 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
       case (_, ConstantRelation.Empty(_)) => rv
       case (rv: ConstantRelation.NonEmpty, other: ConstantRelation.NonEmpty) =>
         val others2Rows = other.cols.map(rv.cols.indexOf)
-        val newEmpty = boolOps.and(rv.empty, other.empty)
+        //boolOps.and(rv.empty, other.empty)
+        // TODO: Is the join over booleans the correct operation here?
+        //  If we don't use it we get a mismatch between annotation and result
+        val newEmpty = (rv.empty, other.empty) match
+          case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
+          case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
+          case _ => Topped.Top
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
         ConstantRelation(rv.cols, newRows, newEmpty)
 

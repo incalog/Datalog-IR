@@ -68,7 +68,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    println(mod)
     val relTypes = interp(mod)
 
     val numRelType = relTypes("nums")
@@ -242,12 +241,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(edgeRelType.empty)
+    assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(pathRelType.empty)
+    assertResult(Topped.Top)(pathRelType.empty)
   }
 
   test("Left Recursion") {
@@ -284,12 +283,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(edgeRelType.empty)
+    assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(pathRelType.empty)
+    assertResult(Topped.Top)(pathRelType.empty)
   }
 
   test("Left and right Recursion") {
@@ -326,12 +325,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(edgeRelType.empty)
+    assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(pathRelType.empty)
+    assertResult(Topped.Top)(pathRelType.empty)
   }
 
   test("Left and right Recursion - Start query") {
@@ -375,17 +374,17 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top)) // we are demand driven
-    assertResult(Topped.Actual(false))(edgeRelType.empty)
+    assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(pathRelType.empty)
+    assertResult(Topped.Top)(pathRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("y"))
     assert(mainRelType.rows == Seq(Value.Top))
-    assertResult(Topped.Actual(false))(mainRelType.empty)
+    assertResult(Topped.Top)(mainRelType.empty)
   }
 
   test("Factorial") {
@@ -425,7 +424,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
     assert(inputRelType.rows == Seq(Value.Top))
-    assertResult(Topped.Actual(false))(inputRelType.empty)
+    assertResult(Topped.Top)(inputRelType.empty)
 
     val facRelType = relTypes("fac")
     assert(facRelType.cols == Seq("n", "r"))
@@ -465,12 +464,12 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
     assert(inputRelType.rows == Seq(Value.Top))
-    assertResult(Topped.Actual(false))(inputRelType.empty)
+    assertResult(Topped.Top)(inputRelType.empty)
 
     val sumRelType = relTypes("prefixSum")
     assert(sumRelType.cols == Seq("t", "n"))
     assert(sumRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(sumRelType.empty)
+    assertResult(Topped.Top)(sumRelType.empty)
   }
 
   test("Negative filter") {
@@ -699,7 +698,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Actual(false))(edgeRelType.empty)
+    //println(edgeRelType.empty)
+    assertResult(Topped.Top)(edgeRelType.empty)
   }
 
   test("Call - negative") {

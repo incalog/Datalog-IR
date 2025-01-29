@@ -158,7 +158,11 @@ given JoinTRV(using boolOps: BooleanOps[Topped[Boolean]]): Join[TypeRelation] wi
       case (_, TypeRelation.Empty(_)) => rv
       case (rv: TypeRelation.NonEmpty, other: TypeRelation.NonEmpty) =>
         val newTypes = rv.rows.zip(other.rows).map(joinTypeValue)
-        val newEmpty = boolOps.and(rv.empty, other.empty)
+        //val newEmpty = boolOps.and(rv.empty, other.empty)
+        val newEmpty = (rv.empty, other.empty) match
+          case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
+          case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
+          case _ => Topped.Top
         TypeRelation(rv.cols, newTypes, newEmpty)
 
   override def apply(v1: TypeRelation, v2: TypeRelation): MaybeChanged[TypeRelation] =
