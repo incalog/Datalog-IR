@@ -3,6 +3,7 @@ package inca.ir.extension.data.analysis.interpreter
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Value}
+import inca.ir.analysis.constant.ConstantInterpreter
 import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
@@ -51,7 +52,15 @@ trait ConstantJoinV extends BaseJoinV:
       ConstantDataV(d1, c1, args1.zip(args2).map(meet(_, _)))
     case _ => super.meet(lhs, rhs)*/
 
-trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
+  with ConstantInterpreter:
+  
+  case class ConstructorKind(cd: CaseDefinitionReference) extends ValueKind
+
+  override def getValueKind(v: Value): ValueKind = v match
+    case ConstantDataV(cd, _) => ConstructorKind(cd)
+    case _ => super.getValueKind(v)
+
   val dataOps: DataOps[Value, ConstantRelation] = new DataOps[Value, ConstantRelation]:
     override def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): Value =
       ConstantDataV(caseDef, args)

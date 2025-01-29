@@ -6,19 +6,21 @@ import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelati
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
+import inca.ir.analysis.constant.ConstantInterpreter
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.WithJoin
-import sturdy.values.{Changed, Join, MaybeChanged, Powerset, Topped, Widen}
+import sturdy.values.{Changed, Finite, Join, MaybeChanged, Powerset, Topped, Widen}
 import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.effect.failure.{CollectedFailures, ObservableFailure}
 import sturdy.fix
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.fix.{HasFixpointCache, StackConfig}
 import sturdy.fix.StackConfig.StackedStates
+import sturdy.fix.context.FiniteParameters
 import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
@@ -57,6 +59,7 @@ class IRConstantAbstractInterpreter(
     override val interRelational: Boolean = false
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
+  with ConstantInterpreter
   with irarith.interpreter.ConstantAbstractInterpreter
   with irstr.interpreter.ConstantAbstractInterpreter
   with irdata.interpreter.ConstantAbstractInterpreter
@@ -146,12 +149,23 @@ class IRConstantAbstractInterpreter(
     }.toMap
     reduced
 
+//  type Ctx = fix.context.Parameters[String, ValueKind]
+//  private val parameters: fix.context.Sensitivity[FixIn, Ctx] = fix.context.parameters { _ =>
+//    Some(supplementaryTable.getTable match
+//      case ConstantRelation.Empty(_) => Map()
+//      case ConstantRelation.NonEmpty(_, _, Topped.Actual(true)) => Map()
+//      case ConstantRelation.NonEmpty(cs, rs, _) => cs.zip(rs.map(getValueKind)).toMap
+//    )
+//  }
+  type Ctx = Unit
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     var fixPt =
         fix.log(analysisAnnotator,
+          fix.filter({case _: FixIn.EnterRelation => true; case _ => false},
+//            fix.contextSensitive(
+//              parameters,
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
-            fix.filter(_.isInstanceOf[FixIn.EnterRelation],
-              setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Unit](stackConfig))
+              setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
             )
           )
         )
