@@ -1,10 +1,19 @@
 package inca.ir.analysis.base.values
 
-import sturdy.values.Finite
+import sturdy.values.{Finite, MaybeChanged, Join}
 
-trait BaseJoinV:
+trait BaseJoinV extends Join[Value]:
   def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case _ => Value.Top
+    case (Value.Top, _) | (_, Value.Top) => Value.Top
+    case _ =>
+      throw new MatchError((lhs, rhs))
+
+  override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
+    val joined = join(v1, v2)
+    if v1 == joined then
+      MaybeChanged.Unchanged(joined)
+    else
+      MaybeChanged.Changed(joined)
 
 /*trait BaseMeetV:
   def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

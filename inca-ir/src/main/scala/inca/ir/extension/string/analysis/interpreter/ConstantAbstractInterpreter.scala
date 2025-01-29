@@ -31,7 +31,11 @@ trait ConstantEqOps extends BaseEqOps:
 
 trait ConstantJoinV extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (ConstantStringV(s1), ConstantStringV(s2)) if s1 == s2 => lhs
+    case (ConstantStringV(s1), ConstantStringV(s2)) =>
+      if (s1 == s2)
+        lhs
+      else
+        Value.Top
     case _ => super.join(lhs, rhs)
 
 /*trait ConstantMeetV extends BaseMeetV:

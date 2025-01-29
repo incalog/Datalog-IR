@@ -71,8 +71,16 @@ private class ConstantDoubleVOrderingOps(using except: Except[BaseIRException, ?
 
 trait ConstantJoinV extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (ConstantIntV(i1), ConstantIntV(i2)) if i1 == i2 => lhs
-    case (ConstantDoubleV(d1), ConstantDoubleV(d2)) if d1 == d2 => lhs
+    case (ConstantIntV(i1), ConstantIntV(i2)) =>
+      if (i1 == i2)
+        lhs
+      else
+        Value.Top
+    case (ConstantDoubleV(d1), ConstantDoubleV(d2)) =>
+      if (d1 == d2)
+        lhs
+      else
+        Value.Top
     case _ => super.join(lhs, rhs)
 
 /*trait ConstantMeetV extends BaseMeetV:

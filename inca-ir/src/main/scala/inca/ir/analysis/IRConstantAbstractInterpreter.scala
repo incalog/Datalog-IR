@@ -36,17 +36,10 @@ import sturdy.values.given
 import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.CCombineFixOut
 
-private class IRJoinV extends Join[Value] with BaseJoinV
+private class IRJoinV extends BaseJoinV
   with irarith.interpreter.ConstantJoinV
   with irstr.interpreter.ConstantJoinV
-  with irdata.interpreter.ConstantJoinV:
-
-  override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
-    val joined = join(v1, v2)
-    if v1 == joined then
-      Unchanged(joined)
-    else
-      Changed(joined)
+  with irdata.interpreter.ConstantJoinV
 
 private class IREqOps extends BaseEqOps
   with irarith.interpreter.ConstantEqOps
