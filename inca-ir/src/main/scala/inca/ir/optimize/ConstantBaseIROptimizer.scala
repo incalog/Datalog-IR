@@ -2,6 +2,8 @@ package inca.ir.optimize
 
 import inca.ir
 import inca.util.{Memoize, memoize, printStep}
+import inca.ir.extension.aggregate.Aggregate
+import inca.ir.extension.aggregateset.AggregateSet
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
@@ -57,18 +59,23 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       case Topped.Top => false
     }
 
+  private var relationsUsedInAggregations: Set[Relation] = Set()
+
+  private def relationUsedInAggregation(relation: Relation): Boolean =
+    relationsUsedInAggregations.contains(relation)
+
   private def bodyAlwaysFails(body: Body): Boolean =
     getBodyResult(body).map(_.empty).forall {
       case Topped.Actual(v) => v
       case Topped.Top => false
     }
 
-  private def relationAlwaysSucceeds(relation: Relation): Boolean =
+  /*private def relationAlwaysSucceeds(relation: Relation): Boolean =
     getRelationResult(relation)
       .map(_.empty).forall {
         case Topped.Actual(v) => !v
         case Topped.Top => false
-      }
+      }*/
 
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
     // We could make this more precise, by setting the `empty` flag correctly on edb relations
@@ -81,6 +88,15 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
         case _ => // nothing
       }
     }
+
+    relationsUsedInAggregations = modules.flatMap { m =>
+      m.relations.flatMap { (_, r) =>
+        r.bodies.flatMap(_.atoms.collect {
+          case a@Aggregate(ref, args, op) => ref.target.get
+          case a@AggregateSet(ref, args, op) => ref.target.get
+        })
+      }
+    }.toSet
 
     super.analyzeProgram(modules)
 
@@ -103,7 +119,10 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
 
     if (relationAlwaysFails(relation)) {
       logOptimizationStat("constant failed relation", 1, _+1)
-      Seq()
+      if (relationUsedInAggregation(relation))
+        Seq(relation.copy(bodies = Seq()))
+      else
+        Seq()
     } else if (relation.getHint(MainHint).isEmpty) {
       val res = getRelationResult(relation).headOption.get
       val nonconstantParams = relation.params.zip(res.rows).flatMap {
@@ -113,7 +132,10 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       }
       if (nonconstantParams.isEmpty) {
         logOptimizationStat("constant relation", 1, _+1)
-        Seq()
+        if (relationUsedInAggregation(relation))
+          Seq(relation.copy(bodies = Seq()))
+        else
+          Seq()
       } else {
         val k = relation.params.size - nonconstantParams.size
         if (k != 0)
@@ -186,17 +208,17 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
             Seq()
           case _ => super.visitAtom(atom)
       case call@Call(ref, args, false) =>
-        val argsAllBounds = args.forall {
+        /*val argsAllBounds = args.forall {
           case TermArg(t) => t.typ.get.mode.isBound
           case AggregateColumnArg(t) => t.typ.get.mode.isBound
           case WildcardArg() => true
           case _ => false
-        }
+        }*/
         ref.target match
-          // Remove containment checks
-          case Some(r: Relation) if relationAlwaysSucceeds(r) && argsAllBounds =>
+          /*case Some(r: Relation) if relationAlwaysSucceeds(r) && argsAllBounds =>
+            // Remove containment checks if they always succeed (run wildcard detection first)
             logOptimizationStat("bound failed call", 1, _+1)
-            Seq()
+            Seq()*/
           case Some(r: Relation) if relationAlwaysFails(r) =>
             logOptimizationStat("constant failed call", 1, _+1)
             throw FailedBody

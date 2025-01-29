@@ -3,9 +3,8 @@ package inca.ir.optimize
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
-import inca.ir.printer.IRDebugPrinter
 import inca.ir.util.SourceLocation
-import inca.ir.{Atom, Body, Call, Eq, ExtensionalCall, Ref, Relation, Term, Var}
+import inca.ir.{Atom, Body, Eq, Ref, Relation, Term, Var}
 import inca.ir.visitors.IRVisitor
 
 import scala.collection.{immutable, mutable}

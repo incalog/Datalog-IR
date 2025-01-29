@@ -470,7 +470,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val sumRelType = relTypes("prefixSum")
     assert(sumRelType.cols == Seq("t", "n"))
     assert(sumRelType.rows == Seq(Value.Top, Value.Top))
-    assertResult(Topped.Top)(sumRelType.empty)
+    assertResult(Topped.Actual(false))(sumRelType.empty)
   }
 
   test("Negative filter") {
