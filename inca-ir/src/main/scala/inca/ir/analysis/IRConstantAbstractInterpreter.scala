@@ -109,7 +109,8 @@ class IRConstantAbstractInterpreter(
     extends BaseAnalysisAnnotator[Value, RV, Value]
       with irarith.logger.AnalysisAnnotator[Value, RV, Value]
       with irdata.logger.AnalysisAnnotator[Value, RV, Value]
-      with irstr.logger.AnalysisAnnotator[Value, RV, Value]:
+      with irstr.logger.AnalysisAnnotator[Value, RV, Value]
+      with iragg.logger.AnalysisAnnotator[Value, RV, Value]:
 
     override def extractTermValue(supName: SupColumn): Option[Value] =
       val supTable = supplementaryTable.getTable
