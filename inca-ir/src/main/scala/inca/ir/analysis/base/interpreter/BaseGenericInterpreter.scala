@@ -229,6 +229,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Body(rv) => rv
     case _ => throw new IllegalStateException()
 
+  private def isAssignable(at: Atom, supCols: Seq[String]): Boolean = at match
+    case ir.Eq(lhs, rhs, false) =>
+      extractVarName(rhs).isDefined && lhs.unboundVars.isEmpty && lhs.boundVars.map(_.name.name).forall(supCols.contains) ||
+        extractVarName(lhs).isDefined && rhs.unboundVars.isEmpty && rhs.boundVars.map(_.name.name).forall(supCols.contains)
+    case _ => false
+
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): RV = supplementaryTable.scoped {
     except.tryCatch {
       var rest = b.atoms
@@ -236,12 +242,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         val sup = supplementaryTable.getTable
         val supCols = relationOps.columns(sup)
         val (now, later) = rest.partition { at =>
-          at.boundVars.map(_.name.name).forall(supCols.contains) || (at match
-            case ir.Eq(lhs, rhs, false) =>
-              rhs.typ.get.mode.isBinding && lhs.boundVars.map(_.name.name).forall(supCols.contains) ||
-                lhs.typ.get.mode.isBinding && rhs.boundVars.map(_.name.name).forall(supCols.contains)
-            case _ => false
-          )
+          at.boundVars.map(_.name.name).forall(supCols.contains) || isAssignable(at, supCols)
         }
         val ordered = now.sortBy(at => atomOrderingOps.priority(at))
         if (rest.size == later.size)
