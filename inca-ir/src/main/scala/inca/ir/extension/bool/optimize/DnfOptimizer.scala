@@ -1,6 +1,7 @@
-package inca.ir.extension.bool
+package inca.ir.extension.bool.optimize
 
 import inca.ir
+import inca.ir.extension.bool.*
 import inca.ir.visitors.IRVisitor
 import inca.ir.{Name, Term, Var}
 
@@ -27,7 +28,7 @@ enum Value:
     case _ => Value.Undetermined
 
 
-// Improvement: Use McCluskey algorithm to reduce dnf
+// TODO: Improvement: Use McCluskey algorithm to reduce dnf
 case class BoolTable(t: Term):
   type VariableAssignment = Map[Name, Value]
 
@@ -87,7 +88,7 @@ case class BoolTable(t: Term):
     case _ => Value.Undetermined
 
 
-trait SyntacticOptimizer extends IRVisitor:
+trait DnfOptimizer extends IRVisitor:
   override def name: String = "SyntacticBoolOptimizer"
 
   // term -> DNF if exists or original visited Term
