@@ -63,12 +63,12 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       case Topped.Top => false
     }
 
-  /*private def relationAlwaysSucceeds(relation: Relation): Boolean =
+  private def relationAlwaysSucceeds(relation: Relation): Boolean =
     getRelationResult(relation)
       .map(_.empty).forall {
         case Topped.Actual(v) => !v
         case Topped.Top => false
-      }*/
+      }
 
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
     // We could make this more precise, by setting the `empty` flag correctly on edb relations
@@ -185,14 +185,22 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
             logOptimizationStat("constant failed neg-call", 1, _+1)
             Seq()
           case _ => super.visitAtom(atom)
-      // Only relevant for intra-relation analysis, inter-relational analysis should detect this
       case call@Call(ref, args, false) =>
+        val argsAllBounds = args.forall {
+          case TermArg(t) => t.typ.get.mode.isBound
+          case AggregateColumnArg(t) => t.typ.get.mode.isBound
+          case WildcardArg() => true
+          case _ => false
+        }
         ref.target match
+          // Remove containment checks
+          case Some(r: Relation) if relationAlwaysSucceeds(r) && argsAllBounds =>
+            logOptimizationStat("bound failed call", 1, _+1)
+            Seq()
           case Some(r: Relation) if relationAlwaysFails(r) =>
             logOptimizationStat("constant failed call", 1, _+1)
             throw FailedBody
           case Some(r: Relation) =>
-            //super.visitAtom(atom).flatMap { case call: Call =>
             val res = getRelationResult(r).headOption.get
             val (constantArgs, nonconstantArgs) = call.args.zip(res.rows).partition(_._2.isConstant)
             val ats =

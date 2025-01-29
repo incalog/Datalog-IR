@@ -125,7 +125,7 @@ object CompiledFunctionalUnit:
     () => new SyntacticOptimizer {},
     () => new set.Lowering {},
     () => new map.Lowering {},
-    () => new bool.SyntacticOptimizer {},
+    () => new bool.optimize.DnfOptimizer {},
 
     //() => new disjunction.Lowering {},
     //() => new optimize.AliasElimination {},
