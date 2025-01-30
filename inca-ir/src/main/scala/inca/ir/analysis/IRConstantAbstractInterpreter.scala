@@ -2,7 +2,7 @@ package inca.ir.analysis
 
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, ConstantRelationOps, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, ConstantRelationOps, Meet, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
@@ -42,11 +42,12 @@ private class IRJoinV extends Join[Value] with BaseJoinV
   with irdata.interpreter.ConstantJoinV:
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
-    val joined = join(v1, v2)
-    if v1 == joined then
-      Unchanged(joined)
-    else
-      Changed(joined)
+    MaybeChanged(join(v1, v2), v1)
+
+private class IRMeetV extends BaseMeetV
+  with irarith.interpreter.ConstantMeetV
+  with irstr.interpreter.ConstantMeetV
+  with irdata.interpreter.ConstantMeetV
 
 private class IREqOps extends BaseEqOps
   with irarith.interpreter.ConstantEqOps
@@ -105,6 +106,8 @@ class IRConstantAbstractInterpreter(
   }
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps(using except)
 
+  given Meet[Value] = IRMeetV()
+  
   class AnalysisAnnotator
     extends BaseAnalysisAnnotator[Value, RV, Value]
       with irarith.logger.AnalysisAnnotator[Value, RV, Value]

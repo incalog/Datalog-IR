@@ -2,7 +2,7 @@ package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -34,10 +34,10 @@ trait ConstantJoinV extends BaseJoinV:
     case (ConstantStringV(s1), ConstantStringV(s2)) if s1 == s2 => lhs
     case _ => super.join(lhs, rhs)
 
-/*trait ConstantMeetV extends BaseMeetV:
+trait ConstantMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (ConstantStringV(s1), ConstantStringV(s2)) if s1 == s2 => lhs
-    case _ => super.meet(lhs, rhs)*/
+    case _ => super.meet(lhs, rhs)
 
 class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?]) extends StringOps[Value]:
   override def stringLit(s: String): Value = ConstantStringV(s)

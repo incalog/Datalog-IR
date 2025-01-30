@@ -3,6 +3,7 @@ package inca.ir.analysis.base.logger
 import inca.ir.{Arg, Atom, Body, Call, Eq, ExtensionalCall, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
+import inca.ir.analysis.base.values.{BaseMeetV, Meet}
 import inca.util.Color
 import sturdy.effect.TrySturdy
 import sturdy.fix.Logger
@@ -14,7 +15,9 @@ import scala.collection.immutable.{AbstractSet, SortedSet}
  An analysis logger is used to annotate Datalog AST notes with the computed analysis results.
  Extensions may choose to override this class to guarantee that all AST nodes are annotated.
  */
-trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV]) extends Logger[FixIn, FixOut[V, RV]]:
+trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV], meetTV: Meet[TV])
+  extends Logger[FixIn, FixOut[V, RV]]:
+
   def extractTermValue(col: SupColumn): Option[TV]
 
   case object TermKey extends AnalysisKey:
@@ -51,7 +54,23 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
     case WildcardArg() => None
     case _ => None
 
+  def updateArgResult(args: Seq[Arg]): Unit =
+    args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
+      val oldResOption = term.getAnalysisResult(TermKey).headOption
+      if (term.typ.get.mode.isBinding || oldResOption.isEmpty)
+        extractTermValue(varName).foreach { v =>
+          term.storeAnalysisResult(TermResult(v))
+        }
+      else
+        val oldV = oldResOption.get.value
+        extractTermValue(varName).foreach { v =>
+          term.storeAnalysisResult(TermResult(meetTV(oldV, v).get))
+        }
+    }
+
   def updateTermResult(term: Term, value: TV): Unit =
+    if (term.isInstanceOf[Var] && term.asInstanceOf[Var].name.name == "comp$0")
+      println(s"Update: $term with $value")
     val newResult = term.getAnalysisResult(TermKey).headOption match
       case Some(TermResult(v)) => TermResult(joinTV(v, value).get)
       case _ => TermResult(value)
@@ -59,17 +78,8 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
 
   // Not all AST-term nodes are visited. Handle the missing cases explicitly in this method.
   def updateAtomResult(at: Atom): Unit = at match
-    case Call(ref, args, neg) =>
-      args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        if (term.typ.get.mode.isBinding)
-          extractTermValue(varName).foreach(updateTermResult(term, _))
-        else
-          () // TODO: meet old and new term result to increase precision
-      }
-    case ExtensionalCall(ref, args, neg) =>
-      args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        extractTermValue(varName).foreach(updateTermResult(term, _))
-      }
+    case Call(ref, args, neg) => updateArgResult(args)
+    case ExtensionalCall(ref, args, neg) => updateArgResult(args)
     case Eq(lhs@Var(ref), rhs, false) if lhs.typ.get.mode.isBinding =>
       extractTermValue(ref.name.name).foreach(updateTermResult(lhs, _))
     case Eq(lhs, rhs@Var(ref), false) if rhs.typ.get.mode.isBinding =>

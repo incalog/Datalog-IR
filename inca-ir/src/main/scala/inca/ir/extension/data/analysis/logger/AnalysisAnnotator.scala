@@ -8,11 +8,5 @@ trait AnalysisAnnotator[V, RV, TV] extends BaseAnalysisAnnotator[V, RV, TV]:
 
   // Not all AST-term nodes are visited. Handle the missing cases explicitly in this method.
   override def updateAtomResult(at: Atom): Unit = at match
-    case Deconstruct(t, caseRef, args, neg) =>
-      args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        if (term.typ.get.mode.isBinding)
-          extractTermValue(varName).foreach(updateTermResult(term, _))
-        else
-          () // TODO: meet old and new term result to increase precision
-      }
+    case Deconstruct(t, caseRef, args, neg) => updateArgResult(args)
     case _ => super.updateAtomResult(at)
