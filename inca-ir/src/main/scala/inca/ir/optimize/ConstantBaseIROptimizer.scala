@@ -100,7 +100,6 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     // Remove empty relations. We know that there can not be any call site for these relations, because a failing
     // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
     // always succeeds.
-
     if (relationAlwaysFails(relation)) {
       logOptimizationStat("constant failed relation", 1, _+1)
       if (relationUsedInAggregation(relation))
@@ -151,14 +150,17 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     (getTermResult(lhs).headOption, getTermResult(rhs).headOption) match
       case (Some(v1), Some(v2)) => Some(op(v1, v2))
       case _ => None
-  
+
   protected def mayEliminate(p: Param)(implicit relation: Relation): Boolean =
     true
 
   protected def mayEliminate(t: Term): Boolean =
-    val b = !t.typ.get.mode.isBinding || t.isInstanceOf[Var] && !params.contains(t.asInstanceOf[Var].ref)
+    //val b = !t.typ.get.mode.isBinding || t.isInstanceOf[Var] && !params.contains(t.asInstanceOf[Var].ref)
     //if (b) println(s"may elim $t") else println(s"may NOT elim $t")
-    b
+    //b
+    t match
+      case _: Var => !params.contains(t.asInstanceOf[Var].ref)
+      case _ => true
 
   protected def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
     case TermArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
@@ -168,7 +170,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     case TermArg(t) => t.typ.get.ty
     case w@WildcardArg() => w.typ.get.ty
 
-  protected def mayEliminate(eq: Eq): Boolean = mayEliminate(eq.lhs) && mayEliminate(eq.rhs)
+  protected def mayEliminate(eq: Eq): Boolean = 
+    eq.neg || (mayEliminate(eq.lhs) && mayEliminate(eq.rhs))
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match

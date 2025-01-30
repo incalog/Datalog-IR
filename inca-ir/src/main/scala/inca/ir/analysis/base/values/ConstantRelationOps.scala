@@ -159,8 +159,12 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
       throw new IllegalArgumentException(s"Schemas must match for join: $rv ++ $other")
 
     (rv, other) match
-      case (ConstantRelation.Empty(_), _) => other
-      case (_, ConstantRelation.Empty(_)) => rv
+      case (ConstantRelation.Empty(_), _) =>
+        other
+        //ConstantRelation(other.cols, other.rows, Topped.Top)
+      case (_, ConstantRelation.Empty(_)) =>
+        rv
+        //ConstantRelation(rv.cols, rv.rows, Topped.Top)
       case (rv: ConstantRelation.NonEmpty, other: ConstantRelation.NonEmpty) =>
         val others2Rows = other.cols.map(rv.cols.indexOf)
         //boolOps.and(rv.empty, other.empty)

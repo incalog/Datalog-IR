@@ -17,8 +17,6 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    println(mod)
-
     val abstractInterp = IRTypeAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))

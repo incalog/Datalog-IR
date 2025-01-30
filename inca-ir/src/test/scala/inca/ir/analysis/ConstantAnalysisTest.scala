@@ -176,6 +176,54 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(true))(mainRelType.empty)
   }
 
+  test("Comparison 4 ") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("xs", Seq(
+        Param("x", TInt),
+        Param("y", TInt),
+      ), Seq(
+        Body(Seq(Eq(Var("x"), IntNum(1)), Eq(Var("y"), IntNum(2)))),
+        Body(Seq(Eq(Var("x"), IntNum(2)), Eq(Var("y"), IntNum(3))))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("xs", Seq(Var("x"), IntNum(2))),
+          Call("xs", Seq(Var("y"), IntNum(3))),
+          Eq(Var("x"), Var("y"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val relTypes = interp(mod)
+
+    val xsRelType = relTypes("xs")
+    assert(xsRelType.cols == Seq("x", "y"))
+    assert(xsRelType.rows == Seq(Value.Top, Value.Top))
+    assertResult(Topped.Actual(false))(xsRelType.empty)
+
+    val mainRelType = relTypes("main")
+    assert(mainRelType.cols == Seq("x", "y"))
+    assertResult(Topped.Actual(true))(mainRelType.empty)
+  }
+
+  /**
+   * Q(x) {
+   *   x == 1
+   * } or {
+   *   x == 2
+   * }
+   *
+   * R(x) {
+   *    Q(x)
+   * }
+   *
+   * R(5)
+   * R(6)
+   */
+
   test("Two relations") {
     val mod = Module("Test2", BaseIR.language + arithIR, Seq(
       Relation("calc", Seq(
@@ -728,7 +776,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
         ))
       )).addHint(MainHint),
     ))
-
+    
     val relTypes = interp(mod)
 
     val edgeRelType = relTypes("edge")

@@ -443,9 +443,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
         )),
       )).addHint(MainHint)*/
     ))
-
-    println(mod)
-    Fixpoint.DEBUG = true
+    
     val res = interp(mod)
     val mainRel = res("fac")
     assert(mainRel.size == 3)
