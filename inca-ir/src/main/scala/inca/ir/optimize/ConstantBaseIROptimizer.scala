@@ -1,20 +1,16 @@
 package inca.ir.optimize
 
 import inca.ir
-import inca.util.{Memoize, memoize, printStep}
-import inca.ir.extension.aggregate.Aggregate
-import inca.ir.extension.aggregateset.AggregateSet
+import inca.util.{Memoize, memoize}
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{ConstantRelation, Value}
-import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
+import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Param, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import inca.ir.extension.aggregate as iragg
-import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.visitors.BaseIRVisitor
 import sturdy.values.Topped
 
 extension [T](topped: Topped[T])
@@ -59,10 +55,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       case Topped.Top => false
     }
 
-  private var relationsUsedInAggregations: Set[Relation] = Set()
-
-  private def relationUsedInAggregation(relation: Relation): Boolean =
-    relationsUsedInAggregations.contains(relation)
+  def relationUsedInAggregation(relation: Relation): Boolean =
+    false
 
   private def bodyAlwaysFails(body: Body): Boolean =
     getBodyResult(body).map(_.empty).forall {
@@ -88,16 +82,6 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
         case _ => // nothing
       }
     }
-
-    relationsUsedInAggregations = modules.flatMap { m =>
-      m.relations.flatMap { (_, r) =>
-        r.bodies.flatMap(_.atoms.collect {
-          case a@Aggregate(ref, args, op) => ref.target.get
-          case a@AggregateSet(ref, args, op) => ref.target.get
-        })
-      }
-    }.toSet
-
     super.analyzeProgram(modules)
 
   // Override the internal method in subclasses
@@ -126,7 +110,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     } else if (relation.getHint(MainHint).isEmpty) {
       val res = getRelationResult(relation).headOption.get
       val nonconstantParams = relation.params.zip(res.rows).flatMap {
-        case (p, v) if v.isConstant =>
+        case (p, v) if v.isConstant && mayEliminate(p)(relation) =>
           None
         case (p, _) => Some(p)
       }
@@ -167,7 +151,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     (getTermResult(lhs).headOption, getTermResult(rhs).headOption) match
       case (Some(v1), Some(v2)) => Some(op(v1, v2))
       case _ => None
-
+  
+  protected def mayEliminate(p: Param)(implicit relation: Relation): Boolean =
+    true
 
   protected def mayEliminate(t: Term): Boolean =
     val b = !t.typ.get.mode.isBinding || t.isInstanceOf[Var] && !params.contains(t.asInstanceOf[Var].ref)
@@ -176,14 +162,11 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
 
   protected def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
     case TermArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
-    case AggregateColumnArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
     case _ => None
 
   protected def argTy(arg: Arg): Type = arg match
     case TermArg(t) => t.typ.get.ty
-    case AggregateColumnArg(t) => t.typ.get.ty
     case w@WildcardArg() => w.typ.get.ty
-
 
   protected def mayEliminate(eq: Eq): Boolean = mayEliminate(eq.lhs) && mayEliminate(eq.rhs)
 
@@ -224,18 +207,20 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
             throw FailedBody
           case Some(r: Relation) =>
             val res = getRelationResult(r).headOption.get
-            val (constantArgs, nonconstantArgs) = call.args.zip(res.rows).partition(_._2.isConstant)
+            val eliminatetable = r.params.map(mayEliminate(_)(r))
+            val (constantArgs, nonconstantArgs) = args.zip(res.rows).zip(eliminatetable)
+              .partition { case ((arg, res), elim) => res.isConstant && elim }
             val ats =
               if (nonconstantArgs.isEmpty)
                 Seq()
               else
-               Seq(call.copy(args = nonconstantArgs.flatMap((a, _) => visitArg(a))))
+               Seq(call.copy(args = nonconstantArgs.flatMap { case ((a, _), _) => visitArg(a) }))
 
             // In case we have removed an argument that was binding a parameter, we need to insert an equality
             // constraint for that parameter.
             // Test (general problem): Datalog frontend -> lecture 5 -> nat relation
             // Test (why cast is needed): OODL -> Unit Test -> Subtyping
-            constantArgs.flatMap { (a, v) =>
+            constantArgs.flatMap { case ((a, v), _) =>
               extractBindingVarRef(a).map(ref => Eq(Var(ref), Cast(valueToTerm(v).get, argTy(a))))
             } ++ ats
           case _ => super.visitAtom(atom)
@@ -257,7 +242,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
                *	Q(i: >TAny< :: 4)
                *	return$2: >TAny< == i :: 4
                * }
-               * The program was well-typed before, but after replacing i with 4 in the Eq-Constraint, we get a type error.
+               * The program was well-typed, but after replacing i with 4 in the Eq-Constraint, we get a type error.
                * i had type TAny, however, the constant 4 has type TInt. That is, we now compare >TAny< to <TInt>.
                * Test: OODL -> Unit Test -> Subtyping
                */

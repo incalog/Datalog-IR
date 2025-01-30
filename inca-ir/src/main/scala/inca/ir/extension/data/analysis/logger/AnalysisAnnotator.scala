@@ -10,6 +10,9 @@ trait AnalysisAnnotator[V, RV, TV] extends BaseAnalysisAnnotator[V, RV, TV]:
   override def updateAtomResult(at: Atom): Unit = at match
     case Deconstruct(t, caseRef, args, neg) =>
       args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-        extractTermValue(varName).foreach(updateTermResult(term, _))
+        if (term.typ.get.mode.isBinding)
+          extractTermValue(varName).foreach(updateTermResult(term, _))
+        else
+          () // TODO: meet old and new term result to increase precision
       }
     case _ => super.updateAtomResult(at)

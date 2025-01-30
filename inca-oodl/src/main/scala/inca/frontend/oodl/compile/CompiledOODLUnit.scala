@@ -120,6 +120,8 @@ object CompiledOODLUnit:
     //() => new optimize.TypeIROptimizer {},
     //() => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     //() => new optimize.IdentityCastElimination {},
+    //() => new optimize.IdentityCastElimination {},
+    //() => new optimize.AliasElimination {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {}

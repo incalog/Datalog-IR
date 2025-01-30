@@ -128,6 +128,16 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
+  test("Mutability2") {
+    val code = FileUtil.readFileFromResource("objectoriented/unittests/Mutability2.oodl")
+    val compiled = exec.compileOODL(code, options)
+    compiled.setPipeline(CompiledOODLUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
+    val loaded = exec.loadOODL(compiled)
+    val res = loaded.execute("main", Seq())
+    assertResult(1)(res.entries.head)
+  }
+
   test("Null") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Null.oodl")
     val compiled = exec.compileOODL(code, options)
@@ -193,7 +203,6 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/TypeCast.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(1)(res.entries.head)
@@ -203,7 +212,8 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/TypeCastFail.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
+    // Don't optimize, otherwise we know statically that the cast fails
+    //compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     val caught = intercept[TypeCastException] {
       loaded.execute("main", Seq())
