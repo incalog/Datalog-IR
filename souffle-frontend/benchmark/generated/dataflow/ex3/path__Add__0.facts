@@ -1,4 +1,0 @@
-$Add($Var("z"), $Var("y"))	$Var("z")
-$Add($Var("z"), $Var("y"))	$Var("z")
-$Add($Var("x"), $Num(100))	$Var("x")
-$Add($Var("x"), $Var("z"))	$Var("x")

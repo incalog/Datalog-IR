@@ -1,4 +1,0 @@
-$GreaterThan($Num(10), $Var("x"))	$Num(10)
-$GreaterThan($Var("x"), $Var("y"))	$Var("x")
-$GreaterThan($Var("x"), $Num(10))	$Var("x")
-$GreaterThan($Var("y"), $Num(10))	$Var("y")

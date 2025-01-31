@@ -1,3 +1,0 @@
-module Inc
-def inc(n: Int): Int = n + 1
-@main def main(): Int = inc(0)

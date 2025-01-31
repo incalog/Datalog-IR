@@ -1,4 +1,0 @@
-module LambdaHigherOrder
-
-@main def main(): Int =
- ((f: Int => Int) => (n: Int) => f(f(n)))((x: Int) => x * 3)(7)

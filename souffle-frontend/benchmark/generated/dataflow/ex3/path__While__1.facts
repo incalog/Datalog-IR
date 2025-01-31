@@ -1,4 +1,0 @@
-$While($GreaterThan($Var("z"), $Num(2)), $Assign("z", $Add($Var("z"), $Var("y"))))	$Assign("z", $Add($Var("z"), $Var("y")))
-$While($GreaterThan($Var("z"), $Num(2)), $Assign("z", $Add($Var("z"), $Var("y"))))	$Assign("z", $Add($Var("z"), $Var("y")))
-$While($GreaterThan($Var("z"), $Var("x")), $Assign("x", $Add($Var("x"), $Num(100))))	$Assign("x", $Add($Var("x"), $Num(100)))
-$While($GreaterThan($Var("x"), $Var("y")), $Assign("x", $Add($Var("x"), $Var("z"))))	$Assign("x", $Add($Var("x"), $Var("z")))

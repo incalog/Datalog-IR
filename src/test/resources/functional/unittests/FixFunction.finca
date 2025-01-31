@@ -1,3 +1,0 @@
-module Fix
-
-@main def main(n: Int): Int = main(n)

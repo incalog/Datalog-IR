@@ -1,6 +1,0 @@
-module PlusNoMain
-data Nat = Zero() | Succ(Nat)
-@main def plus(m: Nat, n: Nat): Nat = m match {
-  case Zero() => n
-  case Succ(pred) => Succ(plus(pred, n))
-}
