@@ -12,7 +12,6 @@ trait BaseValueNumberingAtoms extends BaseValueNumberingTerms {
   override private[BaseVN] def setTables(body: Body): Unit = {
     phase match {
       case Phase.initial =>
-        // reset congrClasses (otherwise not known when variables are unbound)
         VNs_Atoms = ValueIds[Atom]()
       case Phase.repetition =>
         VNs_Atoms = ValueIds[Atom]() // no need to propagate old analysis results -> remove duplicates again
@@ -32,7 +31,7 @@ trait BaseValueNumberingAtoms extends BaseValueNumberingTerms {
     case Eq(Var(lhs), Var(rhs), true) if lhs == rhs => validBody = false; Seq(atom)
     case Eq(lhs, rhs, true) if isConst(lhs) && isConst(rhs) && lhs == rhs => validBody = false; Seq(atom)
     case Eq(lhs, rhs@Var(_), false) if rhs.mode.isBinding => Seq(Eq(rhs, lhs, false))
-    case Eq(lhs, rhs, bool) if getIdOf(lhs) > getIdOf(rhs) && !lhs.mode.isBinding => Seq(Eq(rhs, lhs, bool))
+    case Eq(lhs, rhs, bool) if getValNumOf(lhs) > getValNumOf(rhs) && !lhs.mode.isBinding => Seq(Eq(rhs, lhs, bool))
     case _ => Seq(atom)
   }
 
@@ -48,7 +47,7 @@ trait BaseValueNumberingAtoms extends BaseValueNumberingTerms {
       return Seq()
     }
     else {
-      val vn = VNs_Atoms.getIdOf(atom)
+      val vn = VNs_Atoms.getValNumOf(atom)
       return Seq(atom)
     }
   }

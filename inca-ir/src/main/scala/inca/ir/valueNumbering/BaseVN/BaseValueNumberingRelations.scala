@@ -79,11 +79,11 @@ trait BaseValueNumberingRelations extends BaseValueNumberingBodies {
 
     // make sure that rewritten relation and old relation are equal (i.e. get same value number)
     if (vnTablesRelations.isValNumContained(oldRelation)) {
-      val oldVN = vnTablesRelations.getIdOf(oldRelation)
+      val oldVN = vnTablesRelations.getValNumOf(oldRelation)
       vnTablesRelations.updateValueNumbersAndCongrClasses(relation,oldVN)
     }
 
-    val vn: ValueId = vnTablesRelations.getIdOf(relation)
+    val vn: ValueNumber = vnTablesRelations.getValNumOf(relation)
 
     if (vnTablesRelations.isCongrClassContained(vn)) {
       removedRelation = true // then it might be necessary to rename references to the relation

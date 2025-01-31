@@ -7,11 +7,11 @@ import scala.collection.mutable
 
 
 trait CongruenceClass[T] {
-  val valueId: ValueId
+  val valueNumber: ValueNumber
   var leader: T
 
   override def toString: String =
-    s"Congruence Class: Id = $valueId, leader = $leader"
+    s"Congruence Class: ValNum = $valueNumber, leader = $leader"
 
   def changeLeaderIfNecessary(t: T): Boolean = true
   
@@ -60,21 +60,21 @@ trait CongruenceClassTerms extends CongruenceClass[Term] {
 }
 
 
-case class CongruenceClassRelations(valueId: ValueId, var leader: Relation) extends CongruenceClass[Relation]
+case class CongruenceClassRelations(valueNumber: ValueNumber, var leader: Relation) extends CongruenceClass[Relation]
 
 
 
 class CongrClassesTable[T] {
   
-  protected val congrClasses: mutable.Map[ValueId, CongruenceClass[T]] = mutable.Map()
+  protected val congrClasses: mutable.Map[ValueNumber, CongruenceClass[T]] = mutable.Map()
   
-  def contains(vn: ValueId): Boolean = congrClasses.contains(vn)
+  def contains(vn: ValueNumber): Boolean = congrClasses.contains(vn)
   
-  def apply(vn: ValueId): CongruenceClass[T] = congrClasses(vn)
+  def apply(vn: ValueNumber): CongruenceClass[T] = congrClasses(vn)
   
-  def remove(vn: ValueId): Unit = congrClasses.remove(vn)
+  def remove(vn: ValueNumber): Unit = congrClasses.remove(vn)
   
-  def update(vn: ValueId, congruenceClass: CongruenceClass[T]): Unit = congrClasses.update(vn, congruenceClass)
+  def update(vn: ValueNumber, congruenceClass: CongruenceClass[T]): Unit = congrClasses.update(vn, congruenceClass)
 
   override def toString: String = "\t" + congrClasses.mkString("\n\t") + "\n"
   

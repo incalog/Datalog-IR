@@ -14,7 +14,7 @@ class VNStatistics(input: Module, output: Module) {
     val vars = Seq("Number of Vars") ++ numberOfVars() // number of different variables in each body
     val terms = Seq("Number of Terms") ++ numberOfTerms()
     println(
-      Tabulator.format("VN Statistics", Seq("", "before", "after:"), Seq(relations, bodies, atoms, vars, terms), Classic)
+      Tabulator.format("VN Statistics", Seq("", "before", "after"), Seq(relations, bodies, atoms, vars, terms), Classic)
     )
   }
 

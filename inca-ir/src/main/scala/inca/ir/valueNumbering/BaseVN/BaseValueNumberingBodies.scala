@@ -36,7 +36,7 @@ trait BaseValueNumberingBodies extends BaseValueNumberingAtoms {
       return Seq()
     }
     else {
-      val vn = VNs_Bodies.getIdOf(body)
+      val vn = VNs_Bodies.getValNumOf(body)
       return Seq(body)
     }
   }

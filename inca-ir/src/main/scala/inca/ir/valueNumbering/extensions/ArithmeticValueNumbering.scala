@@ -67,20 +67,20 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case (IntNum(l), IntNum(r)) => newIntNum(l + r)
     case (DoubleNum(l), DoubleNum(r)) => newDoubleNum(l + r)
   
-    case (term, BinOp(IntNum(-1), termNeg, "*")) if getIdOf(term) == getIdOf(termNeg) => newIntNum(0)
-    case (term, BinOp(DoubleNum(-1), termNeg, "*")) if getIdOf(term) == getIdOf(termNeg) => newDoubleNum(0)
-    case (BinOp(IntNum(-1), termNeg, "*"), term) if getIdOf(term) == getIdOf(termNeg) => newIntNum(0)
-    case (BinOp(DoubleNum(-1), termNeg, "*"), term) if getIdOf(term) == getIdOf(termNeg) => newDoubleNum(0)
+    case (term, BinOp(IntNum(-1), termNeg, "*")) if getValNumOf(term) == getValNumOf(termNeg) => newIntNum(0)
+    case (term, BinOp(DoubleNum(-1), termNeg, "*")) if getValNumOf(term) == getValNumOf(termNeg) => newDoubleNum(0)
+    case (BinOp(IntNum(-1), termNeg, "*"), term) if getValNumOf(term) == getValNumOf(termNeg) => newIntNum(0)
+    case (BinOp(DoubleNum(-1), termNeg, "*"), term) if getValNumOf(term) == getValNumOf(termNeg) => newDoubleNum(0)
   
-    case (lTerm, BinOp(BinOp(IntNum(-1) | DoubleNum(-1), l, "*"), r, "+")) if getIdOf(lTerm) == getIdOf(l) => r
-    case (lTerm, BinOp(l, BinOp(IntNum(-1) | DoubleNum(-1), r, "*"), "+")) if getIdOf(lTerm) == getIdOf(r) => l
+    case (lTerm, BinOp(BinOp(IntNum(-1) | DoubleNum(-1), l, "*"), r, "+")) if getValNumOf(lTerm) == getValNumOf(l) => r
+    case (lTerm, BinOp(l, BinOp(IntNum(-1) | DoubleNum(-1), r, "*"), "+")) if getValNumOf(lTerm) == getValNumOf(r) => l
   
-    case (lhs: Term, rhs: Term) if getIdOf(lhs) == getIdOf(rhs) && typ.ty == TInt => normalize(Mul(newIntNum(2), lhs).typed(typ)) // x + x == 2*x for Ints
-    case (lhs, BinOp(l, r, "+")) if getIdOf(lhs) == getIdOf(l) && typ.ty == TInt =>  normalize(Add(normalize(Mul(newIntNum(2), lhs).typed(typ)),r).typed(typ))
-    case (lhs, BinOp(IntNum(x), rhs, "*")) if getIdOf(lhs) == getIdOf(rhs) => normalize(Mul(newIntNum(x + 1), lhs).typed(typ))
-    case (lhs: Term, rhs: Term) if getIdOf(lhs) == getIdOf(rhs) && typ.ty == TDouble => normalize(Mul(newDoubleNum(2), lhs).typed(typ)) // for Doubles
-    case (lhs, BinOp(l, r, "+")) if getIdOf(lhs) == getIdOf(l) && typ.ty == TDouble =>  normalize(Add(normalize(Mul(newDoubleNum(2), lhs).typed(typ)),r).typed(typ))
-    case (lhs, BinOp(DoubleNum(x), rhs, "*")) if getIdOf(lhs) == getIdOf(rhs) => normalize(Mul(newDoubleNum(x + 1), lhs).typed(typ))
+    case (lhs: Term, rhs: Term) if getValNumOf(lhs) == getValNumOf(rhs) && typ.ty == TInt => normalize(Mul(newIntNum(2), lhs).typed(typ)) // x + x == 2*x for Ints
+    case (lhs, BinOp(l, r, "+")) if getValNumOf(lhs) == getValNumOf(l) && typ.ty == TInt =>  normalize(Add(normalize(Mul(newIntNum(2), lhs).typed(typ)),r).typed(typ))
+    case (lhs, BinOp(IntNum(x), rhs, "*")) if getValNumOf(lhs) == getValNumOf(rhs) => normalize(Mul(newIntNum(x + 1), lhs).typed(typ))
+    case (lhs: Term, rhs: Term) if getValNumOf(lhs) == getValNumOf(rhs) && typ.ty == TDouble => normalize(Mul(newDoubleNum(2), lhs).typed(typ)) // for Doubles
+    case (lhs, BinOp(l, r, "+")) if getValNumOf(lhs) == getValNumOf(l) && typ.ty == TDouble =>  normalize(Add(normalize(Mul(newDoubleNum(2), lhs).typed(typ)),r).typed(typ))
+    case (lhs, BinOp(DoubleNum(x), rhs, "*")) if getValNumOf(lhs) == getValNumOf(rhs) => normalize(Mul(newDoubleNum(x + 1), lhs).typed(typ))
   
     case (l, r) => if !repetition then orderAssociativityCommutativity(getAllOperands(Add(l,r),"+"), typ, "+") else Add(l,r)
   }
@@ -90,7 +90,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case (l, DoubleNum(0)) => l
     case (IntNum(0), r) => normalize(Mul(newIntNum(-1), r).typed(typ))
     case (DoubleNum(0), r) => normalize(Mul(newDoubleNum(-1), r).typed(typ))
-    case (l, r) if getIdOf(l) == getIdOf(r) =>
+    case (l, r) if getValNumOf(l) == getValNumOf(r) =>
       if typ.ty == TInt then newIntNum(0)
       else if typ.ty == TDouble then newDoubleNum(0)
       else throw new IllegalStateException(getExceptionMsg("Sub", lhs, rhs, typ))
@@ -115,7 +115,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case (BinOp(l, r, "+"), factor) => distributivity(factor,l,r,Add,Mul,typ)
 
     // no such rewriting for TInt since a * (b / a) = 0 if a > b
-    case (lTerm, BinOp(l, rTerm, "/")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => l
+    case (lTerm, BinOp(l, rTerm, "/")) if getValNumOf(lTerm) == getValNumOf(rTerm) && typ.ty == TDouble => l
 
     case (l, r) => if !repetition then orderAssociativityCommutativity(getAllOperands(Mul(l,r),"*"), typ, "*") else Mul(l,r)
   }
@@ -123,17 +123,17 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   private def normalizeDiv(lhs: Term, rhs: Term, typ: TermType): Term = getArgumentsOfOp(lhs,rhs) match {
     case (l,r) if vnTables.getReplacement(r) == IntNum(0) || vnTables.getReplacement(r) == DoubleNum(0) => Div(l,r)
     case (l, IntNum(1) | DoubleNum(1)) => l
-    case (l, r) if getIdOf(l) == getIdOf(r) =>
+    case (l, r) if getValNumOf(l) == getValNumOf(r) =>
       if typ.ty == TInt then newIntNum(1)
       else if typ.ty == TDouble then newDoubleNum(1)
       else throw new IllegalStateException(getExceptionMsg("Div", lhs, rhs, typ))
     case (IntNum(l), IntNum(r)) if r != 0 => newIntNum(l / r) // int/int yields int in scala
     case (DoubleNum(l), DoubleNum(r)) if r != 0 => newDoubleNum(l / r)
 
-    case (lBinOp@BinOp(l, lTerm, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) => l
-    case (lBinOp@BinOp(lTerm, l, "*"), rTerm) if getIdOf(lTerm) == getIdOf(rTerm) => l
-    case (lTerm, lBinOp@BinOp(r, rTerm, "*")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => normalize(Div(newDoubleNum(1), r).typed(typ))
-    case (lTerm, lBinOp@BinOp(rTerm, r, "*")) if getIdOf(lTerm) == getIdOf(rTerm) && typ.ty == TDouble => normalize(Div(newDoubleNum(1), r).typed(typ))
+    case (lBinOp@BinOp(l, lTerm, "*"), rTerm) if getValNumOf(lTerm) == getValNumOf(rTerm) => l
+    case (lBinOp@BinOp(lTerm, l, "*"), rTerm) if getValNumOf(lTerm) == getValNumOf(rTerm) => l
+    case (lTerm, lBinOp@BinOp(r, rTerm, "*")) if getValNumOf(lTerm) == getValNumOf(rTerm) && typ.ty == TDouble => normalize(Div(newDoubleNum(1), r).typed(typ))
+    case (lTerm, lBinOp@BinOp(rTerm, r, "*")) if getValNumOf(lTerm) == getValNumOf(rTerm) && typ.ty == TDouble => normalize(Div(newDoubleNum(1), r).typed(typ))
 
     case (BinOp(l, r, "+"), denom) if typ.ty == TDouble => distributivity(denom,l,r,Add,Div,typ)
 
@@ -147,17 +147,17 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case (IntNum(l), IntNum(r)) => newIntNum(l % r)
     case (DoubleNum(l), DoubleNum(r)) => newDoubleNum(l % r)
 
-    case (lhs,rhs) if getIdOf(lhs) == getIdOf(rhs) =>
+    case (lhs,rhs) if getValNumOf(lhs) == getValNumOf(rhs) =>
       if typ.ty == TInt then newIntNum(0)
       else if typ.ty == TDouble then newDoubleNum(0)
       else throw new IllegalStateException(getExceptionMsg("Remainder",lhs,rhs,typ))
 
-    case (BinOp(l,r,"*"),rhs) if getIdOf(l) == getIdOf(rhs) =>
+    case (BinOp(l,r,"*"),rhs) if getValNumOf(l) == getValNumOf(rhs) =>
       if typ.ty == TInt then newIntNum(0)
       else if typ.ty == TDouble then newDoubleNum(0)
       else throw new IllegalStateException(getExceptionMsg("remainder",lhs,rhs,typ))
 
-    case (BinOp(l,r,"*"),rhs) if getIdOf(r) == getIdOf(rhs) =>
+    case (BinOp(l,r,"*"),rhs) if getValNumOf(r) == getValNumOf(rhs) =>
       if typ.ty == TInt then newIntNum(0)
       else if typ == TDouble then newDoubleNum(0)
       else throw new IllegalStateException(getExceptionMsg("remainder",lhs,rhs,typ))
@@ -168,14 +168,14 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
   private def normalizeMin(lhs: Term, rhs: Term, typ: TermType, repetition: Boolean = false): Term = getArgumentsOfOp(lhs, rhs) match {
     case (IntNum(l), IntNum(r)) => if l < r then newIntNum(l) else newIntNum(r)
     case (DoubleNum(l), DoubleNum(r)) => if l < r then newDoubleNum(l) else newDoubleNum(r)
-    case (l,r) if getIdOf(l) == getIdOf(r) => l
+    case (l,r) if getValNumOf(l) == getValNumOf(r) => l
     case (l, r) => if !repetition then orderAssociativityCommutativity(getAllOperands(Min(l,r),"min"), typ, "min") else Min(l,r)
   }
 
   private def normalizeMax(lhs: Term, rhs: Term, typ: TermType): Term =  getArgumentsOfOp(lhs, rhs) match {
     case (IntNum(l), IntNum(r)) => if l > r then newIntNum(l) else newIntNum(r)
     case (DoubleNum(l), DoubleNum(r)) => if l > r then newDoubleNum(l) else newDoubleNum(r)
-    case (l,r) if getIdOf(l) == getIdOf(r) => l
+    case (l,r) if getValNumOf(l) == getValNumOf(r) => l
     case (l, r) =>
       if (typ.ty == TInt)
         normalize(Mul(newIntNum(-1), normalize(Min(normalize(Mul(newIntNum(-1), l).typed(typ)), normalize(Mul(newIntNum(-1), r).typed(typ))).typed(typ))).typed(typ))
@@ -222,7 +222,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     case _ => Seq(term)
   }
 
-  private def sortedByID(terms: Seq[Term]): Seq[Term] = terms.sortWith { case (l, r) => getIdOf(l) < getIdOf(r) }
+  private def sortedByVn(terms: Seq[Term]): Seq[Term] = terms.sortWith { case (l, r) => getValNumOf(l) < getValNumOf(r) }
 
   // result should in general be of form (num + (var1 + (var2 + ... + (num * Var + (...))))
   private def orderAssociativityCommutativity(operands: Seq[Term], typ: TermType, op: String): Term = {
@@ -286,7 +286,7 @@ trait ArithmeticValueNumbering extends BaseValueNumbering {
     }
 
     val newOperands = (if number != IntNum(neutralElem.toInt) && number != DoubleNum(neutralElem) then Seq(number) else Seq())
-      ++ vars ++ Seq(abss, adds, muls, divs, remains, mins, casts).flatMap(sortedByID)
+      ++ vars ++ Seq(abss, adds, muls, divs, remains, mins, casts).flatMap(sortedByVn)
     val result = buildOp(newOperands, typ, op)
     result
   }

@@ -11,8 +11,8 @@ class VNTablesRelations(override val congrClasses: CongrClassesTable[Relation], 
   // name "Dummy" is only used internally and not propagated out of this class
   private def getLookupRelation(relation: Relation): Relation = Relation("Dummy", relation.params, relation.bodies)
 
-  override val newCongrClass: (ValueId, Relation) => CongruenceClass[Relation] = {
-    (valueId, relation) => CongruenceClassRelations(valueId, relation)
+  override val newCongrClass: (ValueNumber, Relation) => CongruenceClass[Relation] = {
+    (valueNumber, relation) => CongruenceClassRelations(valueNumber, relation)
   }
 
   override def isValNumContained(relation: Relation): Boolean = {
@@ -20,12 +20,12 @@ class VNTablesRelations(override val congrClasses: CongrClassesTable[Relation], 
     super.isValNumContained(lookupRelation)
   }
 
-  override def getIdOf(relation: Relation): ValueId = {
+  override def getValNumOf(relation: Relation): ValueNumber = {
     val lookupRelation = getLookupRelation(relation)
-    super.getIdOf(lookupRelation)
+    super.getValNumOf(lookupRelation)
   }
 
-  override def updateValNum(relation: Relation, vn: ValueId): Unit = {
+  override def updateValNum(relation: Relation, vn: ValueNumber): Unit = {
     val lookupRelation = getLookupRelation(relation)
     super.updateValNum(lookupRelation,vn)
   }
