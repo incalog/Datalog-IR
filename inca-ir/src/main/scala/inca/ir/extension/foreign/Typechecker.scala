@@ -12,3 +12,7 @@ trait Typechecker extends BaseIRTypechecker:
       checkTerm(t, irty, mode)
       fty.bound
     case _ => super.inferTermExtend(term, mode)
+
+  override def checkType(ty: Type): Unit = ty match
+    case _ : ForeignType =>
+    case _ => super.checkType(ty)

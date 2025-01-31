@@ -14,7 +14,7 @@ trait Visitor extends BaseIRVisitor with not.Visitor:
 
   override def visitAtom(atom: Atom): Seq[Atom] = atom match
     case Aggregate(rel, args, op) =>
-      Seq(Aggregate(rel, args.flatMap(visitArg), visitAggregationOperator(op)))
+      Seq(Aggregate(visitRef(rel), args.flatMap(visitArg), visitAggregationOperator(op)))
     case _ => super.visitAtom(atom)
 
   def visitAggregationOperator(op: AggregationOperator): AggregationOperator = op

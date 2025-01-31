@@ -1,0 +1,3 @@
+
+a(Int, Int, Int).
+a(X,Y,Z) :- X == 1, Y == 2, H1 == X+2, H2 == X+2, Z == H1 + H2.

@@ -11,10 +11,13 @@ import inca.ir.extension.demand.*
 import inca.ir.extension.string.*
 import inca.ir.optimize.AliasElimination
 import inca.ir.util.SourceLocation
+import inca.ir.valueNumbering.ValueNumbering
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions
-import inca.viatra.backend.Executor
+//import inca.viatra.backend.Executor
+import inca.ascent.backend.Executor
+//import inca.souffle.backend.Executor
 import inca.viatra.runtime.EnginePool
 
 import java.io.IOException
@@ -265,15 +268,16 @@ object AbstractSyntaxGraph:
               new LoweringWithSupplementaries {}
             else
               new demand.Lowering {},
-      () => new AliasElimination {}
+//      () => new AliasElimination {},
+      () => new ValueNumbering()        // TODO measure run-time with and without
     ))
 
 
-  @main def benchmarkAsg() = {
-    val warmups = 0
-    val runs = 1
-    val resultPath = "benchmark/mono"
-    val maxNodes = 100
+  @main def benchmarkAsg() = { // with Ascent crashes with 70 nodes
+    val warmups = 3
+    val runs = 10
+    val resultPath = "benchmark/asg/withVN/souffle"
+    val maxNodes = 60
     val step = 10
     // Execution
     val measurements = for (i <- Range.inclusive(10, maxNodes, step)) yield  {
@@ -285,7 +289,7 @@ object AbstractSyntaxGraph:
         val stats = ("total" -> IndexedSeq(rels.map(_.size).sum.toLong)) +: engine.readAll().map { r =>
           r.name -> IndexedSeq(r.size.toLong)
         }
-        FileUtil.writeFile(s"$resultPath/asg/ASG_DL_${i}_stats.csv", csvToString(toCSV(stats)))
+        FileUtil.writeFile(s"$resultPath/ASG_DL_${i}_stats.csv", csvToString(toCSV(stats)))
       }
 
       collectGarbage()
@@ -296,17 +300,18 @@ object AbstractSyntaxGraph:
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val relation1 = engine.read(Relation2("main", Seq("from", "to"), Seq()))
       }
+      println("warmup done")
 
       i.toString -> (for (j <- Range.inclusive(1, runs)) yield {
         val engine = new Executor().instantiate(compiled)
         engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(i, 10))))
         val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
         collectGarbage()
+        println(s"$i : run $j done; measured: $diff")
         diff
       })
     }
-
-    FileUtil.writeFile(s"$resultPath/asg/ASG_DL.csv", csvToString(toCSV(measurements)))
+    FileUtil.writeFile(s"$resultPath/ASG_withVN_souffle_test.csv", csvToString(toCSV(measurements)))
   }
 
 

@@ -11,6 +11,7 @@ import inca.util.CompilationMessage
 import inca.util.compileroptions.CompilerOptions
 
 import scala.collection.mutable.ListBuffer
+import inca.ir.valueNumbering.ValueNumbering
 
 trait CompiledUnit:
   def compilerOptions: CompilerOptions
@@ -143,16 +144,16 @@ trait CompiledUnit:
       p2
 
 
-  def optimize(p: Seq[Module]): Seq[Module] =
-    val aeval = new IRAbstractInterpreter
-    p.foreach(aeval.evalModule)
-    //println("Eval module: ")
-    //println(p)
-    val opt = new IROptimizer(aeval)
-    val po = opt.visitProgram(p)
-    val checker = typechecker
-    checker.checkProgram(po, header)
-    po
+  def optimize(p: Seq[Module]): Seq[Module] = p
+//    val aeval = new IRAbstractInterpreter
+//    p.foreach(aeval.evalModule)
+//    //println("Eval module: ")
+//    //println(p)
+//    val opt = new IROptimizer(aeval)
+//    val po = opt.visitProgram(p)
+//    val checker = typechecker
+//    checker.checkProgram(po, header)
+//    po
 
 
 object CompiledUnit:

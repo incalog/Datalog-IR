@@ -14,6 +14,8 @@ trait Typechecker extends BaseIRTypechecker
   with foreign.Typechecker
   with not.Typechecker
   with set.Typechecker
+  with string.Typechecker
+  with aggregate.Typechecker 
 
 enum Mode:
   case Binding

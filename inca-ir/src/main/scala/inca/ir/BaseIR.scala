@@ -5,6 +5,7 @@ import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Resolvable, Typeable}
 import inca.ir.util.SourceLocation
 import inca.util.Graph
+import inca.ir.valueNumbering.{Inline, Outline}
 
 import java.lang.annotation.Target
 import scala.language.implicitConversions
@@ -128,7 +129,7 @@ case class RefByQualifiedName[Target](ns: Seq[Name]) extends Ref[Target]:
 trait Atom extends Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
 
-trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
+trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints with Outline with Inline:
   def vars: Seq[Var]
   def mode: Mode = this.typ.getOrElse(throw new IllegalStateException(s"untyped $this")).mode
   def arg: Arg = TermArg(this)
@@ -165,7 +166,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationBase:
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationBase, Analyzable:
   def withName(name: String): Relation = this.copy(name = Name(name))
   override def toString: String = {
     val prefix = s"$name${params.mkString("(", ", ", ")")}"
@@ -186,7 +187,7 @@ case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEnt
 case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
   override def toString: String = s"$name: $ty"
 
-case class Body(atoms: Seq[Atom]) extends Hints:
+case class Body(atoms: Seq[Atom]) extends Hints with Analyzable:
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
   def vars: Seq[Var] = atoms.flatMap(_.vars)
 
@@ -206,9 +207,9 @@ object Var:
 case class Cast(t: Term, ty: Type) extends Term:
   override def toString: String =
     if (t.typ.exists(_.ty == ty))
-      t.toString
+      s"Cast ${t.toString}"
     else
-      s"$t: $ty"
+      s"Cast $t: $ty"
   override def vars: Seq[Var] = t.vars
 
 trait RelationBase extends ModuleEntry

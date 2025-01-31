@@ -23,6 +23,7 @@ import inca.ir.extension.string.*
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.{DependencyGraph, IRTypechecker}
 import inca.ir.util.SourceLocation
+import inca.ir.valueNumbering.ValueNumbering
 import inca.ir.{Body, Term, string2name, term2Arg, *}
 import inca.util.CSVUtil.csvToString
 import inca.util.FileUtil
@@ -424,7 +425,8 @@ object IntervalAnalysis:
     override def typechecker = new IRTypechecker with Typechecker {}
 
     setPipeline(List(
-      () => new disjunction.Lowering {}
+      () => new disjunction.Lowering {},
+      () => new ValueNumbering()
     ))
 
   private def run(prog: edb.Stmt): Any =

@@ -13,7 +13,7 @@ data Option[T] = None() | Some(T)
     else
         Add(Var("x0"), Var("x" + toString(end-1)))
 
-def program: Exp = generateProgram(0, 500) */
+def program: Exp = generateProgram(0, 500)*/
 
 def program: Exp = Lam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
                        Lam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),

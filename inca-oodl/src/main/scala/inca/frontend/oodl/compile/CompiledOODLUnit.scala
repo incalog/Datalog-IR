@@ -12,6 +12,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.ir.optimize
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
+import inca.ir.valueNumbering.ValueNumbering
 
 case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompilerOptions) extends CompiledUnit:
 
@@ -108,8 +109,9 @@ object CompiledOODLUnit:
       demandLowering,
       () => new tuple.Lowering {},
 
-      () => new optimize.IdentityCastElimination {},
-      () => new optimize.AliasElimination {},
-      () => new optimize.RemoveDuplicatedRelations {},
-      () => new optimize.RemoveUnusedParameters {}
+//      () => new optimize.IdentityCastElimination {},
+//      () => new optimize.AliasElimination {},
+//      () => new optimize.RemoveDuplicatedRelations {},
+//      () => new optimize.RemoveUnusedParameters {},
+      () => new ValueNumbering {}
     ) // arith + string + data

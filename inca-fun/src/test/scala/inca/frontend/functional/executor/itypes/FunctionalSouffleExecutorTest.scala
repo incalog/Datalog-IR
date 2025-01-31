@@ -5,8 +5,11 @@ import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompi
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.ir.execution.ThreadCount.Fixed
 import inca.ir.execution.{Relation, UnitRelation}
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, map, not, set, tuple, typeparam}
+import inca.util.CSVUtil.csvToString
 import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
+import inca.ir.valueNumbering.ValueNumbering
 
 
 class FunctionalSouffleExecutorTest extends AnyFunSuite:
@@ -27,3 +30,46 @@ class FunctionalSouffleExecutorTest extends AnyFunSuite:
       res.entries.head.toString
     )
   }
+
+
+
+@main def benchmarkTypesSouffle() ={
+  val warmups = 3
+  val runs = 10
+  val resultPath = "benchmark/itypes/withVN/souffle"
+
+  val measurements = for (i <- Range.inclusive(1, warmups + runs)) yield {
+    val options = FunctionalCompilerOptions.fromResource("functional/Options.ini")
+    val exec: FunctionalExecutor = new FunctionalExecutor(new Executor)
+    val code = FileUtil.readFileFromResource("functional/itypes/TypeChecker.finca")
+    val compiled = exec.compileFunction(code, options)
+    compiled.setPipeline(List(
+      () => new typeparam.Lowering {},
+      () => new aggregateset.Lowering {},
+      () => new set.Lowering {},
+      () => new map.Lowering {},
+      //    () => new bool.Optimizer {},
+      () => new bool.Lowering {},
+      () => new datamatch.Lowering {},
+      () => new block.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      () => new demand.Lowering {},
+      () => new tuple.Lowering {},
+
+      () => new ValueNumbering{}
+    ))
+    //    println(compiled)
+    val loaded = exec.loadFunction(compiled)
+
+    val measured = loaded.engine.measure(UnitRelation("main"))
+    println(s"run $i done: measured $measured")
+    measured
+  }
+
+  val results: Seq[(String, IndexedSeq[Long])] = (warmups until warmups+runs).map(
+    i => i.toString -> IndexedSeq(measurements(i))
+  ).appended("average" -> IndexedSeq(measurements.drop(warmups).sum / runs))
+
+  FileUtil.writeFile(s"$resultPath/itypes_withVN_souffle.csv", csvToString(toCSV(results)))
+}

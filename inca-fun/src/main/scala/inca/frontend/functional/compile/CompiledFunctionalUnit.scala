@@ -10,6 +10,7 @@ import inca.ir.extension.set.SyntacticOptimizer
 import inca.ir.optimize
 import inca.ir.optimize.BaseIROptimizer
 import inca.ir.util.SourceLocation
+import inca.ir.valueNumbering.ValueNumbering
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, Module as IRModule}
 
@@ -109,7 +110,7 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
     val compiler = new GenerateIR
     val module = compiler.compileModule(normalizedFoldModule)
     Seq(module)
-  
+
 
 object CompiledFunctionalUnit:
   val viatraPostProcessingPipeline: List[() => BaseIRVisitor] = List(
@@ -125,7 +126,7 @@ object CompiledFunctionalUnit:
     () => new SyntacticOptimizer {},
     () => new set.Lowering {},
     () => new map.Lowering {},
-    () => new bool.SyntacticOptimizer {},
+//    () => new bool.SyntacticOptimizer {},
 
     //() => new disjunction.Lowering {},
     //() => new optimize.AliasElimination {},
@@ -139,8 +140,9 @@ object CompiledFunctionalUnit:
     //() => new demand.LoweringWithSupplementaries {},
     () => new tuple.Lowering {},
 
-    () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {},
-    () => new optimize.RemoveDuplicatedRelations {},
-    () => new optimize.RemoveUnusedParameters {}
+//    () => new optimize.IdentityCastElimination {},
+//    () => new optimize.AliasElimination {},
+//    () => new optimize.RemoveDuplicatedRelations {},
+//    () => new optimize.RemoveUnusedParameters {},
+    () => new ValueNumbering{}
   ) // arith + string + data

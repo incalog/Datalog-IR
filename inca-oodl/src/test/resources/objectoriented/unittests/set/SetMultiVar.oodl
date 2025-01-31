@@ -1,0 +1,17 @@
+module SetTest
+
+class A {
+  def someValue(): Int = {
+     return 3
+  }
+
+  def identity(as: Set[Int]): Set[Int] = {
+    return as
+  }
+}
+
+@main def main(): Set[Int] = {
+    val c: Int = 2
+    val a: A = new A()
+    return a.identity(Set(1, c, a.someValue()))
+}
