@@ -1,7 +1,7 @@
 package inca.souffle.syntax
 
 import inca.ir.typing.Resolvable
-import inca.ir.util.SourceLocation
+import inca.ir.util.{Identifiable, SourceLocation}
 import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, RelationDecl}
 
 case class Program(content: Seq[ProgramContent]) extends SourceLocation:
@@ -9,7 +9,7 @@ case class Program(content: Seq[ProgramContent]) extends SourceLocation:
 
 var nextId: Int = 0
 
-enum ProgramContent extends SourceLocation:
+enum ProgramContent extends SourceLocation with Identifiable:
   case TypeDecl(name: String, rhs: TypeDeclConstraint) extends ProgramContent, Resolvable[ComponentDecl]
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain]) extends ProgramContent, Resolvable[ComponentDecl]
   case Rule(heads: Seq[Atom], body: Atom, queryPlan: Option[QueryPlan]) extends ProgramContent, Resolvable[ComponentDecl]
@@ -22,9 +22,6 @@ enum ProgramContent extends SourceLocation:
   // cannot be within component decl
   case FunctorDecl(name: String, params: Seq[Attribute], retType: Type, stateful: Boolean)
   case Pragma(option: String, arg: Option[String])
-
-  //val id: Int = nextId
-  //nextId += 1
 
   override def equals(obj: Any): Boolean = obj match
     case that: ProgramContent => this.id == that.id
