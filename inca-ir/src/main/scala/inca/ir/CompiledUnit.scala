@@ -16,8 +16,8 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
   def name: Name
   def sourceLocation: SourceLocation
   def isClosedWorld: Boolean
-  def irModules: Seq[Module]
-  def otherUnits: Seq[CompiledUnit]
+  val irModules: Seq[Module]
+  val otherUnits: Seq[CompiledUnit]
 
   def compiled: Seq[Module] = closed
   

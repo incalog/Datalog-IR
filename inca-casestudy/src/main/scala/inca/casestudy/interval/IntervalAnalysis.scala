@@ -408,11 +408,11 @@ object IntervalAnalysis:
 
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
-    override def irModules: Seq[Module] = Seq(mod)
+    override val irModules: Seq[Module] = Seq(mod)
 
     override val isClosedWorld: Boolean = true
 
-    override def otherUnits: Seq[CompiledUnit] = Seq()
+    override val otherUnits: Seq[CompiledUnit] = Seq()
 
     override def compilerOptions: CompilerOptions =
       val op = CompilerOptions.default

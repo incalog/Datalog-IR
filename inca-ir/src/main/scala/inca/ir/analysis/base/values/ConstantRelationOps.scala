@@ -167,13 +167,13 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
         //ConstantRelation(rv.cols, rv.rows, Topped.Top)
       case (rv: ConstantRelation.NonEmpty, other: ConstantRelation.NonEmpty) =>
         val others2Rows = other.cols.map(rv.cols.indexOf)
-        //boolOps.and(rv.empty, other.empty)
         // TODO: Is the join over booleans the correct operation here?
-        //  If we don't use it we get a mismatch between annotation and result
-        val newEmpty = (rv.empty, other.empty) match
+        /*val newEmpty = (rv.empty, other.empty) match
           case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
           case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
-          case _ => Topped.Top
+          case _ => Topped.Top*/
+        // If any of the two relations is definitely non-empty, then the result is also non-empty
+        val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
         ConstantRelation(rv.cols, newRows, newEmpty)
 

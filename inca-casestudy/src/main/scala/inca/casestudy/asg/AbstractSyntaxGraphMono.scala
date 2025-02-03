@@ -15,6 +15,7 @@ import inca.ir.extension.set.{SetMember, TSet}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, ToString}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, not, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
+import inca.ir.optimize.IdentityCastElimination
 import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, string2name, stringList2nameList, term2Arg, termList2ArgList}
@@ -267,11 +268,11 @@ object AbstractSyntaxGraphMono:
 
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
-    override def irModules: Seq[Module] = Seq(mod)
+    override val irModules: Seq[Module] = Seq(mod)
 
     override val isClosedWorld: Boolean = true
 
-    override def otherUnits: Seq[CompiledUnit] = Seq()
+    override val otherUnits: Seq[CompiledUnit] = Seq()
 
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
@@ -284,14 +285,8 @@ object AbstractSyntaxGraphMono:
 
     override def typechecker: BaseIRTypechecker = new IRTypechecker with primitive.Typechecker
 
-    private trait demandLowering extends demand.Lowering with primitive.Visitor
-
     private trait blockLowering extends block.Lowering with primitive.Visitor
-
-    private trait scalaLowering extends primitive.ScalaLowering
-      with scalaArith.ScalaLowering
-      with scalaData.ScalaLowering
-      with scalaString.ScalaLowering
+    private trait demandLowering extends demand.Lowering with primitive.Visitor
 
     setPipeline(List(
       () => new mono.Lowering(optMono) {},
@@ -370,12 +365,12 @@ object AbstractSyntaxGraphMono:
   // FIXME: For these programs to work you need to change the mono lowering, such that the Mono_ADT does not
   //  contain parameters of type TAny for the MonoImpurity, but instead uses TInt
 
-  @main def runAsgMonoUsingSouffle() = {
+  /*@main def runAsgMonoUsingSouffle() = {
     // Will only work with optimizations on, since souffle does not support recursive and user-defined aggregation
     val compiled = new Compiled(true, true)
 
     val engine = inca.souffle.backend.Executor(Fixed(1)).instantiate(compiled)
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
     //val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
     //println(diff)
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
@@ -387,9 +382,9 @@ object AbstractSyntaxGraphMono:
     val compiled = new Compiled(true, true)
 
     val engine = inca.ascent.backend.Executor(Fixed(1)).instantiate(compiled)
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
     //val diff = engine.measure(Relation2("main", Seq("from", "to"), Seq()))
     //println(diff)
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
-  }
+  }*/

@@ -75,9 +75,9 @@ object BooleanExpression:
 
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
-    override def irModules: Seq[Module] = Seq(mod)
+    override val irModules: Seq[Module] = Seq(mod)
 
-    override def otherUnits: Seq[CompiledUnit] = Seq()
+    override val otherUnits: Seq[CompiledUnit] = Seq()
 
     override val isClosedWorld = true
 

@@ -253,11 +253,11 @@ object AbstractSyntaxGraph:
 
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
-    override def irModules: Seq[Module] = Seq(mod)
+    override val irModules: Seq[Module] = Seq(mod)
 
     override val isClosedWorld: Boolean = true
 
-    override def otherUnits: Seq[CompiledUnit] = Seq()
+    override val otherUnits: Seq[CompiledUnit] = Seq()
 
     override def compilerOptions: CompilerOptions = {
       val opt = CompilerOptions.default
@@ -342,14 +342,14 @@ object AbstractSyntaxGraph:
 
   @main def runAsgUsingViatra() = {
     val engine = inca.viatra.backend.Executor().instantiate(createCompiled(false))
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }
 
   @main def runAsgUsingSouffle() = {
     val engine = inca.souffle.backend.Executor(Fixed(1)).instantiate(createCompiled(false))
-    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(100, 10))))
+    engine.insert(Relation2("input$main", Seq("endNode", "step"), Seq(Seq(20, 10))))
     val rel = engine.read(Relation2("main", Seq("from", "to"), Seq()))
     println(rel.asTable)
   }
