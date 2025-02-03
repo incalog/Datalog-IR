@@ -93,7 +93,7 @@ class IRTypeAbstractInterpreter(
 
   override val relationOps: RelationOps[Value, Topped[Boolean], TypeRelation] = new TypeRelationOps(using except)
 
-  given Meet[Value] = new BaseMeetV:
+  given Meet[Value] = new BaseMeetV(using except):
     override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
       case (AType(t1), AType(t2)) if t1 == t2 => lhs
       case _ => super.meet(lhs, rhs)

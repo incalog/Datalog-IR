@@ -48,7 +48,10 @@ object ConstantRelation {
 }
 
 class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin])
-                               (using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]])
+                               (using joinV: Join[Value],
+                                meetV: Meet[Value],
+                                boolOps: BooleanOps[Topped[Boolean]],
+                                eqOps: EqOps[Value, Topped[Boolean]])
   extends RelationOps[Value, Topped[Boolean], ConstantRelation]:
 
   override def isEmpty(rv: ConstantRelation): Topped[Boolean] = rv.empty
@@ -61,7 +64,7 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
     if (vals.isEmpty)
       ConstantRelation.Empty(cols)
     else
-      val joinedVals = vals.tail.foldLeft[Row](vals.head)((v1, v2) => v1.zip(v2).map((t1, t2) => joinV(t1, t2).get))
+      val joinedVals = vals.tail.foldLeft[Row](vals.head)((v1, v2) => v1.zip(v2).map((t1, t2) => meetV(t1, t2).get))
       ConstantRelation(cols, joinedVals, Topped.Actual(vals.isEmpty))
 
   override def rename(rv: ConstantRelation, subst: Map[String, String]): ConstantRelation =
@@ -108,7 +111,7 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
             case (Some(rvIx), Some(otherIx)) =>
               // If both entries are constants, we might decide if the join succeeds
               val compare = eqOps.equ(rv.rows(rvIx), other.rows(otherIx))
-              val v = joinV(rv.rows(rvIx), other.rows(otherIx)).get
+              val v = meetV(rv.rows(rvIx), other.rows(otherIx)).get
               (v, compare)
             case (None, None) => throw new IllegalStateException()
         }).unzip

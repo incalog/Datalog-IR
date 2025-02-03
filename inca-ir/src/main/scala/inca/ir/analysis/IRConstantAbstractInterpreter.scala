@@ -44,7 +44,7 @@ private class IRJoinV extends Join[Value] with BaseJoinV
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
     MaybeChanged(join(v1, v2), v1)
 
-private class IRMeetV extends BaseMeetV
+private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseMeetV(using except)
   with irarith.interpreter.ConstantMeetV
   with irstr.interpreter.ConstantMeetV
   with irdata.interpreter.ConstantMeetV
@@ -104,9 +104,10 @@ class IRConstantAbstractInterpreter(
   override lazy val supplementaryTable: SupplementaryTable[ConstantRelation] = new ASupplementaryTable[RV]() {
     override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
   }
+
+  given Meet[Value] = IRMeetV(using except)
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps(using except)
 
-  given Meet[Value] = IRMeetV()
 
   class AnalysisAnnotator
     extends BaseAnalysisAnnotator[Value, RV, Value]
@@ -114,7 +115,7 @@ class IRConstantAbstractInterpreter(
       with irdata.logger.AnalysisAnnotator[Value, RV, Value]
       with irstr.logger.AnalysisAnnotator[Value, RV, Value]
       with iragg.logger.AnalysisAnnotator[Value, RV, Value]:
-    
+
     override def extractTermValue(supName: SupColumn): Option[Value] =
       val supTable = supplementaryTable.getTable
       val termTRV = relationOps.project(supTable, Seq(supName))

@@ -134,12 +134,14 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
     case FixIn.Atom(atom, _) =>
-//      println(s"  ## Eval $atom")
+      //println(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
       evalAtomOpen(atom); FixOut.Atom()
     case FixIn.Body(rel, ix, paramNames) =>
-//      println(s"## Eval ${rel.name} body $ix")
+      //println(s"## Eval ${rel.name} body $ix")
       FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
-    case FixIn.EnterRelation(rel, adornment) => FixOut.Relation(evalRelationOpen(rel, adornment))
+    case FixIn.EnterRelation(rel, adornment) =>
+      //println(s"## Eval ${rel.name}")
+      FixOut.Relation(evalRelationOpen(rel, adornment))
   }
 
   private inline def external[A](f: Fixed ?=> A): A = f(using fixed)
@@ -190,9 +192,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val relRes = if (r.bodies.isEmpty)
       relationOps.make(paramNames, Seq())
     else
-      mapJoin(r.bodies.indices, { ix =>
-        evalBody(r, ix, paramNames)
-      })
+      except.tryCatch {
+        mapJoin(r.bodies.indices, { ix =>
+          evalBody(r, ix, paramNames)
+        })
+      } /*catch*/ { exc =>
+        relationOps.make(paramNames, Seq())
+      }
 
     // merge with existing idb
     val supCols = relationOps.columns(supplementaryTable.getTable)
@@ -236,24 +242,21 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => false
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): RV = supplementaryTable.scoped {
-    except.tryCatch {
-      var rest = b.atoms
-      while (rest.nonEmpty) {
-        val sup = supplementaryTable.getTable
-        val supCols = relationOps.columns(sup)
-        val (now, later) = rest.partition { at =>
-          at.boundVars.map(_.name.name).forall(supCols.contains) || isAssignable(at, supCols)
-        }
-        val ordered = now.sortBy(at => atomOrderingOps.priority(at))
-        if (rest.size == later.size)
-          throw new IllegalStateException()
-        ordered.foreach(evalAtom(_, b))
-        rest = later
+    var rest = b.atoms
+    while (rest.nonEmpty) {
+      val sup = supplementaryTable.getTable
+      val supCols = relationOps.columns(sup)
+      val (now, later) = rest.partition { at =>
+        at.boundVars.map(_.name.name).forall(supCols.contains) || isAssignable(at, supCols)
       }
-      relationOps.project(supplementaryTable.getTable, paramNames)
-    } /*catch*/ { exc =>
-      relationOps.make(paramNames, Seq())
+      val ordered = now.sortBy(at => atomOrderingOps.priority(at))
+      if (rest.size == later.size)
+        throw new IllegalStateException()
+      ordered.foreach(evalAtom(_, b))
+      rest = later
     }
+    //b.atoms.foreach(evalAtom(_, b))
+    relationOps.project(supplementaryTable.getTable, paramNames)
   }
 
   inline def evalAtom(at: ir.Atom, body: ir.Body)(using rec: Fixed): Unit = rec(FixIn.Atom(at, body)) match

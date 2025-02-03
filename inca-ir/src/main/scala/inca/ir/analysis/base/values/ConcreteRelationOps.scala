@@ -33,13 +33,6 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
 
   def join(other: ConcreteRelation[V]): ConcreteRelation[V] =
     union(other)
-    // TODO: Remove this comment after debugging 
-    /*val cols1 = this.cols.toSet
-    val cols2 = other.cols.toSet
-    val both = cols1.intersect(cols2).toSeq
-    val v1projected = this.project(both)
-    val v2projected = other.project(both)
-    v1projected.union(v2projected)*/
   
   def rename(subst: Map[String, String]): ConcreteRelation[V] =
     val newColumns = cols.map(c => subst.getOrElse(c,c))
