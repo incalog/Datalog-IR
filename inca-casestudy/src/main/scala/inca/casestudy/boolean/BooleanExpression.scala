@@ -91,7 +91,7 @@ object BooleanExpression:
     }
 
     val optim = if optimizeSets then
-      List(() => new bool.SyntacticOptimizer {})
+      List(() => new bool.optimize.DnfOptimizer {})
     else
       List()
 

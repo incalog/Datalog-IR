@@ -350,6 +350,7 @@ class GenerateAscentTest extends AnyFunSuite:
       ))
     ))
     val compiledModule = CompiledModule(irModule)
+    println(compiledModule.lowered)
     val engine = Executor().instantiate(compiledModule)
     val rels = engine.readAll()
     assertResult(3)(rels.size)

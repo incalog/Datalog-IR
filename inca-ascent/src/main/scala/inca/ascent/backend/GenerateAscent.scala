@@ -267,10 +267,11 @@ object GenerateAscent:
       val isRef = varRefs.contains(name.name.name)
       val isData = t.typ.exists(_.ty.isInstanceOf[TData])
       val isString = t.typ.exists(_.ty == TString)
-      val derefTerm = if (isRef && !isData && !noDeref)
+      val derefTerm = if (isRef && !noDeref) // (isRef && !isData && !noDeref)
         Term.DeRef(varTerm)
       else
         varTerm
+
       if ((isString || isData) && !noClone)
         Term.Clone(derefTerm)
       else
@@ -292,8 +293,8 @@ object GenerateAscent:
         val compiledTerm = compileTerm(t)
         val compiledTy = compileType(t.typ.get.ty, Some(dataName))
         compiledTy match
-          case FormatType.Custom(dName, true) => Term.Box(compiledTerm) // Box recursive types
-          case FormatType.Symbol => Term.ToString(compiledTerm) // convert strings
+          case FormatType.Custom(dName, true) => Term.Box(compileTerm(t, noDeref = true)) // Box recursive types
+          case FormatType.Symbol => Term.ToString(compileTerm(t)) // convert strings
           case _ => compiledTerm
       }
       Term.CustomLit(dataName, cleanName(caseDef.name), compiledArgs)
