@@ -1,6 +1,13 @@
 package inca.ir.util
 
-trait SourceLocation:
+var nextId: Long = 0
+
+trait Identifiable:
+  val id: Long = nextId
+  nextId += 1
+
+
+trait SourceLocation extends Identifiable:
   var startIndex: Int = SourceLocation.NoIndex
   var endIndex: Int = SourceLocation.NoIndex
 

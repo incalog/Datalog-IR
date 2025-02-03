@@ -114,11 +114,7 @@ class IRConstantAbstractInterpreter(
       with irdata.logger.AnalysisAnnotator[Value, RV, Value]
       with irstr.logger.AnalysisAnnotator[Value, RV, Value]
       with iragg.logger.AnalysisAnnotator[Value, RV, Value]:
-
-    override def isDefinitelyEmpty(rv: RV): Boolean =
-      val empty = relationOps.isEmpty(rv)
-      empty.isActual && empty.get
-
+    
     override def extractTermValue(supName: SupColumn): Option[Value] =
       val supTable = supplementaryTable.getTable
       val termTRV = relationOps.project(supTable, Seq(supName))

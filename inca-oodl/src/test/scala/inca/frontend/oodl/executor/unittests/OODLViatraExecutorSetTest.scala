@@ -233,7 +233,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val setAdt = loaded.execute("main", Seq(0)).entries.head
     val query = Relation.from("Set$TInt$enum", Seq("set$0"), Seq(Seq(setAdt)))
     val res = loaded.engine.read(query).project(1)
-    assertResult(res.toSet)(Set(1,3,4))
+    assertResult(Set(1,3,4))(res.toSet)
   }
 
   test("Set intersection") {

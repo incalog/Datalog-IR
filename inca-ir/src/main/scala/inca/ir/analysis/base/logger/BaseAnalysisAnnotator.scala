@@ -5,6 +5,7 @@ import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.values.{BaseMeetV, Meet}
 import inca.ir.printer.IRDebugPrinter
+import inca.ir.visitors.IRVisitor
 import inca.util.Color
 import sturdy.effect.TrySturdy
 import sturdy.fix.Logger
@@ -21,7 +22,6 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
   extends Logger[FixIn, FixOut[V, RV]]:
 
   def extractTermValue(col: SupColumn): Option[TV]
-  def isDefinitelyEmpty(rv: RV): Boolean = false
 
   case object TermKey extends AnalysisKey:
     override val key: String = "Term"
@@ -51,56 +51,7 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
     override def toString: String = res.toString
 
 
-  /**
-   * Transaction class to trace changes during the evaluation of a single body.
-   */
-  class Transaction:
-    var changes: Map[Term, TermResult] = Map()
-    var terms: Set[(Long, Term)] = Set()
-
-    def applyChanges(): Unit =
-      terms.foreach { (id, term) =>
-        // Join all annotations in this body with the result from the previous body
-        val result = changes(term)
-        val newResult = term.getAnalysisResult(TermKey).headOption match
-          case Some(tr@TermResult(v)) => TermResult(joinTV(v, result.value).get)
-          case _ => TermResult(result.value)
-        term.storeAnalysisResult(newResult)
-      }
-
-  private var transactions: Seq[Transaction] = Seq()
-  private def currentTransaction: Option[Transaction] = transactions.headOption
-  private def logChange(term: Term, result: TermResult): Unit =
-    currentTransaction.foreach { trans =>
-      trans.terms += term.id -> term
-      trans.changes.get(term) match
-        case Some(TermResult(v)) =>
-          // meet the old value with the binding site
-          meetTV(v, result.value).ifChanged(trans.changes += term -> TermResult(_))
-        case _ =>
-          // the binding position of a variable is the first time it's visited
-          trans.changes += term -> result
-    }
-
-  protected def startContextTransaction(): Unit =
-    val transaction = new Transaction
-    transactions = transaction +: transactions
-
-  protected def commitContextTransaction(): Unit =
-    if (transactions.isEmpty)
-      throw IllegalStateException("No transaction to commit.")
-    currentTransaction.foreach(_.applyChanges())
-    transactions = transactions.tail
-
-  protected def abortContextTransaction(): Unit =
-    if (transactions.isEmpty)
-      throw IllegalStateException("No transaction to abort.")
-    transactions = transactions.tail
-
-
-  override def enter(dom: FixIn): Unit = dom match
-    case FixIn.Body(rel, ix, _) => startContextTransaction()
-    case _ => // nothing
+  override def enter(dom: FixIn): Unit = ()
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) =>
@@ -108,12 +59,7 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
     case (FixIn.Atom(at, _), Some(FixOut.Atom())) =>
       updateAtomResult(at)
     case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv))) =>
-      if (isDefinitelyEmpty(rv))
-        // Don't annotate terms based on failing bodies
-        abortContextTransaction()
-      else
-        commitContextTransaction()
-        updateBodyResult(rel.bodies(ix), rv)
+      updateBodyResult(rel.bodies(ix), rv)
     case (FixIn.EnterRelation(r, _), Some(FixOut.Relation(rv))) =>
       updateRelationResult(r, rv)
     case _ => // nothing
@@ -129,10 +75,13 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
     }
 
   def updateTermResult(term: Term, value: TV): Unit =
-    logChange(term, TermResult(value))
+    val newRes = term.getAnalysisResult(TermKey).headOption match
+      case Some(tr) => TermResult(joinTV(tr.value, value).get)
+      case _ => TermResult(value)
+    term.storeAnalysisResult(newRes)
 
-  def updateVariables(term: Term): Unit =
-    term.vars.foreach(t => extractTermValue(t.name.name).map(updateTermResult(t, _)))
+  def updateVariables(binding: Term, bound: Term): Unit =
+    bound.getAnalysisResult(TermKey).headOption.foreach(binding.storeAnalysisResult)
 
   def varIsBound(v: Var): Boolean =
     extractTermValue(v.name.name).isDefined
@@ -141,11 +90,9 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
   def updateAtomResult(at: Atom): Unit = at match
     case Call(_, args, _) => updateArgResult(args)
     case ExtensionalCall(_, args, _) => updateArgResult(args)
-    case Eq(_, _, true) => // Ignore comparison
-    case Eq(v1: Var, v2: Var, _) if varIsBound(v1) && varIsBound(v2) => // Ignore comparison
-    case Eq(lhs, rhs, _) =>
-      updateVariables(lhs)
-      updateVariables(rhs)
+    case Eq(_, _, true) => // Ignore negative comparison
+    case Eq(lhs, rhs, _) if lhs.mode.isBinding => updateVariables(lhs, rhs)
+    case Eq(lhs, rhs, _) if rhs.mode.isBinding => updateVariables(rhs, lhs)
     case _ => // nothing
 
   def updateRelationResult(rel: Relation, value: RV): Unit =

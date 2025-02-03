@@ -12,12 +12,6 @@ implicit def name2string(name: Name): String = name.toString
 implicit def term2Arg(term: Term): Arg = term.arg
 implicit def termList2ArgList(terms: Seq[Term]): Seq[Arg] = terms.map(_.arg)
 
-var nextId: Long = 0
-
-trait Identifiable:
-  val id: Long = nextId
-  nextId += 1
-
 
 case class Name(name: String) extends SourceLocation:
   override def toString: String = name.name
@@ -159,7 +153,7 @@ trait Atom extends Analyzable with SourceLocation with Hints:
   lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))
   lazy val unboundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBinding)
 
-trait Term extends Typeable[TermType] with Analyzable with Identifiable with SourceLocation with Hints:
+trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
   def vars: Seq[Var]
 
   lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))

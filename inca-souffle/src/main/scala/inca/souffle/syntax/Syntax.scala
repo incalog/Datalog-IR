@@ -23,14 +23,14 @@ enum ProgramContent extends SourceLocation:
   case FunctorDecl(name: String, params: Seq[Attribute], retType: Type, stateful: Boolean)
   case Pragma(option: String, arg: Option[String])
 
-  val id: Int = nextId
-  nextId += 1
+  //val id: Int = nextId
+  //nextId += 1
 
   override def equals(obj: Any): Boolean = obj match
     case that: ProgramContent => this.id == that.id
     case _ => false
 
-  override def hashCode(): Int = id
+  override def hashCode(): Int = id.intValue()
 
   override def toString: String = this match
     case Rule(heads, body, queryPlan) =>
