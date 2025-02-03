@@ -104,7 +104,7 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
 
   val isClosedWorld = true
 
-  def otherUnits: Seq[CompiledUnit] = Seq()
+  val otherUnits: Seq[CompiledUnit] = Seq()
 
   lazy val irModules: Seq[IRModule] =
     val compiler = new GenerateIR

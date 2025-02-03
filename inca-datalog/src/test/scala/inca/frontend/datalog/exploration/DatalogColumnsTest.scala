@@ -57,11 +57,11 @@ class DatalogColumnsTest extends AnyFunSuite:
 
       override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
 
-      override def irModules: Seq[base.Module] = Seq(mod)
+      override val irModules: Seq[base.Module] = Seq(mod)
 
       override val isClosedWorld: Boolean = true
 
-      override def otherUnits: Seq[CompiledUnit] = Seq()
+      override val otherUnits: Seq[CompiledUnit] = Seq()
 
     val graph = (for i <- 0.until(numNodes) yield Seq(i, i + 1)) :+ Seq(numNodes, 0)
     val edbRels = ExecRelation2("edge", Seq("x", "y"), graph)

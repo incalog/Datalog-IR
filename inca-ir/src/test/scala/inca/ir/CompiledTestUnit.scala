@@ -29,7 +29,7 @@ case class CompiledTestUnit(mod: ir.Module) extends CompiledUnit:
   override def name: Name = mod.name
   override def sourceLocation: SourceLocation = mod.name
   override def isClosedWorld: Boolean = true
-  override def irModules: Seq[Module] = Seq(mod)
-  override def otherUnits: Seq[CompiledUnit] = Seq()
+  override val irModules: Seq[Module] = Seq(mod)
+  override val otherUnits: Seq[CompiledUnit] = Seq()
 
 
