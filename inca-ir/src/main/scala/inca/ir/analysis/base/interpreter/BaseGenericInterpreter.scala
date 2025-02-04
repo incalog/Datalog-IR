@@ -134,15 +134,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
     case FixIn.Atom(atom, _) =>
-      println(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
+      //(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
       evalAtomOpen(atom);
-      println("  ## Success")
+      //println("  ## Success")
       FixOut.Atom()
     case FixIn.Body(rel, ix, paramNames) =>
-      println(s"## Eval ${rel.name} body $ix")
+      //(s"## Eval ${rel.name} body $ix")
       FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
     case FixIn.EnterRelation(rel, adornment) =>
-      println(s"## Eval ${rel.name}")
+      //println(s"## Eval ${rel.name}")
       FixOut.Relation(evalRelationOpen(rel, adornment))
   }
 
@@ -201,7 +201,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       } /*catch*/ { exc =>
         relationOps.make(paramNames, Seq())
       }
-    println(s"## Call result: ${relRes}")
+    //println(s"    ## Call result: ${r.name} :: ${relRes}")
     relRes
   }}
 
@@ -223,7 +223,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val edbRV = relationOps.rename(rv, cols.zip(paramNames).toMap)
 
     // filter edb rows based on current supplementary
-    relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
+    except.tryCatch {
+      relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
+    } /*catch*/ { exc =>
+      relationOps.make(paramNames, Seq())
+    }
   }}
 
   inline def evalBody(rel: ir.Relation, ix: Int, paramNames: Seq[String])(using rec: Fixed): RV = rec(FixIn.Body(rel, ix, paramNames)) match
@@ -274,13 +278,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)
     val rs = evalTerm(rhs)
-    val eqOp = if (neg) eqOps.neq else eqOps.equ
     updateSupplementaryChecked { sup =>
-      val lix = relationOps.columnIndex(sup, ls)
-      val rix = relationOps.columnIndex(sup, rs)
-      relationOps.filter(sup) { row =>
-        eqOp(row(lix), row(rix))
-      }
+      if (neg)
+        relationOps.filterNeq(sup, ls, rs)
+      else
+        relationOps.filterEq(sup, ls, rs)
     }
 
   protected def boundInSupplementary(s: String): Boolean =

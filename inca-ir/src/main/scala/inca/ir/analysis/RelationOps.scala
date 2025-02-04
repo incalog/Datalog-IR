@@ -34,6 +34,12 @@ trait RelationOps[V, B, RV]:
   def filter(rv: RV)(f: Row => B): RV
 
   /** may produce empty table */
+  def filterEq(rv: RV, col: String, col2: String): RV
+
+  /** may produce empty table */
+  def filterNeq(rv: RV, col: String, col2: String): RV
+
+  /** may produce empty table */
   def naturalJoin(rv: RV, other: RV): RV
 
   /** may produce empty table */

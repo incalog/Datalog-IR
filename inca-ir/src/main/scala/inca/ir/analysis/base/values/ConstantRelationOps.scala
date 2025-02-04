@@ -95,6 +95,23 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
       case Topped.Actual(true) => rv // unchanged
       case Topped.Actual(false) => rv.copy(emp = Topped.Actual(true)) // definitely empty
 
+
+  def filterEq(rv: ConstantRelation, col: String, col2: String): ConstantRelation =
+    val lix = columnIndex(rv, col)
+    val rix = columnIndex(rv, col2)
+    val filtered = filter(rv)(row => eqOps.equ(row(lix), row(rix)))
+    filtered match
+      case _: ConstantRelation.Empty => filtered
+      case ConstantRelation.NonEmpty(cols, rows, empty) =>
+        val meet = meetV(rows(lix), rows(rix)).get
+        val newRows = rows.updated(lix, meet).updated(rix, meet)
+        ConstantRelation.NonEmpty(cols, newRows, empty)
+
+  def filterNeq(rv: ConstantRelation, col: String, col2: String): ConstantRelation =
+    val lix = columnIndex(rv, col)
+    val rix = columnIndex(rv, col2)
+    filter(rv)(row => eqOps.neq(row(lix), row(rix)))
+
   override def naturalJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
     val rvCols = rv.cols.zipWithIndex.toMap
     val otherCols = other.cols.zipWithIndex.toMap
@@ -153,7 +170,8 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
               ConstantRelation(rv.cols, rv.rows, Topped.Actual(false))
             else
               ConstantRelation(rv.cols, rv.rows, Topped.Top)
-          case _ => ConstantRelation(rv.cols, rv.rows, Topped.Top)
+          case _ =>
+            ConstantRelation(rv.cols, rv.rows, Topped.Top)
 
 
 given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]): Join[ConstantRelation] with {

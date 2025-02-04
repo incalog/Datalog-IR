@@ -3,10 +3,7 @@ package inca.ir.analysis.base.logger
 import inca.ir.{Arg, Atom, Body, Call, Eq, ExtensionalCall, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
-import inca.ir.analysis.base.values.{BaseMeetV, Meet}
-import inca.ir.printer.IRDebugPrinter
-import inca.ir.visitors.IRVisitor
-import inca.util.Color
+import inca.ir.analysis.base.values.Meet
 import sturdy.effect.TrySturdy
 import sturdy.fix.Logger
 import sturdy.values.Join

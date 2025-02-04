@@ -2,6 +2,7 @@ package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
 import sturdy.effect.failure.Failure
+import sturdy.values.ordering.EqOps
 import sturdy.values.{Join, MaybeChanged}
 
 import scala.collection
@@ -91,7 +92,7 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
     ConcreteRelation(cols,  filteredRows)
 
 
-class ConcreteRelationOps[V](using failure: Failure)
+class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   extends RelationOps[V, Boolean, ConcreteRelation[V]]:
 
   type RV = ConcreteRelation[V]
@@ -113,6 +114,16 @@ class ConcreteRelationOps[V](using failure: Failure)
   override def filter(rv: ConcreteRelation[V])(f: Row => Boolean): ConcreteRelation[V] =
     rv.filter(f)
 
+  def filterEq(rv: RV, col: String, col2: String): RV =
+    val lix = columnIndex(rv, col)
+    val rix = columnIndex(rv, col2)
+    filter(rv)(row => eqOps.equ(row(lix), row(rix)))
+  
+  def filterNeq(rv: RV, col: String, col2: String): RV =
+    val lix = columnIndex(rv, col)
+    val rix = columnIndex(rv, col2)
+    filter(rv)(row => eqOps.neq(row(lix), row(rix)))
+  
   override def fold(rv: ConcreteRelation[V], initial: Row)(f: (Row, Row) => Row): ConcreteRelation[V] =
     rv.fold(initial)(f)
 

@@ -114,6 +114,16 @@ class TypeRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin
         case Topped.Actual(true) => rv // unchanged
         case Topped.Actual(false) => TypeRelation.Empty(cols) //rv.copy(emp = Topped.Actual(true)) // definitely empty
 
+  def filterEq(rv: TypeRelation, col: String, col2: String): TypeRelation =
+    val lix = columnIndex(rv, col)
+    val rix = columnIndex(rv, col2)
+    filter(rv)(row => eqOps.equ(row(lix), row(rix)))
+
+  def filterNeq(rv: TypeRelation, col: String, col2: String): TypeRelation =
+    val lix = columnIndex(rv, col)
+    val rix = columnIndex(rv, col2)
+    filter(rv)(row => eqOps.neq(row(lix), row(rix)))
+  
   override def naturalJoin(rv: TypeRelation, other: TypeRelation): TypeRelation =
     val rvCols = rv.cols.zipWithIndex.toMap
     val otherCols = other.cols.zipWithIndex.toMap
