@@ -134,13 +134,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
     case FixIn.Atom(atom, _) =>
-      //println(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
-      evalAtomOpen(atom); FixOut.Atom()
+      println(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
+      evalAtomOpen(atom);
+      println("  ## Success")
+      FixOut.Atom()
     case FixIn.Body(rel, ix, paramNames) =>
-      //println(s"## Eval ${rel.name} body $ix")
+      println(s"## Eval ${rel.name} body $ix")
       FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
     case FixIn.EnterRelation(rel, adornment) =>
-      //println(s"## Eval ${rel.name}")
+      println(s"## Eval ${rel.name}")
       FixOut.Relation(evalRelationOpen(rel, adornment))
   }
 
@@ -199,14 +201,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       } /*catch*/ { exc =>
         relationOps.make(paramNames, Seq())
       }
-
-    // merge with existing idb
-    val supCols = relationOps.columns(supplementaryTable.getTable)
-    val boundCols = paramNames.intersect(supCols)
-
-    val relName = AllocationSiteAddr.Variable(r.name.name)(true)
-    val emptyRes = relationOps.make(paramNames, Seq())
-    val boundSup = relationOps.project(supplementaryTable.getTable, boundCols)
+    println(s"## Call result: ${relRes}")
     relRes
   }}
 
