@@ -364,6 +364,7 @@ object AbstractSyntaxGraphMono:
 
   // FIXME: For these programs to work you need to change the mono lowering, such that the Mono_ADT does not
   //  contain parameters of type TAny for the MonoImpurity, but instead uses TInt
+  // TODO: Could we use a TypeAnalysis to refine TAny to TInt for this case?
 
   /*@main def runAsgMonoUsingSouffle() = {
     // Will only work with optimizations on, since souffle does not support recursive and user-defined aggregation

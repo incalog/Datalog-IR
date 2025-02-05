@@ -27,6 +27,8 @@ class ControlEventLogger[V, RV](observable: DatalogControlObservable)(using effe
       observable.triggerControlEvent(BasicControlEvent.BeginSection(s"rule ${rel.name} $ix")(""))
     case FixIn.EnterRelation(rel, adornment) =>
       observable.triggerControlEvent(BasicControlEvent.BeginSection(rel.name.name)(""))
+    case FixIn.Assign(_, _) =>
+      // nothing, captured by atom
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = dom match
     case FixIn.Term(_) => // nothing
@@ -34,3 +36,4 @@ class ControlEventLogger[V, RV](observable: DatalogControlObservable)(using effe
     case FixIn.Atom(_, _) =>
     case FixIn.Body(_, _, _) => observable.triggerControlEvent(BasicControlEvent.EndSection())
     case FixIn.EnterRelation(_, _) => observable.triggerControlEvent(BasicControlEvent.EndSection())
+    case FixIn.Assign(_, _) => // nothing
