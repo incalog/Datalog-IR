@@ -130,6 +130,15 @@ class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   override def map(rv: ConcreteRelation[V], columnName: String)(f: Row => V): ConcreteRelation[V] =
     rv.map(columnName)(f)
 
+  override def hstack(rv: ConcreteRelation[V], other: ConcreteRelation[V]): ConcreteRelation[V] =
+    val cartesian =
+      for {
+        row <- rv.rows
+        otherRow <- other.rows
+      } yield
+        row ++ otherRow
+    ConcreteRelation(rv.cols ++ other.cols, cartesian)
+
   override def flatMap(rv: ConcreteRelation[V])(f: Row => ConcreteRelation[V]): ConcreteRelation[V] =
     assert(!rv.isEmpty)
     val generated = rv.rows.map(f).reduce(_.union(_))

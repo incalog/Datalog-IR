@@ -22,6 +22,8 @@ trait RelationOps[V, B, RV]:
   def projectAndRename(rv: RV, subst: Map[String, String]): RV =
     rename(project(rv, subst.keys.toSeq), subst)
 
+  def hstack(rv: RV, other: RV): RV
+  
   def map(rv: RV, columnName: String)(f: Row => V): RV
 
   /** may produce empty table */

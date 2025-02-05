@@ -1,5 +1,6 @@
 package inca.ir.analysis
 
+import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, ConstantRelationOps, Meet, Value}
@@ -128,6 +129,11 @@ class IRConstantAbstractInterpreter(
   // annotate information about constants
   val analysisAnnotator = new AnalysisAnnotator
 
+  override def evalModule(m: ir.Module)(using Fixed): Map[String, RV] =
+    val idb = super.evalModule(m)
+    analysisAnnotator.refineTerms(m)
+    idb
+
   // log the control-flow graph
   private lazy val cfgLogger = new ControlEventLogger[Value, RV](this)
 
@@ -171,6 +177,7 @@ class IRConstantAbstractInterpreter(
 //              parameters,
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
               setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
+              //setLooper(fix.iter.outermost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
             )
           )
         )

@@ -40,11 +40,13 @@ case class Adornment(as: Seq[Adorn]):
 enum FixIn:
   case Term(term: ir.Term)
   case Atom(atom: ir.Atom, body: ir.Body)
+  case Assign(to: ir.Term, from: ir.Term)
   case Body(rel: ir.Relation, ruleIx: Int, paramNames: Seq[String])
   case EnterRelation(rel: ir.Relation, adornment: Adornment)
 
   override def toString: String = this match
     case FixIn.Term(t) => t.toString
+    case FixIn.Assign(to, from) => s"$to = $from"
     case FixIn.Atom(a, _) => a.toString
     case FixIn.Body(rel, ix, _) => s"${rel.name}: $ix" //b.toString
     case FixIn.EnterRelation(rel: ir.Relation, adornment: Adornment) => s"${rel.name.name}_$adornment"
@@ -53,6 +55,7 @@ type SupColumn = String
 
 enum FixOut[V, RV]:
   case Term(col: SupColumn)
+  case Assign(to: SupColumn, from: SupColumn)
   case Atom()
   case ExitCall(value: RV)
   case Body(value: RV)
@@ -64,6 +67,7 @@ given CCombineFixOut[V, RV, W <: Widening](using Combine[RV, W]): Combine[FixOut
   override def apply(out1: FixOut[V, RV], out2: FixOut[V, RV]): MaybeChanged[FixOut[V, RV]] =
     (out1, out2) match
       case (FixOut.Term(rv1), FixOut.Term(rv2)) => assert(rv1 == rv2); MaybeChanged(FixOut.Term(rv1), out1)
+      case (FixOut.Assign(t1, f1), FixOut.Assign(t2, f2)) => assert(t1 == t2); MaybeChanged(FixOut.Assign(t1, f1), out1)
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => Combine(rv1, rv2).map(FixOut.ExitCall.apply)
       case (FixOut.Body(rv1), FixOut.Body(rv2)) => Combine(rv1, rv2).map(FixOut.Body.apply)
@@ -138,6 +142,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       evalAtomOpen(atom);
       //println("  ## Success")
       FixOut.Atom()
+    case FixIn.Assign(to, from) =>
+      val (toSup, fromSup) = evalAssignOpen(to, from)
+      FixOut.Assign(toSup, fromSup)
     case FixIn.Body(rel, ix, paramNames) =>
       //(s"## Eval ${rel.name} body $ix")
       FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
@@ -201,7 +208,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       } /*catch*/ { exc =>
         relationOps.make(paramNames, Seq())
       }
-    //println(s"    ## Call result: ${r.name} :: ${relRes}")
     relRes
   }}
 
@@ -269,11 +275,17 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.Cast(t, _) => extractVarName(t)
     case _ => None
 
-  private final def evalAssign(to: String, from: ir.Term)(using Fixed): Unit =
+  inline def evalAssign(to: ir.Term, from: ir.Term)(using rec: Fixed): Unit = rec(FixIn.Assign(to, from)) match
+    case FixOut.Assign(_, _) => ()
+    case _ => throw new IllegalStateException()
+
+  private final def evalAssignOpen(to: ir.Term, from: ir.Term)(using Fixed): (SupColumn, SupColumn) =
     val fromCol = evalTerm(from)
+    val toCol = extractVarName(to).get.name
     updateSupplementaryUnchecked { sup =>
-      relationOps.copyColumn(sup, fromCol, to)
+      relationOps.copyColumn(sup, fromCol, toCol)
     }
+    (toCol, fromCol)
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)
@@ -296,8 +308,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
       case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
       case (true, true, _) => evalCompare(lhs, rhs, neg)
-      case (false, _, false) => evalAssign(extractVarName(lhs).get.name, rhs)
-      case (_, false, false) => evalAssign(extractVarName(rhs).get.name, lhs)
+      case (false, _, false) => evalAssign(lhs, rhs)
+      case (_, false, false) => evalAssign(rhs, lhs)
       case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
   def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
@@ -320,19 +332,21 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
     // group all mappings by their name. if we pass the same variable twice to a function we get more than one mapping
     val multiMapping = argMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
+    // println(s"Multi mapping: $multiMapping")
+    
+    // filter the current supplementary for the arguments we need
+    val preliminaryEvalContext = relationOps.project(supplementaryTable.getTable, multiMapping.keys.toSeq)
 
-    // rename the argument according to the parameters
-    var evalContext = relationOps.project(supplementaryTable.getTable, multiMapping.keys.toSeq)
-
-    // TODO: Optimize this by using a single op
     // duplicate all required values if an argument is passed twice
-    multiMapping.foreach { case (supColumn, newNames) =>
-      val columnIndex = relationOps.columnIndex(evalContext, supColumn)
-      evalContext = relationOps.rename(evalContext, Map(supColumn -> newNames.head))
+    val contexts = multiMapping.map { case (supColumn, newNames) =>
+      val columnIndex = relationOps.columnIndex(preliminaryEvalContext, supColumn)
+      var tmpContext = relationOps.projectAndRename(preliminaryEvalContext, Map(supColumn -> newNames.head))
       newNames.tail.foreach { n =>
-        evalContext = relationOps.map(evalContext, n)(_.apply(columnIndex))
+        tmpContext = relationOps.map(tmpContext, n)(_.apply(columnIndex))
       }
+      tmpContext
     }
+    val evalContext = contexts.foldLeft(relationOps.make(Seq(), Seq(Seq())))((acc, ctx) => relationOps.hstack(acc, ctx))
 
     // calculate the adornment
     val adornment = Adornment(argMapping.map {

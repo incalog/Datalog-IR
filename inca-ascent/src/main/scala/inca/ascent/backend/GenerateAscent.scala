@@ -290,12 +290,12 @@ object GenerateAscent:
       val dataDef = caseDef.data.ref.target.get
       val dataName = cleanName(dataDef.name)
       val compiledArgs = args.map { t =>
-        val compiledTerm = compileTerm(t)
         val compiledTy = compileType(t.typ.get.ty, Some(dataName))
         compiledTy match
           case FormatType.Custom(dName, true) => Term.Box(compileTerm(t, noDeref = true)) // Box recursive types
+          case FormatType.Custom(dName, false) => compileTerm(t, noDeref = true)
           case FormatType.Symbol => Term.ToString(compileTerm(t)) // convert strings
-          case _ => compiledTerm
+          case _ => compileTerm(t)
       }
       Term.CustomLit(dataName, cleanName(caseDef.name), compiledArgs)
   }

@@ -94,6 +94,12 @@ class TypeRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin
   override def map(rv: TypeRelation, columnName: String)(f: Seq[Value] => Value): TypeRelation =
     rv.withRows(rv.cols :+ columnName, rows => rows :+ f(rows))
 
+  override def hstack(rv: TypeRelation, other: TypeRelation): TypeRelation = (rv, other) match
+    case (_: TypeRelation.Empty, _) => other
+    case (_, _: TypeRelation.Empty) => rv
+    case (rv1: TypeRelation.NonEmpty, rv2: TypeRelation.NonEmpty) =>
+      rv1.withRows(rv1.cols ++ rv2.cols, rows => rows ++ rv2.rows)
+  
   override def fold(rv: TypeRelation, initial: Row)(f: (Row, Row) => Row): TypeRelation =
     rv match
       case TypeRelation.Empty(cols) =>

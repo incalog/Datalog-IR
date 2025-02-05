@@ -17,7 +17,7 @@ import scala.collection
 enum ConstantRelation:
   case Empty(cs: Seq[String])
   case NonEmpty(cs: Seq[String], rs:Seq[Value], emp: Topped[Boolean])
-
+  
   def cols: Seq[String] = this match
     case ConstantRelation.Empty(cols) => cols
     case ConstantRelation.NonEmpty(cols, rows, empty) => cols
@@ -75,12 +75,18 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
     val colsIndex = newColumns.map(rv.cols.indexOf)
     rv.withRows(newColumns, rows => colsIndex.map(rows))
 
+  override def hstack(rv: ConstantRelation, other: ConstantRelation): ConstantRelation = (rv, other) match
+    case (_: ConstantRelation.Empty, _) => other
+    case (_, _: ConstantRelation.Empty) => rv
+    case (rv1: ConstantRelation.NonEmpty, rv2: ConstantRelation.NonEmpty) =>
+      rv1.withRows(rv1.cols ++ rv2.cols, rows => rows ++ rv2.rows)
+
   override def map(rv: ConstantRelation, columnName: String)(f: Seq[Value] => Value): ConstantRelation =
     rv.withRows(rv.cols :+ columnName, rows => rows :+ f(rows))
 
   override def fold(rv: ConstantRelation, initial: Row)(f: (Row, Row) => Row): ConstantRelation = rv match
     case ConstantRelation.Empty(cols) =>
-      ConstantRelation(rv.cols, initial, empty = Topped.Actual(false))
+      ConstantRelation(cols, initial, empty = Topped.Actual(false))
     case ConstantRelation.NonEmpty(cols, rows, empty) =>
       ConstantRelation(cols, f(initial, rows), empty = Topped.Actual(false))
   
@@ -95,7 +101,6 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
       case Topped.Actual(true) => rv // unchanged
       case Topped.Actual(false) => rv.copy(emp = Topped.Actual(true)) // definitely empty
 
-
   def filterEq(rv: ConstantRelation, col: String, col2: String): ConstantRelation =
     val lix = columnIndex(rv, col)
     val rix = columnIndex(rv, col2)
@@ -105,7 +110,7 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
       case ConstantRelation.NonEmpty(cols, rows, empty) =>
         val meet = meetV(rows(lix), rows(rix)).get
         val newRows = rows.updated(lix, meet).updated(rix, meet)
-        ConstantRelation.NonEmpty(cols, newRows, empty)
+        ConstantRelation(cols, newRows, empty)
 
   def filterNeq(rv: ConstantRelation, col: String, col2: String): ConstantRelation =
     val lix = columnIndex(rv, col)
@@ -144,7 +149,6 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
         newEmpty match
           case Topped.Actual(true) => ConstantRelation.Empty(newCols)
           case _ => ConstantRelation(newCols, newVals, newEmpty)
-
 
   override def antiJoin(rv: ConstantRelation, other: ConstantRelation): ConstantRelation =
     val sharedCols = rv.cols.intersect(other.cols)

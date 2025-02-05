@@ -22,8 +22,8 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     abstractInterp.evalProgram(Seq(mod))
     val res = abstractInterp.getIDB
 
-    val printer = new IRDebugPrinter {}
-    println(printer.prettyPrint(mod))
+    //val printer = new IRDebugPrinter {}
+    //println(printer.prettyPrint(mod))
 
     res
 
