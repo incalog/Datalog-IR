@@ -38,9 +38,9 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("out"))
     assert(mainRelType.rows == Seq(ConstantIntV(14)))
     assertResult(Topped.Actual(false))(mainRelType.empty)
@@ -68,14 +68,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val numRelType = relTypes("nums")
+    val numRelType = constRes("nums")
     assert(numRelType.cols == Seq("x"))
     assert(numRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(numRelType.empty)
 
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("x"))
     assert(mainRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
@@ -108,19 +108,19 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val xsRelType = relTypes("xs")
+    val xsRelType = constRes("xs")
     assert(xsRelType.cols == Seq("x"))
     assert(xsRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(xsRelType.empty)
 
-    val ysRelType = relTypes("ys")
+    val ysRelType = constRes("ys")
     assert(ysRelType.cols == Seq("y"))
     assert(ysRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(ysRelType.empty)
 
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("x", "y"))
     assert(mainRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
@@ -161,16 +161,16 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
     // This already fails
-    val xsRelType = relTypes("xs")
+    val xsRelType = constRes("xs")
     assert(xsRelType.cols == Seq("x"))
     assert(xsRelType.empty == Topped.Actual(true))
     assertResult(Topped.Actual(true))(xsRelType.empty)
 
     // Therefore this fails as well and ys is never evaluated
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("x", "y"))
     assert(mainRelType.empty == Topped.Actual(true))
     assertResult(Topped.Actual(true))(mainRelType.empty)
@@ -197,32 +197,17 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val xsRelType = relTypes("xs")
+    val xsRelType = constRes("xs")
     assert(xsRelType.cols == Seq("x", "y"))
     assert(xsRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Actual(false))(xsRelType.empty)
 
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("x", "y"))
     assertResult(Topped.Actual(true))(mainRelType.empty)
   }
-
-  /**
-   * Q(x) {
-   *   x == 1
-   * } or {
-   *   x == 2
-   * }
-   *
-   * R(x) {
-   *    Q(x)
-   * }
-   *
-   * R(5)
-   * R(6)
-   */
 
   test("Two relations") {
     val mod = Module("Test2", BaseIR.language + arithIR, Seq(
@@ -242,14 +227,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val calcRelType = relTypes("calc")
+    val calcRelType = constRes("calc")
     assert(calcRelType.cols == Seq("out"))
     assert(calcRelType.rows == Seq(ConstantIntV(14)))
     assertResult(Topped.Actual(false))(calcRelType.empty)
 
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("res"))
     assert(mainRelType.rows == Seq(ConstantIntV(14)))
     assertResult(Topped.Actual(false))(mainRelType.empty)
@@ -284,14 +269,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val edgeRelType = relTypes("edge")
+    val edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(edgeRelType.empty)
 
-    val pathRelType = relTypes("path")
+    val pathRelType = constRes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
@@ -326,14 +311,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val edgeRelType = relTypes("edge")
+    val edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(edgeRelType.empty)
 
-    val pathRelType = relTypes("path")
+    val pathRelType = constRes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
@@ -368,14 +353,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val edgeRelType = relTypes("edge")
+    val edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(edgeRelType.empty)
 
-    val pathRelType = relTypes("path")
+    val pathRelType = constRes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
@@ -417,19 +402,19 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val edgeRelType = relTypes("edge")
+    val edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top)) // we are demand driven
     assertResult(Topped.Top)(edgeRelType.empty)
 
-    val pathRelType = relTypes("path")
+    val pathRelType = constRes("path")
     assert(pathRelType.cols == Seq("x", "y"))
     assert(pathRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(pathRelType.empty)
 
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("y"))
     assert(mainRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
@@ -467,14 +452,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val inputRelType = relTypes("input")
+    val inputRelType = constRes("input")
     assert(inputRelType.cols == Seq("n"))
     assert(inputRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(inputRelType.empty)
 
-    val facRelType = relTypes("fac")
+    val facRelType = constRes("fac")
     assert(facRelType.cols == Seq("n", "r"))
     assert(facRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(facRelType.empty)
@@ -507,14 +492,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val inputRelType = relTypes("input")
+    val inputRelType = constRes("input")
     assert(inputRelType.cols == Seq("n"))
     assert(inputRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(inputRelType.empty)
 
-    val sumRelType = relTypes("prefixSum")
+    val sumRelType = constRes("prefixSum")
     assert(sumRelType.cols == Seq("t", "n"))
     assert(sumRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(sumRelType.empty)
@@ -547,14 +532,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val inputRelType = relTypes("input")
+    val inputRelType = constRes("input")
     assert(inputRelType.cols == Seq("n"))
     assert(inputRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(inputRelType.empty)
 
-    val mainRelType = relTypes("main")
+    val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("t", "n"))
     assert(mainRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainRelType.empty)
@@ -583,9 +568,9 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val edgeRelType = relTypes("edge")
+    val edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
@@ -610,9 +595,9 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val edgeRelType = relTypes("edge")
+    val edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.empty == Topped.Actual(true))
     assertResult(Topped.Actual(true))(edgeRelType.empty)
@@ -634,20 +619,20 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    var relTypes = interp(mod, Map(
+    var constRes = interp(mod, Map(
       "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    var edgeRelType = relTypes("edge")
+    var edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(ConstantIntV(1), ConstantIntV(2)))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
-    relTypes = interp(mod, Map(
+    constRes = interp(mod, Map(
       "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    edgeRelType = relTypes("edge")
+    edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, ConstantIntV(2)))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
@@ -670,20 +655,20 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    var relTypes = interp(mod, Map(
+    var constRes = interp(mod, Map(
       "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    var edgeRelType = relTypes("edge")
+    var edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(ConstantIntV(5), ConstantIntV(2)))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
-    relTypes = interp(mod, Map(
+    constRes = interp(mod, Map(
       "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    edgeRelType = relTypes("edge")
+    edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(ConstantIntV(5), ConstantIntV(2)))
     assertResult(Topped.Top)(edgeRelType.empty)
@@ -730,20 +715,20 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     // 9	10
     // 11	12
 
-    var relTypes = interp(mod, Map(
+    var constRes = interp(mod, Map(
       "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    var edgeRelType = relTypes("edge")
+    var edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
-    relTypes = interp(mod, Map(
+    constRes = interp(mod, Map(
       "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
-    edgeRelType = relTypes("edge")
+    edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
     //println(edgeRelType.empty)
@@ -777,14 +762,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
     
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val edgeRelType = relTypes("edge")
+    val edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.empty == Topped.Actual(true))
     assertResult(Topped.Actual(true))(edgeRelType.empty)
 
-    val filterEdgeRelType = relTypes("filterEdge")
+    val filterEdgeRelType = constRes("filterEdge")
     assert(filterEdgeRelType.cols == Seq("x", "y"))
     assert(filterEdgeRelType.rows == Seq(ConstantIntV(4), ConstantIntV(5)))
     assertResult(Topped.Actual(false))(filterEdgeRelType.empty)
@@ -817,14 +802,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val helperRelType = relTypes("helper")
+    val helperRelType = constRes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
-    val mainEdgeRelType = relTypes("main")
+    val mainEdgeRelType = constRes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
     assert(mainEdgeRelType.rows.head.toString == "TCons(Top,TNil())")
     assertResult(Topped.Actual(false))(mainEdgeRelType.empty)
@@ -858,14 +843,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val helperRelType = relTypes("helper")
+    val helperRelType = constRes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
-    val mainEdgeRelType = relTypes("main")
+    val mainEdgeRelType = constRes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
     assert(mainEdgeRelType.rows ==  Seq(Value.Top))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
@@ -899,14 +884,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val helperRelType = relTypes("helper")
+    val helperRelType = constRes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
-    val mainEdgeRelType = relTypes("main")
+    val mainEdgeRelType = constRes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
     assert(mainEdgeRelType.rows.head.toString == "TCons(Top,TNil())")
     assertResult(Topped.Top)(mainEdgeRelType.empty)
@@ -948,14 +933,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val helperRelType = relTypes("helper")
+    val helperRelType = constRes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
-    val mainEdgeRelType = relTypes("main")
+    val mainEdgeRelType = constRes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
     assert(mainEdgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
@@ -997,14 +982,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val helperRelType = relTypes("helper")
+    val helperRelType = constRes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
-    val mainEdgeRelType = relTypes("main")
+    val mainEdgeRelType = constRes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
     assert(mainEdgeRelType.rows == Seq(Value.Top, Value.Top))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
@@ -1038,14 +1023,14 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
+    val constRes = interp(mod)
 
-    val helperRelType = relTypes("helper")
+    val helperRelType = constRes("helper")
     assert(helperRelType.cols == Seq("x"))
     assert(helperRelType.rows == Seq(Value.Top))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
-    val mainEdgeRelType = relTypes("main")
+    val mainEdgeRelType = constRes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
     assert(mainEdgeRelType.rows.head.toString == "TCons(Top,TNil())")
     assertResult(Topped.Top)(mainEdgeRelType.empty)
@@ -1089,19 +1074,19 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint),
     ))
 
-    val relTypes = interp(mod)
-
-    val inputCalcEdgeRelType = relTypes("input_calc")
+    val constRes = interp(mod)
+    
+    val inputCalcEdgeRelType = constRes("input_calc")
     assert(inputCalcEdgeRelType.cols == Seq("x"))
     assert(inputCalcEdgeRelType.rows == Seq(Value.Top))
     assertResult(Topped.Top)(inputCalcEdgeRelType.empty)
 
-    val calcRelType = relTypes("calc")
+    val calcRelType = constRes("calc")
     assert(calcRelType.cols == Seq("x", "elem"))
     assert(calcRelType.rows == Seq(Value.Top, ConstantIntV(3)))
     assertResult(Topped.Top)(calcRelType.empty)
 
-    val mainEdgeRelType = relTypes("main")
+    val mainEdgeRelType = constRes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
     assert(mainEdgeRelType.rows == Seq(ConstantIntV(3)))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
