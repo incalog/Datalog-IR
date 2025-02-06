@@ -2,6 +2,7 @@ package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
 import inca.ir.analysis.base.effect.{BaseIRException, EmptyTable}
+import inca.ir.analysis.base.values.ConstantRelation.Empty
 import sturdy.data.WithJoin
 import sturdy.effect.except.Except
 import sturdy.values.Topped.Top
@@ -74,13 +75,20 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def project(rv: ConstantRelation, newColumns: Seq[String]): ConstantRelation =
     val colsIndex = newColumns.map(rv.cols.indexOf)
     rv.withRows(newColumns, rows => colsIndex.map(rows))
-
-  override def hstack(rv: ConstantRelation, other: ConstantRelation): ConstantRelation = (rv, other) match
-    case (_: ConstantRelation.Empty, _) => other
-    case (_, _: ConstantRelation.Empty) => rv
-    case (rv1: ConstantRelation.NonEmpty, rv2: ConstantRelation.NonEmpty) =>
-      rv1.withRows(rv1.cols ++ rv2.cols, rows => rows ++ rv2.rows)
-
+  
+  override def projectAndRenameWithMultipleAliases(rv: ConstantRelation, subst: Map[String, Seq[String]]): ConstantRelation =
+    val newCols = subst.values.flatten.toSeq
+    rv match
+      case ConstantRelation.Empty(_) => ConstantRelation.Empty(newCols)
+      case ConstantRelation.NonEmpty(_, _, emp) =>
+        val newRows = subst.flatMap { case (col, newCols) =>
+          val colIndex = rv.cols.indexOf(col)
+          val v = rv.rows(colIndex)
+          (1 to newCols.size).map(_ => v)
+        }.toSeq
+        ConstantRelation(newCols, newRows, emp)
+    
+  
   override def map(rv: ConstantRelation, columnName: String)(f: Seq[Value] => Value): ConstantRelation =
     rv.withRows(rv.cols :+ columnName, rows => rows :+ f(rows))
 

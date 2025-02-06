@@ -15,8 +15,6 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
 
   lazy val isEmpty: Boolean = cols.isEmpty && rows.isEmpty
 
-  lazy val isUnit: Boolean = cols.isEmpty && rows.size == 1 && rows.head == Seq()
-
   def union(other: ConcreteRelation[V]): ConcreteRelation[V] =
     if (cols.toSet != other.cols.toSet)
       throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
@@ -130,14 +128,18 @@ class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   override def map(rv: ConcreteRelation[V], columnName: String)(f: Row => V): ConcreteRelation[V] =
     rv.map(columnName)(f)
 
-  override def hstack(rv: ConcreteRelation[V], other: ConcreteRelation[V]): ConcreteRelation[V] =
-    val cartesian =
-      for {
-        row <- rv.rows
-        otherRow <- other.rows
-      } yield
-        row ++ otherRow
-    ConcreteRelation(rv.cols ++ other.cols, cartesian)
+  private def repeat[A](v: A, n: Int) = (1 to n).map(_ => v)
+
+  override def projectAndRenameWithMultipleAliases(rv: RV, subst: Map[String, Seq[String]]): RV =
+    val rows = rv.rows.toSeq
+    val initialRows = repeat(Seq[V](), rv.rows.size)
+    val (newCols, newRows) = subst.foldLeft((Seq[String](), initialRows)) {
+      case ((accCols, accRows), (supColumn, cols)) =>
+        val cIx = columnIndex(rv, supColumn)
+        val dupRows = rows.map(r => repeat(r(cIx), cols.size))
+        (accCols ++ cols, accRows.zip(dupRows).map((r1, r2) => r1 ++ r2))
+    }
+    ConcreteRelation(newCols, newRows.toSet)
 
   override def flatMap(rv: ConcreteRelation[V])(f: Row => ConcreteRelation[V]): ConcreteRelation[V] =
     assert(!rv.isEmpty)

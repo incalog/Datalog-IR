@@ -94,11 +94,17 @@ class TypeRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin
   override def map(rv: TypeRelation, columnName: String)(f: Seq[Value] => Value): TypeRelation =
     rv.withRows(rv.cols :+ columnName, rows => rows :+ f(rows))
 
-  override def hstack(rv: TypeRelation, other: TypeRelation): TypeRelation = (rv, other) match
-    case (_: TypeRelation.Empty, _) => other
-    case (_, _: TypeRelation.Empty) => rv
-    case (rv1: TypeRelation.NonEmpty, rv2: TypeRelation.NonEmpty) =>
-      rv1.withRows(rv1.cols ++ rv2.cols, rows => rows ++ rv2.rows)
+  override def projectAndRenameWithMultipleAliases(rv: TypeRelation, subst: Map[String, Seq[String]]): TypeRelation =
+    val newCols = subst.values.flatten.toSeq
+    rv match
+      case TypeRelation.Empty(_) => TypeRelation.Empty(newCols)
+      case TypeRelation.NonEmpty(_, _, emp) =>
+        val newRows = subst.flatMap { case (col, newCols) =>
+          val colIndex = rv.cols.indexOf(col)
+          val v = rv.rows(colIndex)
+          (1 to newCols.size).map(_ => v)
+        }.toSeq
+        TypeRelation(newCols, newRows, emp)
   
   override def fold(rv: TypeRelation, initial: Row)(f: (Row, Row) => Row): TypeRelation =
     rv match

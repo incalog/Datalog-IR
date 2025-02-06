@@ -41,18 +41,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
     val multiMapping = argMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
 
-    val preliminaryEvalContext = relationOps.project(supplementaryTable.getTable, multiMapping.keys.toSeq)
-
-    // duplicate all required values if an argument is passed twice
-    val contexts = multiMapping.map { case (supColumn, newNames) =>
-      val columnIndex = relationOps.columnIndex(preliminaryEvalContext, supColumn)
-      var tmpContext = relationOps.projectAndRename(preliminaryEvalContext, Map(supColumn -> newNames.head))
-      newNames.tail.foreach { n =>
-        tmpContext = relationOps.map(tmpContext, n)(_.apply(columnIndex))
-      }
-      tmpContext
-    }
-    val evalContext = contexts.foldLeft(relationOps.make(Seq(), Seq(Seq())))((acc, ctx) => relationOps.hstack(acc, ctx))
+    val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
 
     val adornment = Adornment(argMapping.map {
       case Some(_) => Adorn.b

@@ -334,19 +334,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val multiMapping = argMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
     // println(s"Multi mapping: $multiMapping")
     
-    // filter the current supplementary for the arguments we need
-    val preliminaryEvalContext = relationOps.project(supplementaryTable.getTable, multiMapping.keys.toSeq)
-
-    // duplicate all required values if an argument is passed twice
-    val contexts = multiMapping.map { case (supColumn, newNames) =>
-      val columnIndex = relationOps.columnIndex(preliminaryEvalContext, supColumn)
-      var tmpContext = relationOps.projectAndRename(preliminaryEvalContext, Map(supColumn -> newNames.head))
-      newNames.tail.foreach { n =>
-        tmpContext = relationOps.map(tmpContext, n)(_.apply(columnIndex))
-      }
-      tmpContext
-    }
-    val evalContext = contexts.foldLeft(relationOps.make(Seq(), Seq(Seq())))((acc, ctx) => relationOps.hstack(acc, ctx))
+    // filter / rename / duplicate the current arguments in the supplementary 
+    val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
 
     // calculate the adornment
     val adornment = Adornment(argMapping.map {
