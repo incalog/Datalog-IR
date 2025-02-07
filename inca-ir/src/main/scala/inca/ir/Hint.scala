@@ -17,7 +17,6 @@ trait Hints {
   }
 
   def hasHint(key: Hint.Key): Boolean = this.hints.contains(key)
-  //  def hasHint(hint: Hint): Boolean = this.hints.contains(hint.key)
 
   def clearHints(): this.type =
     this.hints.clear()

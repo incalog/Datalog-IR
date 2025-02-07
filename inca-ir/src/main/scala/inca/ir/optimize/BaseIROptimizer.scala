@@ -20,8 +20,11 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
 
   def getRelationResult(relation: Relation): Set[RV]
 
-  var params: Set[Ref[Var.Target]] = Set()
-  
+  var params: Map[Ref[Var.Target], Type] = Map()
+
+  def isParam(ref: Ref[Var.Target]): Boolean =
+    params.contains(ref)
+
   // You need to enable computeControlEvents to get a control graph
   def controlGraph: Option[String] = None
 
@@ -37,8 +40,8 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
     if (!analysisHasRun)
       analyzeProgram(modules)
     super.visitProgram(modules, dependencies)
-  
+
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
-    params = relation.params.map(p => RefByName(p.name)).toSet
+    params = relation.params.map(p => RefByName(p.name) -> p.ty).toMap
     super.visitRelation(relation)
   }

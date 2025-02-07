@@ -29,7 +29,19 @@ trait DisjointRuleAnalysis extends IRVisitor, Optimizer:
 
   private val gensym = new Gensym()
   private var varMapping = Map[Var.Target, String]()
+  
+  var hasAnalyzed = false
 
+  override def analyzeProgram(modules: Seq[Module]): Unit = visitProgram(modules)
+
+  override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] = 
+    if (!hasAnalyzed)
+      hasAnalyzed = true
+      super.visitProgram(modules, dependencies)
+    else
+      modules
+      
+  
   var currentBody = -1
   override def visitRelation(relation: Relation): Seq[Relation] = gensym.scoped {
     currentBody = -1

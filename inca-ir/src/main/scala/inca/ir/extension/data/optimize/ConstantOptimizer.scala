@@ -12,7 +12,6 @@ import inca.ir.optimize.{isTrue, isFalse}
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   override def valueToTermInternal(value: Value): Option[Term] = value match
-    // FIXME: While correct, this is causing problems in the Souffle backend
     case ConstantDataV(caseDef, args) =>
       val argsV = args.flatMap(valueToTermInternal)
       if (argsV.size != args.size)
@@ -23,7 +22,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   def deconstructBindings(args: Seq[Arg], cargs: Seq[Value]): Seq[Topped[Boolean]] = args.zip(cargs).map {
     case (WildcardArg(), v) => Topped.Actual(true)
-    case (TermArg(x: Var), v) if params.contains(x.ref) => Topped.Top
+    case (TermArg(x: Var), v) if isParam(x.ref) => Topped.Top
     case (TermArg(t), v) => getTermResult(t).headOption match
       case None => Topped.Top
       case Some(v0) => eqOps.equ(v0, v)

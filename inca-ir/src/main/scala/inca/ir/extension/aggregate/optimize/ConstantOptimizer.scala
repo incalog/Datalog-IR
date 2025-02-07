@@ -23,6 +23,10 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case AggregateColumnArg(t) => t.typ.get.ty
     case _ => super.argTy(arg)
 
+  override def isConstant(arg: Arg): Boolean = arg match
+    case AggregateColumnArg(t) => isConstant(t)
+    case _ => super.isConstant(arg)
+
   override def analyzeProgram(modules: Seq[Module]): Unit =
     relationsUsedInAggregations = Set()
     paramUsedAsAggregateColumn = Map()
