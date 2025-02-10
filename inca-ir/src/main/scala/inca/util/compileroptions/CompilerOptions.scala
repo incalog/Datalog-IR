@@ -98,6 +98,7 @@ class CompilerOptions protected(defaults: Seq[(String, Seq[(String, Any)])]):
     irLogging.logModule = false
     irLogging.logLowerings = false
     irLogging.logOptimizations = false
+    irLogging.logOptimizationStats = false
     irLogging.logStatsBeforeLowering = false
     irLogging.logStatsBeforeOptimizations = false
     irLogging.logStatsAfterOptimizations = false

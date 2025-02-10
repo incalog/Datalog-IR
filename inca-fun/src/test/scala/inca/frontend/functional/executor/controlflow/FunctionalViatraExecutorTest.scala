@@ -18,9 +18,6 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setPostProcessingPipeline(CompiledFunctionalUnit.viatraPostProcessingPipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-    compiled.compilerOptions.irLogging.logOptimizationStats = true
-    compiled.compilerOptions.irLogging.logStatsBeforeOptimizations = true
-    compiled.compilerOptions.irLogging.logStatsAfterOptimizations = true
 
     val loaded = exec.loadFunction(compiled)
     val setAdt = loaded.execute("mainFinalVar", Seq(prog1)).entries.head
@@ -38,9 +35,6 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
-    compiled.compilerOptions.irLogging.logOptimizationStats = true
-    compiled.compilerOptions.irLogging.logStatsBeforeOptimizations = true
-    compiled.compilerOptions.irLogging.logStatsAfterOptimizations = true
 
     val loaded = exec.loadFunction(compiled)
     val setAdt = loaded.execute("mainTransitiveFlow", Seq(prog1)).entries.head

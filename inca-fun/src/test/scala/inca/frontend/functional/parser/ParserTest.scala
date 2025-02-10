@@ -232,7 +232,7 @@ class ParserTest extends AnyFunSuite {
        |""".stripMargin
 
 
-  private def testSuccessAny[T](parser: P[Any], silent: Boolean = false): String => Assertion =
+  private def testSuccessAny[T](parser: P[Any], silent: Boolean = true): String => Assertion =
     (input: String) => {
       parser.parseAll(input) match
         case Left(value) => assert(false, explainParseError(value))

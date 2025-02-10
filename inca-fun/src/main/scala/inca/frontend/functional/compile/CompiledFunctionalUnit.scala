@@ -19,9 +19,7 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
   override def sourceLocation: SourceLocation = fun.name
 
   val funLogging = compilerOptions.funLogging
-  val irLogging = compilerOptions.irLogging
   val logTyped: Boolean = funLogging.logTypeInformation
-  val logControlGraph: Boolean = irLogging.logControlGraph
 
   lazy val typed: Module = {
     val logMod = funLogging.logModule

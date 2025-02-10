@@ -16,6 +16,9 @@ RUN wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/key
 # Install Rust for Ascent
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 
+# Install z3
+RUN apt-get update && apt-get install -y z3
+
 # Update sbt
 RUN sbt sbtVersion && \
  	sbt update
