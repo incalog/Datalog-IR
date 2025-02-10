@@ -1,9 +1,10 @@
 package inca.ir.analysis.base.logger
 
-import inca.ir.{Module, Arg, Atom, Body, Call, Eq, ExtensionalCall, Relation, Term, TermArg, Var, WildcardArg}
+import inca.ir.{Arg, Atom, Body, Call, Eq, ExtensionalCall, Module, Name, Relation, Term, TermArg, Var, WildcardArg}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.values.Meet
+import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
 import sturdy.effect.TrySturdy
 import sturdy.fix.Logger
@@ -13,6 +14,12 @@ import scala.compiletime.uninitialized
 import scala.collection.immutable.{AbstractSet, SortedSet}
 import scala.collection.mutable
 
+
+// TODO: This is all super hacky. What we actually want to do is:
+//  Get the unprocessed result after evaluating a body and annotate these values. Then, join those values with the
+//  previously annotated body value. However, for that we need a mapping from term -> SupColumn.
+//  Can we collect the SubColumn for each term during logging?
+
 /*
  An analysis logger is used to annotate Datalog AST notes with the computed analysis results.
  Extensions may choose to override this class to guarantee that all AST nodes are annotated.
@@ -21,6 +28,8 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
   extends Logger[FixIn, FixOut[V, RV]]:
 
   def extractTermValue(col: SupColumn): Option[TV]
+
+  def extractTermValue(col: SupColumn, rv: RV): Option[TV]
 
   case object TermKey extends AnalysisKey:
     override val key: String = "Term"
@@ -61,6 +70,18 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
       val bs = relation.bodies.flatMap { b =>
         terms.clear()
         values.clear()
+
+        // use the precise body results
+        val paramNames = relation.params.map(_.name.name)
+        b.getAnalysisResult(BodyKey).headOption match
+          case Some(rv) =>
+            val tvs = paramNames.flatMap { pn =>
+               extractTermValue(pn, rv.res).map(tv => pn -> tv)
+            }
+            terms.addAll(tvs.map((v, _) => Var(Name(v))))
+            values.addAll(tvs.map((v, tv) => Var(Name(v)) -> tv))
+          case _ => // nothing
+
         val visitedBody = visitBody(b)
         terms.foreach(t => values.get(t).foreach(v => t.storeAnalysisResult(TermResult(v))))
         visitedBody
@@ -86,12 +107,13 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
     val refinement = new TermRefinement
     refinement.visitProgram(Seq(mod))
 
-  override def enter(dom: FixIn): Unit = ()
+  override def enter(dom: FixIn): Unit = dom match
+    case _ => //
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) =>
       extractTermValue(supName).foreach(updateTermResult(t, _))
-    case (FixIn.Atom(at, _), Some(FixOut.Atom())) =>
+    case (FixIn.Atom(at, body), Some(FixOut.Atom())) =>
       updateAtomResult(at)
     case (FixIn.Assign(toTerm, fromTerm), Some(FixOut.Assign(toSup, fromSup))) =>
       //extractTermValue(toSup).foreach(updateTermResult(toTerm, _))
@@ -125,7 +147,17 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
     (lhsRes, rhsRes) match
       case (Some(ltr), Some(rtr)) =>
         val join = joinTV(ltr.value, rtr.value).get
-        lhs.storeAnalysisResult(TermResult(join))
+        // Super hacky, will probably break with other analysis. This prevents constant values from being updated
+        // with a more imprecise result.
+        (lhs, rhs) match
+          case (_: Var, _: Var) =>
+            lhs.storeAnalysisResult(TermResult(join))
+            rhs.storeAnalysisResult(TermResult(join))
+          case (_: Var, _) =>
+            lhs.storeAnalysisResult(TermResult(join))
+          case (_ , _: Var) =>
+            rhs.storeAnalysisResult(TermResult(join))
+          case _ => // nothing
       case (Some(ltr), None) =>
         rhs.storeAnalysisResult(ltr)
       case (None, Some(rtr)) =>

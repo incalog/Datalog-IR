@@ -158,7 +158,6 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     assertResult(1)(res.entries.head)
   }
 
-  // We need way more optimizations to make this program executable
   test("Plus") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Plus.oodl")
     val compiled = exec.compileOODL(code, options)

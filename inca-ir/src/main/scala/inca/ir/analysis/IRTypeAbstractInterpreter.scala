@@ -104,6 +104,11 @@ class IRTypeAbstractInterpreter(
     with irdata.logger.AnalysisAnnotator[Value, TRV, Value]
     with irstr.logger.AnalysisAnnotator[Value, TRV, Value]:
 
+      override def extractTermValue(supName: SupColumn, rv: TRV): Option[Value] =
+        val termTRV = relationOps.project(rv, Seq(supName))
+        assert(termTRV.rows.size == 1)
+        Some(termTRV.rows.head)
+    
       override def extractTermValue(supName: SupColumn): Option[Value] =
         val supTable = supplementaryTable.getTable
         val termTRV = relationOps.project(supTable, Seq(supName))
