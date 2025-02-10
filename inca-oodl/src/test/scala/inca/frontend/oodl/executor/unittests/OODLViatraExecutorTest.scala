@@ -49,8 +49,8 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
-    println(s"Total tuples: ${loaded.engine.readAll().map(_.size).sum}")
-    loaded.engine.readAll().foreach(r => println(s"${r.name}: ${r.size}"))
+    //println(s"Total tuples: ${loaded.engine.readAll().map(_.size).sum}")
+    //loaded.engine.readAll().foreach(r => println(s"${r.name}: ${r.size}"))
     assertResult("BBC")(res.entries.head)
   }
 

@@ -30,7 +30,7 @@ class ParserTest extends AnyFunSuite {
           val file = Source.fromURI(p.toUri)
           val sourceCode = file.getLines().mkString("\n")
           file.close()
-          testSuccessAny(Parser.module, true)(sourceCode)
+          testSuccessAny(Parser.module)(sourceCode)
         }
         FileVisitResult.CONTINUE
 

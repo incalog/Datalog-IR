@@ -105,7 +105,7 @@ class GenerateSouffleTest extends AnyFunSuite:
   test("path example") {
     val module = Module("PathExample", Language.Datalog, Seq(edgeRel, pathRel))
     val prog = GenerateSouffle.compileModule(module)
-    println(prog)
+    //println(prog)
   }
   test("notconnected example") {
     val module = Module("PathExample", Language.Datalog, Seq(edgeRel, nodeRel, pathRel, notConnectedRel))
@@ -154,10 +154,10 @@ class GenerateSouffleTest extends AnyFunSuite:
       lazy val irModules: Seq[Module] = Seq(irModule)
       override val compilerOptions: CompilerOptions = CompilerOptions.default
     compiledModule.setPipeline(pipeline)
-    println(irModule)
+    //println(irModule)
     val engine = Executor().instantiate(compiledModule)
     val rels = engine.readAll()
-    println(rels)
+    //println(rels)
   }
 
   test("process test 2") {

@@ -5,7 +5,7 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut, given}
 import inca.ir.analysis.base.logger.PrintLogger
-import inca.ir.analysis.base.ordering.{AtomOrderingOps, BaseAtomOrderingOps}
+import inca.ir.analysis.base.ordering.BaseAtomOrderingOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.string.analysis as irstr
@@ -14,18 +14,13 @@ import inca.ir.extension.aggregate.analysis as iragg
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.CollectedFailures
-import sturdy.effect.store.AStoreThreaded
 import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.fix
 import sturdy.fix.{HasFixpointCache, StackConfig}
-import sturdy.fix.StackConfig.{StackedCfgNodes, StackedStates}
-import sturdy.fix.context.Parameters
+import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ConcreteBooleanOps}
 import sturdy.values.ordering.EqOps
-import sturdy.values.references.{AllocationSiteAddr, given_Finite_AllocationSiteAddr}
 import sturdy.values.*
-
-import scala.compiletime.uninitialized
 
 // Implicits
 import sturdy.data.given
@@ -35,8 +30,6 @@ import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.FiniteFixIn
 import inca.ir.analysis.base.values.JoinCRV
 import sturdy.values.exceptions.PowersetExceptional
-import sturdy.fix.context.FiniteParameters
-import inca.ir.analysis.base.values.FiniteV
 
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]
@@ -106,20 +99,6 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   val stackConfig: StackConfig = StackedStates(storeNonrecursiveOutput = true)
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
-    /*val fixPt =
-      fix.notContextSensitive[FixIn, FixOut[Value, CRV], fix.Combinator[FixIn, FixOut[Value, CRV]]](
-        fix.filter({
-          case _: FixIn.EnterRelation => true
-          case _ => false // important, filter everything out we don't need
-        }, fix.iter.innermost[FixIn, FixOut[Value, CRV], Unit](StackedStates()))
-          //fix.iter.innermost[FixIn, FixOut[Value, TRV], Unit](StackedCfgNodes()))
-          //fix.iter.outermost[FixIn, FixOut[Value, TRV], Unit, Unit, Unit, Unit](StackedStates(readPriorOutput = true)))
-        )*/
-
-    // To get the correct Datalog semantics, we need to differentiate callsites.
-    // Otherwise, queries such as R(1) and R(2) would be joined.
-    given Finite[Value] = new FiniteV
-
     val fixPt =
       fix.notContextSensitive[FixIn, FixOut[Value, CRV], fix.Combinator[FixIn, FixOut[Value, CRV]]](
         fix.filter(_.isInstanceOf[FixIn.EnterRelation], {
