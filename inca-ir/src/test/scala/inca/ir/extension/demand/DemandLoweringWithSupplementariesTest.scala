@@ -22,7 +22,7 @@ class DemandLoweringWithSupplementariesTest extends AnyFunSuiteLike:
     var optimized: Module = null
     try {
       typecheckerBefore.checkProgram(Seq(mod))
-      println(mod)
+      //println(mod)
       printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
       typecheckerLowered.checkProgram(Seq(lowered))
@@ -33,7 +33,7 @@ class DemandLoweringWithSupplementariesTest extends AnyFunSuiteLike:
 
       lowered
     } finally {
-      if (!printedMod)
+      /*if (!printedMod)
         println(mod)
       println()
       println("Lowered:")
@@ -41,21 +41,21 @@ class DemandLoweringWithSupplementariesTest extends AnyFunSuiteLike:
 
       println()
       println("Optimized:")
-      println(optimized)
+      println(optimized)*/
       val errorsBefore = typecheckerBefore.getErrors
       val errorsLowered = typecheckerLowered.getErrors
       val errorsOptimized = typecheckerOptimized.getErrors
       if (errorsBefore.nonEmpty) {
-        println("Type errors in original code:")
-        errorsBefore.foreach(println)
+        //println("Type errors in original code:")
+        //errorsBefore.foreach(println)
       }
       if (errorsLowered.nonEmpty) {
-        println("Type errors in lowered code:")
-        errorsLowered.foreach(println)
+        //println("Type errors in lowered code:")
+        //errorsLowered.foreach(println)
       }
       if (errorsOptimized.nonEmpty) {
-        println("Type errors in optimized code:")
-        errorsOptimized.foreach(println)
+        //println("Type errors in optimized code:")
+        //errorsOptimized.foreach(println)
       }
     }
 

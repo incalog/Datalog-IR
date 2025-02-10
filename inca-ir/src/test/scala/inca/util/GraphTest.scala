@@ -36,7 +36,7 @@ class GraphTest extends AnyFunSuite:
       Set("A", "B", "C", "D")
     ))(res)
 
-    println(g.stronglyConnectedComponentsWithInfo)
+    //println(g.stronglyConnectedComponentsWithInfo)
   }
 
   /**

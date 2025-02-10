@@ -37,11 +37,11 @@ class DemandLoweringTest extends AnyFunSuiteLike:
       val errorsAfter = typecheckerAfter.getErrors
       if (errorsBefore.nonEmpty) {
         //println("Type errors in original code:")
-        errorsBefore.foreach(println)
+        //errorsBefore.foreach(println)
       }
       if (errorsAfter.nonEmpty) {
         //println("Type errors in lowered code:")
-        errorsAfter.foreach(println)
+        //errorsAfter.foreach(println)
       }
     }
 

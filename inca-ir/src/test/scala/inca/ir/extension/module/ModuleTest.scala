@@ -193,7 +193,7 @@ class ModuleTest extends AnyFunSuiteLike:
     checker.failOnWarnings()
     checker.failOnError()
 
-    println(linked)
+    //println(linked)
   }
 
   test("Provide required") {
