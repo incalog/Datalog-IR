@@ -4,27 +4,23 @@ import inca.ir
 import inca.ir.analysis.base.effect.*
 import inca.ir.analysis.base.ordering.AtomOrderingOps
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
-import inca.ir.MainHint
 import inca.ir.analysis.base.effect
-import inca.ir.{Atom, MainHint, ModuleEntry, TermType}
-import inca.ir.typing.Mode
+import inca.ir.{Atom, MainHint, ModuleEntry}
 import inca.util.Gensym
 import sturdy.data.MayJoin.WithJoin
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 import sturdy.effect.except.Except
 import sturdy.effect.failure.{CollectedFailures, Failure}
-import sturdy.effect.store.Store
 import sturdy.effect.{EffectList, EffectStack}
 import sturdy.fix.Fixpoint
 import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
-import sturdy.values.references.AllocationSiteAddr
 
 // TODO:
-//  1. Make Context-Sensitive + Insensitive configurable
-//  2. Concrete Interpreter (agg)
-//  3. Interval Analysis
+//  1. Concrete Interpreter (agg)
+//  2. Interval Analysis
+//  3. Functional Dependency analysis?
 
 enum Adorn:
   case b
