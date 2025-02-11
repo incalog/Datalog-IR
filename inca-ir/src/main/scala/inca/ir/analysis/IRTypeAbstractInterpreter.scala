@@ -100,20 +100,20 @@ class IRTypeAbstractInterpreter(
 
   class AnalysisAnnotator
     extends BaseAnalysisAnnotator[Value, TRV, Value]
-    with irarith.logger.AnalysisAnnotator[Value, TRV, Value]
-    with irdata.logger.AnalysisAnnotator[Value, TRV, Value]
-    with irstr.logger.AnalysisAnnotator[Value, TRV, Value]:
+      with irarith.logger.AnalysisAnnotator[Value, TRV, Value]
+      with irdata.logger.AnalysisAnnotator[Value, TRV, Value]
+      with irstr.logger.AnalysisAnnotator[Value, TRV, Value]:
 
-      override def extractTermValue(supName: SupColumn, rv: TRV): Option[Value] =
+    override def extractColumns(rv: TRV): Seq[String] =
+      relationOps.columns(rv)
+  
+    override def extractTermValue(supName: SupColumn, rv: TRV): Option[Value] =
+      if (relationOps.hasColumn(rv, supName))
         val termTRV = relationOps.project(rv, Seq(supName))
         assert(termTRV.rows.size == 1)
         Some(termTRV.rows.head)
-    
-      override def extractTermValue(supName: SupColumn): Option[Value] =
-        val supTable = supplementaryTable.getTable
-        val termTRV = relationOps.project(supTable, Seq(supName))
-        assert(termTRV.rows.size == 1)
-        Some(termTRV.rows.head)
+      else
+        None
 
   val analysisAnnotator: AnalysisAnnotator = new AnalysisAnnotator
   

@@ -27,7 +27,7 @@ import scala.collection.mutable
 trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV], meetTV: Meet[TV])
   extends Logger[FixIn, FixOut[V, RV]]:
 
-  def extractTermValue(col: SupColumn): Option[TV]
+  def extractColumns(rv: RV): Seq[String]
 
   def extractTermValue(col: SupColumn, rv: RV): Option[TV]
 
@@ -62,115 +62,54 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
    * During logging, we might over approximate some terms. This class computes the meet for each term
    * and refines the results.
    */
-  class TermRefinement extends IRVisitor:
-    val terms: mutable.ListBuffer[Term] = new mutable.ListBuffer
-    val values: mutable.Map[Term, TV] = mutable.Map.empty
-
-    override def visitRelation(relation: Relation): Seq[Relation] =
-      val bs = relation.bodies.flatMap { b =>
-        terms.clear()
-        values.clear()
-
-        // use the precise body results
-        val paramNames = relation.params.map(_.name.name)
-        b.getAnalysisResult(BodyKey).headOption match
-          case Some(rv) =>
-            val tvs = paramNames.flatMap { pn =>
-               extractTermValue(pn, rv.res).map(tv => pn -> tv)
-            }
-            terms.addAll(tvs.map((v, _) => Var(Name(v))))
-            values.addAll(tvs.map((v, tv) => Var(Name(v)) -> tv))
-          case _ => // nothing
-
-        val visitedBody = visitBody(b)
-        terms.foreach(t => values.get(t).foreach(v => t.storeAnalysisResult(TermResult(v))))
-        visitedBody
-      }
-      Seq(Relation(relation.name, relation.params.flatMap(visitParam), bs))
-
+  class TermAnnotator(termToValue: Map[Term, TV]) extends IRVisitor:
     override def visitTerm(term: Term): Seq[Term] =
       val oldVOption = term.getAnalysisResult(TermKey).headOption.map(_.value)
-      val newVOption = values.get(term)
+      val newVOption = termToValue.get(term)
       (oldVOption, newVOption) match
         case (Some(oldV), Some(newV)) =>
-          terms += term
-          meetTV(oldV, newV).ifChanged(values.put(term, _))
-        case (Some(oldV), _) =>
-          terms += term
-          values.put(term, oldV)
-        //case (_, Some(newV)) => values.put(term, newV)
+          joinTV(oldV, newV).ifChanged(tv => term.storeAnalysisResult(TermResult(tv)))
+        case (_, Some(newV)) =>
+          term.storeAnalysisResult(TermResult(newV))
         case _ => // nothing
       super.visitTerm(term)
 
-
-  def refineTerms(mod: Module): Unit =
-    val refinement = new TermRefinement
-    refinement.visitProgram(Seq(mod))
+  private val supColumnStack: mutable.Stack[mutable.Map[SupColumn, Term]] = mutable.Stack()
 
   override def enter(dom: FixIn): Unit = dom match
-    case _ => //
+    case FixIn.Body(_, _, _) => supColumnStack.push(mutable.Map())
+    case _ =>
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) =>
-      extractTermValue(supName).foreach(updateTermResult(t, _))
-    case (FixIn.Atom(at, body), Some(FixOut.Atom())) =>
-      updateAtomResult(at)
-    case (FixIn.Assign(toTerm, fromTerm), Some(FixOut.Assign(toSup, fromSup))) =>
-      //extractTermValue(toSup).foreach(updateTermResult(toTerm, _))
-    case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv))) =>
+      supColumnStack.head.put(supName, t)
+      //extractTermValue(supName).foreach(updateTermResult(t, _))
+    case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv, rawBody))) =>
+      // map all terms to values
+      val supColumnToTerm = supColumnStack.pop()
+      var termToValue = supColumnToTerm.flatMap { (supCol, term) =>
+        extractTermValue(supCol, rawBody).map(term -> _)
+      }
+      // we might miss some variables terms we have not visited in the fixpoint
+      val collectedSupColumns = supColumnToTerm.keys.toSet
+      val allSubColumns = extractColumns(rawBody).toSet
+      termToValue = termToValue ++= allSubColumns.diff(collectedSupColumns).flatMap { missingCol =>
+        extractTermValue(missingCol, rawBody).map(Var(Name(missingCol)) -> _)
+      }
+      // annotate the terms
+      TermAnnotator(termToValue.toMap).visitBody(rel.bodies(ix))
+      // annotate the body
       updateBodyResult(rel.bodies(ix), rv)
     case (FixIn.EnterRelation(r, _), Some(FixOut.Relation(rv))) =>
+      // annotate the relation
       updateRelationResult(r, rv)
     case _ => // nothing
-
-  def extractTermAndVarName(arg: Arg): Option[(Term, String)] = arg match
-    case TermArg(t@Var(ref)) => Some((t, ref.name.name))
-    case WildcardArg() => None
-    case _ => None
 
   def updateTermResult(term: Term, value: TV): Unit =
     val newRes = term.getAnalysisResult(TermKey).headOption match
       case Some(tr) => TermResult(joinTV(tr.value, value).get)
       case _ => TermResult(value)
     term.storeAnalysisResult(newRes)
-
-  // This is an over approximation
-  def updateArgResult(args: Seq[Arg]): Unit =
-    args.flatMap(extractTermAndVarName).foreach { (term, varName) =>
-      extractTermValue(varName).foreach(updateTermResult(term, _))
-    }
-
-  // This is an over approximation
-  def updateVariableResult(lhs: Term, rhs: Term): Unit =
-    val lhsRes = lhs.getAnalysisResult(TermKey).headOption
-    val rhsRes = rhs.getAnalysisResult(TermKey).headOption
-    (lhsRes, rhsRes) match
-      case (Some(ltr), Some(rtr)) =>
-        val join = joinTV(ltr.value, rtr.value).get
-        // Super hacky, will probably break with other analysis. This prevents constant values from being updated
-        // with a more imprecise result.
-        (lhs, rhs) match
-          case (_: Var, _: Var) =>
-            lhs.storeAnalysisResult(TermResult(join))
-            rhs.storeAnalysisResult(TermResult(join))
-          case (_: Var, _) =>
-            lhs.storeAnalysisResult(TermResult(join))
-          case (_ , _: Var) =>
-            rhs.storeAnalysisResult(TermResult(join))
-          case _ => // nothing
-      case (Some(ltr), None) =>
-        rhs.storeAnalysisResult(ltr)
-      case (None, Some(rtr)) =>
-        lhs.storeAnalysisResult(rtr)
-      case _ => // nothing
-
-  // Not all AST-term nodes are visited. Handle the missing cases explicitly in this method.
-  def updateAtomResult(at: Atom): Unit = at match
-    case Call(_, args, _) => updateArgResult(args)
-    case ExtensionalCall(_, args, _) => updateArgResult(args)
-    case Eq(_, _, true) => // Ignore negative comparison
-    case Eq(lhs, rhs, false) => updateVariableResult(lhs, rhs)
-    case _ => // nothing
 
   def updateRelationResult(rel: Relation, value: RV): Unit =
     val newResult = rel.getAnalysisResult(RelationKey).headOption match

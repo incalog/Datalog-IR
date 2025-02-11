@@ -49,7 +49,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   override def getRelationResult(relation: Relation): Set[ConstantRelation] =
     relation.getAnalysisResult(RelationKey).map(_.res)
 
-  private def relationAlwaysFails(relation: Relation): Boolean =
+  protected def relationAlwaysFails(relation: Relation): Boolean =
     getRelationResult(relation).map(_.empty).forall {
       case Topped.Actual(v) => v
       case Topped.Top => false
@@ -154,10 +154,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     true
 
   protected def mayEliminate(t: Term): Boolean =
-    true
-  /*t match
-    case _: Var => !isParam(t.asInstanceOf[Var].ref)
-    case _ => true*/
+    // See branching test. Our annotation is too imprecise, we work around this with a simple heuristic.
+    // A term can only be constant, if we know that all variables used in the term are constant as well.
+    isConstant(t) && t.vars.forall(isConstant)
 
   protected def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
     case TermArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
@@ -166,7 +165,11 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   protected def argTy(arg: Arg): Type = arg match
     case TermArg(t) => t.typ.get.ty
     case w@WildcardArg() => w.typ.get.ty
-
+  
+  /*protected def mayEliminate(arg: Arg): Boolean = arg match
+    case TermArg(t) => mayEliminate(t)
+    case WildcardArg() => false*/
+  
   protected def mayEliminate(eq: Eq): Boolean =
     eq.neg || (mayEliminate(eq.lhs) && mayEliminate(eq.rhs))
 
@@ -221,7 +224,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
             constantArgs.flatMap { case ((a, v), _) =>
               extractBindingVarRef(a).flatMap {
                 case ref if isParam(ref) || !isConstant(a) => Some(Eq(Var(ref), Cast(valueToTerm(v).get, argTy(a))))
-                case ref => None
+                case _ => None
               }
             } ++ ats
           case _ => super.visitAtom(atom)

@@ -117,30 +117,22 @@ class IRConstantAbstractInterpreter(
       with irstr.logger.AnalysisAnnotator[Value, RV, Value]
       with iragg.logger.AnalysisAnnotator[Value, RV, Value]:
 
-    override def extractTermValue(supName: SupColumn, rv: RV): Option[Value] =
-      val termTRV = relationOps.project(rv, Seq(supName))
-      termTRV match
-        case ConstantRelation.Empty(cs) => None
-        case ConstantRelation.NonEmpty(cs, rows, emp) =>
-          assert(rows.size == 1)
-          Some(rows.head)
+    override def extractColumns(rv: RV): Seq[String] =
+      relationOps.columns(rv)
       
-    override def extractTermValue(supName: SupColumn): Option[Value] =
-      val supTable = supplementaryTable.getTable
-      val termTRV = relationOps.project(supTable, Seq(supName))
-      termTRV match
-        case ConstantRelation.Empty(cs) => None
-        case ConstantRelation.NonEmpty(cs, rows, emp) => 
-          assert(rows.size == 1)
-          Some(rows.head)
+    override def extractTermValue(supName: SupColumn, rv: RV): Option[Value] =
+      if (relationOps.hasColumn(rv, supName))
+        val termTRV = relationOps.project(rv, Seq(supName))
+        termTRV match
+          case ConstantRelation.Empty(cs) => None
+          case ConstantRelation.NonEmpty(cs, rows, emp) =>
+            assert(rows.size == 1)
+            Some(rows.head)
+      else
+        None
 
   // annotate information about constants
   val analysisAnnotator = new AnalysisAnnotator
-
-  override def evalModule(m: ir.Module)(using Fixed): Map[String, RV] =
-    val idb = super.evalModule(m)
-    analysisAnnotator.refineTerms(m)
-    idb
 
   // log the control-flow graph
   private lazy val cfgLogger = new ControlEventLogger[Value, RV](this)

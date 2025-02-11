@@ -54,7 +54,7 @@ enum FixOut[V, RV]:
   case Assign(to: SupColumn, from: SupColumn)
   case Atom()
   case ExitCall(value: RV)
-  case Body(value: RV)
+  case Body(value: RV, rawBody: RV)
   case Relation(value: RV)
 
 given FiniteFixIn: Finite[FixIn] with {}
@@ -66,7 +66,12 @@ given CCombineFixOut[V, RV, W <: Widening](using Combine[RV, W]): Combine[FixOut
       case (FixOut.Assign(t1, f1), FixOut.Assign(t2, f2)) => assert(t1 == t2); MaybeChanged(FixOut.Assign(t1, f1), out1)
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => Combine(rv1, rv2).map(FixOut.ExitCall.apply)
-      case (FixOut.Body(rv1), FixOut.Body(rv2)) => Combine(rv1, rv2).map(FixOut.Body.apply)
+      case (FixOut.Body(rv1, rbv1), FixOut.Body(rv2, rbv2)) => 
+        val c1 = Combine(rv1, rv2)
+        val c2 = Combine(rbv1, rbv2)
+        (c1.hasChanged, c2.hasChanged) match
+          case (false, false) => Unchanged(FixOut.Body(c1.get, c2.get))
+          case _ => Changed(FixOut.Body(c1.get, c2.get))
       case (FixOut.Relation(rv1), FixOut.Relation(rv2)) => Combine(rv1, rv2).map(FixOut.Relation.apply)
       case _ => throw new IllegalArgumentException(s"Cannot combine outputs of different kind, $out1 and $out2")
 
@@ -143,7 +148,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       FixOut.Assign(toSup, fromSup)
     case FixIn.Body(rel, ix, paramNames) =>
       //(s"## Eval ${rel.name} body $ix")
-      FixOut.Body(evalBodyOpen(rel.bodies(ix), paramNames))
+      val (rv, rawRV) = evalBodyOpen(rel.bodies(ix), paramNames)
+      FixOut.Body(rv, rawRV)
     case FixIn.EnterRelation(rel, adornment) =>
       //println(s"## Eval ${rel.name}")
       FixOut.Relation(evalRelationOpen(rel, adornment))
@@ -233,7 +239,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   }}
 
   inline def evalBody(rel: ir.Relation, ix: Int, paramNames: Seq[String])(using rec: Fixed): RV = rec(FixIn.Body(rel, ix, paramNames)) match
-    case FixOut.Body(rv) => rv
+    case FixOut.Body(rv, _) => rv
     case _ => throw new IllegalStateException()
 
   private def isAssignable(at: Atom, supCols: Seq[String]): Boolean = at match
@@ -242,7 +248,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         extractVarName(lhs).isDefined && rhs.unboundVars.isEmpty && rhs.boundVars.map(_.name.name).forall(supCols.contains)
     case _ => false
 
-  def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): RV = supplementaryTable.scoped {
+  def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): (RV, RV) = supplementaryTable.scoped {
     var rest = b.atoms
     while (rest.nonEmpty) {
       val sup = supplementaryTable.getTable
@@ -257,7 +263,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       rest = later
     }
     //b.atoms.foreach(evalAtom(_, b))
-    relationOps.project(supplementaryTable.getTable, paramNames)
+    val rawBody = supplementaryTable.getTable
+    val projectedBody = relationOps.project(rawBody, paramNames)
+    (projectedBody, rawBody)
   }
 
   inline def evalAtom(at: ir.Atom, body: ir.Body)(using rec: Fixed): Unit = rec(FixIn.Atom(at, body)) match
