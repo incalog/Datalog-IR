@@ -66,7 +66,7 @@ given CCombineFixOut[V, RV, W <: Widening](using Combine[RV, W]): Combine[FixOut
       case (FixOut.Assign(t1, f1), FixOut.Assign(t2, f2)) => assert(t1 == t2); MaybeChanged(FixOut.Assign(t1, f1), out1)
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => Combine(rv1, rv2).map(FixOut.ExitCall.apply)
-      case (FixOut.Body(rv1, rbv1), FixOut.Body(rv2, rbv2)) => 
+      case (FixOut.Body(rv1, rbv1), FixOut.Body(rv2, rbv2)) =>
         val c1 = Combine(rv1, rv2)
         val c2 = Combine(rbv1, rbv2)
         (c1.hasChanged, c2.hasChanged) match
@@ -316,7 +316,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case (_, false, false) => evalAssign(rhs, lhs)
       case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
-  def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
+  protected def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
     case ir.TermArg(t) if boundInSupplementary(t) => Some(evalTerm(t))
     case ir.TermArg(t) => None
     case ir.WildcardArg() => None

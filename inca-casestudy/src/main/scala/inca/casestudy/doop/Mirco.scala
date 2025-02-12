@@ -1,10 +1,11 @@
 package inca.casestudy.doop
 
+import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.{CompiledUnit, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{block, bool, disjunction, module, not}
-import inca.ir.optimize.AliasElimination
+import inca.ir.optimize.{AliasElimination, IRConstantOptimizer, IdentityCastElimination}
 import inca.souffle.frontend.compile.CompiledSouffleProgram
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend
@@ -18,6 +19,7 @@ object Mirco:
     val baseDir = "doop/"
     val source = Source.fromResource(baseDir + file)
     val options = CompilerOptions.default
+    options.irLogging.logOptimizationStats = true
     //options.irLogging.logLowerings = true
     val compiled = CompiledSouffleProgram.fromSource("micro", source, options)
     compiled.setPipeline(List(
@@ -27,6 +29,15 @@ object Mirco:
       () => new not.Lowering {},
       () => new AliasElimination {},
       () => new module.Lowering {}
+    ))
+
+    compiled.setOptimizationPipeline(List(
+      () => new IRConstantOptimizer(true, false, false),
+      () => new IdentityCastElimination {},
+      () => new AliasElimination {},
+      () => new IRConstantOptimizer(true, false, true),
+      () => new IdentityCastElimination {},
+      () => new AliasElimination {},
     ))
 
     println("Load edb from files...")
@@ -73,7 +84,7 @@ object Mirco:
 
   @main
   def runMicroDlViatra(): Unit = {
-    backend.Executor.initializeLogging()
+    //backend.Executor.initializeLogging()
     //inca.viatra.Executor.enableDebugLogging()
     runMicroDL(compiled => Executor().instantiate(compiled))
   }

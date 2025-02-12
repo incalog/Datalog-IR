@@ -10,6 +10,7 @@ import inca.ir.optimize.{AliasElimination, DisjointRuleAnalysis}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 
+// TODO: Viatra seems to fully ignore this
 object Experiment:
 
   val inputRel = Relation("input", Seq(
