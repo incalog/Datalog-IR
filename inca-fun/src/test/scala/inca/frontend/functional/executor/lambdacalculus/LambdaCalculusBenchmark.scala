@@ -12,7 +12,7 @@ import inca.viatra
 import java.io.File
 
 object LambdaCalculusBenchmark:
-  val outDir: Option[File] = Some(File("/Users/David/Desktop"))
+  val outDir: Option[File] = Some(File("benchmark/inca_fun/LambdaCalculus"))
 
   @main
   def measureLambdaCalculus(): Unit =
@@ -21,7 +21,7 @@ object LambdaCalculusBenchmark:
     val prog = generateTypedProg(50)
 
     // Measure statistics exactly once
-    val statConfig = FunctionalBenchmarkConfig(s"-", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
+    val statConfig = FunctionalBenchmarkConfig("", "", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
     val statBenchmark = FunctionalBenchmark("LambdaCalculus", Seq(statConfig), "main", Seq(prog), outDir)
 
     val statsDs = statBenchmark.measureStatistics()
@@ -40,10 +40,10 @@ object LambdaCalculusBenchmark:
     )
     val configs = execs.flatMap { exec =>
       Seq(
-        FunctionalBenchmarkConfig(s"${exec.name}", code, FunctionalExecutor(exec), options),
-        FunctionalBenchmarkConfig(s"${exec.name} (opt)", code, FunctionalExecutor(exec), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
+        FunctionalBenchmarkConfig(exec.name, "unoptimized", code, FunctionalExecutor(exec), options),
+        FunctionalBenchmarkConfig(exec.name, "optimized", code, FunctionalExecutor(exec), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
       )
     }
     val benchmark = FunctionalBenchmark("LambdaCalculus", configs, "main", Seq(prog), outDir)
-    val perfDs = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5)
+    val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)

@@ -9,18 +9,17 @@ import inca.{ascent, souffle, viatra}
 
 import java.io.File
 
-// TODO: Use a bigger input program
 object AsgBenchmark:
-  val outDir: Option[File] = Some(File("/Users/David/Desktop"))
+  val outDir: Option[File] = Some(File("benchmark/inca_fun/Asg"))
 
   @main
   def measureAsg(): Unit =
     val code = FileUtil.readFileFromResource("functional/asg/DependencyAnalysis.finca")
     val options = FunctionalCompilerOptions.default
-    val prog = prog1
+    val prog = generateProgram(50, 10)
 
     // Measure statistics exactly once
-    val statConfig = FunctionalBenchmarkConfig(s"-", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
+    val statConfig = FunctionalBenchmarkConfig("", "", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
     val statBenchmark = FunctionalBenchmark("ASG", Seq(statConfig), "main", Seq(prog), outDir)
 
     val statsDs = statBenchmark.measureStatistics()
@@ -39,10 +38,10 @@ object AsgBenchmark:
     )
     val configs = execs.flatMap { exec =>
       Seq(
-        FunctionalBenchmarkConfig(s"${exec.name}", code, FunctionalExecutor(exec), options),
-        FunctionalBenchmarkConfig(s"${exec.name} (opt)", code, FunctionalExecutor(exec), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
+        FunctionalBenchmarkConfig(exec.name, "unoptimized", code, FunctionalExecutor(exec), options),
+        FunctionalBenchmarkConfig(exec.name, "optimized", code, FunctionalExecutor(exec), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
       )
     }
     val benchmark = FunctionalBenchmark("ASG", configs, "main", Seq(prog), outDir)
-    val perfDs = benchmark.measureAndPlotPerformance(runs = 5, warmups = 3)
+    val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)

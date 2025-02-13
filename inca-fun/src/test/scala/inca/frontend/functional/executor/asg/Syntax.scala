@@ -45,6 +45,19 @@ import Def._
 def generateProg(size: Int) = generateAST(0, size).toADT
 */
 
+def generateProgram(size: Int, step: Int): ADT =
+  val nodes = Range.inclusive(1, size).flatMap { i =>
+    val forward = DefV(s"a${i - 1}", Var(s"a$i"))
+    if (i % step == 0)
+      val back = DefV(s"a$i", Var(s"a${i - step}"))
+      Seq(forward, back)
+    else
+      Seq(forward)
+  }
+  nodes.foldRight[DefList](Nil()) {
+    case (node, acc) => Cons(node, acc)
+  }.toADT
+
 val prog1: ADT =
   Cons(
     DefV("x", Var("y")),

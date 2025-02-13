@@ -37,6 +37,33 @@ enum Stm:
 import Stm._
 import Exp._
 
+
+def nestedWhileProgramAST(nestings: Int, repetitions: Int): Stm =
+  def nestedWhile(levels: Int): Stm =
+    if (levels == 0)
+      Sequence(
+        Assign("x", Add(Var("x"), Num(-1))),
+        Assign("x", Add(Var("x"), Num(1)))
+      )
+    else
+      While(
+        GreaterThan(Var("x"), Num(0)),
+        nestedWhile(levels - 1)
+      )
+
+  def sequence(s: () => Stm, counts: Int): Stm =
+    if (counts == 0)
+      s()
+    else
+      Sequence(s(), sequence(s, counts - 1))
+
+  Sequence(Assign("x", Num(1)), sequence(() => nestedWhile(nestings), repetitions))
+
+
+def nestedWhileProgram(nestings: Int, repetitions: Int): ADT =
+  nestedWhileProgramAST(nestings, repetitions).toADT
+
+
 val prog1: ADT =
   Sequence(
     Assign("x", Num(2)),
