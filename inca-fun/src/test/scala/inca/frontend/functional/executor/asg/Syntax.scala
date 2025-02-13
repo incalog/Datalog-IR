@@ -33,6 +33,18 @@ import DefList._
 import Exp._
 import Def._
 
+/*private def generateAST(i: Int, end: Int): Exp =
+  if (i < end)
+    Cons(
+      DefV(s"a$i", Var(s"a${i+1}")),
+      generateAST(i+1, end)
+    )
+  else
+    Num(3)
+
+def generateProg(size: Int) = generateAST(0, size).toADT
+*/
+
 val prog1: ADT =
   Cons(
     DefV("x", Var("y")),

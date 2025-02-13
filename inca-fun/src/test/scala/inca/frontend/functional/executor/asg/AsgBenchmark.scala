@@ -1,28 +1,27 @@
-package inca.frontend.functional.executor.lambdacalculus
+package inca.frontend.functional.executor.asg
 
-import inca.frontend.functional.util.{FunctionalBenchmark, FunctionalBenchmarkConfig}
-import inca.util.FileUtil
-import inca.ascent
 import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
+import inca.frontend.functional.util.{FunctionalBenchmark, FunctionalBenchmarkConfig}
 import inca.ir.execution.ThreadCount.Fixed
-import inca.souffle
-import inca.viatra
+import inca.util.FileUtil
+import inca.{ascent, souffle, viatra}
 
 import java.io.File
 
-object LambdaCalculusBenchmark:
+// TODO: Use a bigger input program
+object AsgBenchmark:
   val outDir: Option[File] = Some(File("/Users/David/Desktop"))
 
   @main
-  def measureLambdaCalculus(): Unit =
-    val code = FileUtil.readFileFromResource("functional/lambdacalculus/LambdaCalculus.finca")
+  def measureAsg(): Unit =
+    val code = FileUtil.readFileFromResource("functional/asg/DependencyAnalysis.finca")
     val options = FunctionalCompilerOptions.default
-    val prog = generateTypedProg(50)
+    val prog = prog1
 
     // Measure statistics exactly once
     val statConfig = FunctionalBenchmarkConfig(s"-", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
-    val statBenchmark = FunctionalBenchmark("LambdaCalculus", Seq(statConfig), "main", Seq(prog), outDir)
+    val statBenchmark = FunctionalBenchmark("ASG", Seq(statConfig), "main", Seq(prog), outDir)
 
     val statsDs = statBenchmark.measureStatistics()
     val optimDs = statBenchmark.measureOptimizations()
@@ -44,6 +43,6 @@ object LambdaCalculusBenchmark:
         FunctionalBenchmarkConfig(s"${exec.name} (opt)", code, FunctionalExecutor(exec), options, optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
       )
     }
-    val benchmark = FunctionalBenchmark("LambdaCalculus", configs, "main", Seq(prog), outDir)
-    val perfDs = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5)
+    val benchmark = FunctionalBenchmark("ASG", configs, "main", Seq(prog), outDir)
+    val perfDs = benchmark.measureAndPlotPerformance(runs = 5, warmups = 3)
     println(perfDs.toTable)

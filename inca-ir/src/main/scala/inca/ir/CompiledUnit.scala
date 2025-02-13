@@ -9,6 +9,7 @@ import inca.util.{CompilationMessage, printStep, printSteps}
 import inca.util.compileroptions.CompilerOptions
 import inca.util.DEFAULT_PRINTER
 
+import scala.collection.immutable.SortedMap
 import scala.collection.mutable.ListBuffer
 
 trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER):
@@ -23,8 +24,11 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
   
   lazy val header: Seq[Module] = dependencies.map(_.header)
   private lazy val dependencies: Seq[Module] = otherUnits.flatMap(_.irModules)
-  protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
 
+  protected val optimizationStats: ListBuffer[(String, SortedMap[String, Any])] = ListBuffer()
+  def allOptimizationStats: List[(String, SortedMap[String, Any])] = optimizationStats.toList
+
+  protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
   def allMessages: List[CompilationMessage] = messages.toList
   def errors: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.ERROR).toList
   def warnings: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.WARNING).toList
@@ -130,12 +134,17 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       printSteps(s"Before optimization", p)
 
     optimizationPipeline.foldLeft(p) { case (ms, optimizer) =>
+      var stats: SortedMap[String, Any] = SortedMap()
+
       val optimFun = optimizer()
 
       // log analysis phase
       val anStart = System.currentTimeMillis()
       optimFun.analyzeProgram(ms)
+
       val anTime = System.currentTimeMillis() - anStart
+      stats += "Analysis time in ms" -> anTime
+
       if (logAnalsis)
         printSteps(s"Analysis: ${optimFun.name}, ${anTime}ms", ms)
 
@@ -149,6 +158,9 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       val ls = optimFun.visitProgram(ms, loweredOtherUnits)
       val optTime = System.currentTimeMillis() - optStart
 
+      stats += "Optimization time in ms" -> optTime
+      stats ++= optimFun.stats.toMap
+
       if (logOptimizerStats)
         println(s"Optimization: ${optimFun.name}, ${anTime + optTime}ms\n  " + optimFun.statsString)
 
@@ -159,6 +171,9 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       try checker.checkProgram(ls, header)
       finally if (logOptimizations && logTyped)
         printSteps(s"Optimization: ${optimFun.name}", ls)
+
+      optimizationStats.addOne(optimFun.name -> stats)
+
       ls
     }
 

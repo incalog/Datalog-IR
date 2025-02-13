@@ -3,6 +3,16 @@ package inca.ir.visitors
 import inca.ir.{Atom, Body, Module, Relation, Term}
 
 object StatisticsCollector:
+  def collect(m: Module): Map[String, Int] =
+    val s = new StatisticsCollector
+    s.visitProgram(Seq(m))
+    Map(
+      "Relations" -> s.relations,
+      "Bodies" -> s.bodies,
+      "Atoms" -> s.atoms,
+      "Terms" -> s.terms,
+    )
+
   def printStatistics(ms: Seq[Module], hint: String): Unit =
     ms.foreach(m => printStatistics(m, hint))
 

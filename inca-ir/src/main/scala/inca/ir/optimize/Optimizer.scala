@@ -16,5 +16,5 @@ trait Optimizer extends BaseIRVisitor:
       case Some(a) => stats.put(key, update(a.asInstanceOf[A]))
 
   def analyzeProgram(modules: Seq[Module]): Unit = 
-    println(s"[Info:] $name does not implement an analysis phase!")
+    // println(s"[Info:] $name does not implement an analysis phase!")
     () // default is nothing

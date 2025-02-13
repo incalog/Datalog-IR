@@ -5,8 +5,10 @@ import benchmark.plot.option.Color.Blue
 import benchmark.plot.option.Color
 import benchmark.plot.option.builder.BarplotOptionsBuilder
 import benchmark.util
-import benchmark.util.{Dataset, IntValue, LongValue, StringValue, TimeUnit}
+import benchmark.util.{Dataset, DoubleValue, IntValue, LongValue, StringValue, TimeUnit}
+import inca.ir.CompiledUnit
 import inca.ir.execution.{ExecutorEngine, Relation}
+import inca.ir.visitors.StatisticsCollector
 
 import java.awt.Desktop
 import java.io.{File, IOException}
@@ -24,7 +26,7 @@ trait BenchmarkConfig:
   val name: String
 
 // TODO: Introduce grouped box plots
-trait Benchmark[Config <: BenchmarkConfig]:
+trait Benchmark[Config <: BenchmarkConfig, CUnit <: CompiledUnit]:
   val name: String
   val configs: Seq[Config]
   val outDir: Option[File]
@@ -36,30 +38,76 @@ trait Benchmark[Config <: BenchmarkConfig]:
       case Some(dir) => File(s"${dir.getAbsolutePath}/$fileName")
       case _ => File.createTempFile("", fileName)
 
-  def newInstantiatedExecutorEngine(config: Config): ExecutorEngine
+  def setupEngine(config: Config): ExecutorEngine
 
-  def measureTuples(): Dataset =
+  def setupCompiledUnit(config: Config): CUnit
+
+  def measureRelationStatistics(): Dataset =
     val rows = configs.flatMap { config =>
-      val engine = newInstantiatedExecutorEngine(config)
+      val engine = setupEngine(config)
       val outputRels = engine.readAll()
       val configValue = StringValue(config.name)
       val totalTuples = IndexedSeq(configValue, StringValue("Total"), IntValue(outputRels.map(_.size).sum))
       val tuplesPerRelation = outputRels.map { r => IndexedSeq(configValue, StringValue(r.name), IntValue(r.size)) }
       totalTuples +: tuplesPerRelation
     }
-    val ds = Dataset("Number of Tuples", IndexedSeq("Config", "Name", "Amount"), rows)
-    if (storeFiles) FileUtil.writeFile(getOutFile(s"${name}_tuples.csv"), ds.toCSV())
+    val ds = Dataset("Relations", IndexedSeq("Config", "Name", "Amount"), rows)
+    if (storeFiles) FileUtil.writeFile(getOutFile(s"${name}_relations_stats.csv"), ds.toCSV())
     ds
 
   def measureStatistics(): Dataset =
-    ???
+    val rows = configs.flatMap { config =>
+      val compiled = setupCompiledUnit(config)
+      val configValue = StringValue(config.name)
+      val statsBeforeLowering = StatisticsCollector.collect(compiled.irModules.head)
+      val statsAfterLowering = StatisticsCollector.collect(compiled.lowered.head)
+      val statsAfterOptimization = StatisticsCollector.collect(compiled.optimized.head)
+      val rowsInitial = statsBeforeLowering.map { case (k, v) =>
+        IndexedSeq(configValue, StringValue("initial"), StringValue(k), IntValue(v))
+      }
+      val rowsLowered = statsAfterLowering.map { case (k, v) =>
+        IndexedSeq(configValue, StringValue("lowered"), StringValue(k), IntValue(v))
+      }
+      val rowsOptimized = statsAfterOptimization.map { case (k, v) =>
+        IndexedSeq(configValue, StringValue("optimized"), StringValue(k), IntValue(v))
+      }
+      rowsInitial ++ rowsLowered ++ rowsOptimized
+    }
+    val ds = Dataset("Statistics", IndexedSeq("Config", "Name", "Kind", "Value"), rows)
+    if (storeFiles) FileUtil.writeFile(getOutFile(s"${name}_stats.csv"), ds.toCSV())
+    ds
+
+  def measureOptimizations(): Dataset =
+    val rows = configs.flatMap { config =>
+      val compiled = setupCompiledUnit(config)
+      val configValue = StringValue(config.name)
+      val _ = compiled.optimized
+      compiled.allOptimizationStats.flatMap { case (optimName, vs) =>
+        vs.flatMap {
+          case (metric, value: Int) =>
+            Some(IndexedSeq(configValue, StringValue(optimName), StringValue(metric), IntValue(value)))
+          case (metric, value: Long) =>
+            Some(IndexedSeq(configValue, StringValue(optimName), StringValue(metric), LongValue(value)))
+          case (metric, value: Double) =>
+            Some(IndexedSeq(configValue, StringValue(optimName), StringValue(metric), DoubleValue(value)))
+          case (metric, value: String) =>
+            Some(IndexedSeq(configValue, StringValue(optimName), StringValue(metric), StringValue(value)))
+          case (metric, value) =>
+            println(s"Unsupported metric `$metric` with value `$value`")
+            None
+        }
+      }
+    }
+    val ds = Dataset("Optimizations", IndexedSeq("Config", "Name", "Kind", "Value"), rows)
+    if (storeFiles) FileUtil.writeFile(getOutFile(s"${name}_optimization_stats.csv"), ds.toCSV())
+    ds
 
   private def runPerformanceBenchmark(config: Config, readRel: Relation, runs: Int, warmups: Int): Seq[(Int, Long)] =
     collectGarbage()
 
     // Warmup
     for (k <- Range.inclusive(1, warmups)) {
-      val engine = newInstantiatedExecutorEngine(config)
+      val engine = setupEngine(config)
       try {
         engine.read(readRel)
       } catch { case exec =>
@@ -71,7 +119,7 @@ trait Benchmark[Config <: BenchmarkConfig]:
 
     // Run
     for (j <- Range.inclusive(1, runs)) yield {
-      val engine = newInstantiatedExecutorEngine(config)
+      val engine = setupEngine(config)
       try {
         val diff = engine.measure(readRel)
         collectGarbage()
