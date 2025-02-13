@@ -18,6 +18,8 @@ import sturdy.values.references.AllocationSiteAddr
 // TODO: Support Scala code
 // TODO: Support incremental updates
 class Executor extends IRExecutor:
+  override val name: String = "Interpreter"
+  
   class Engine(mods: Seq[ir.Module]) extends ExecutorEngine:
     private var inputDirty = true
     private var cachedResult: Option[Map[String, Relation]] = None

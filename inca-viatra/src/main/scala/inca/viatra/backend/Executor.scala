@@ -31,6 +31,8 @@ object Executor:
     ViatraQueryLoggingUtil.getDefaultLogger.setLevel(level)
 
 class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL) extends IRExecutor:
+  override val name: String = "Viatra"
+
   class Engine(val engine: AdvancedViatraQueryEngine, val feed: Database, val module: PSystem.Module) extends ExecutorEngine:
 
     override def measure(rel: Relation): Long =

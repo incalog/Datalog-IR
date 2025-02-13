@@ -21,6 +21,8 @@ object Executor:
   private lazy val ascentProjectPath = Files.createTempDirectory("ascent-project")
 
 class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
+  override val name: String = "Ascent"
+  
   class Engine(executable: ProcessBuilder, inputs: Map[String, ProgramContent.EDBFile]) extends ExecutorEngine:
     var inputDirty = true
     var cachedResult: Option[Seq[Relation]] = None

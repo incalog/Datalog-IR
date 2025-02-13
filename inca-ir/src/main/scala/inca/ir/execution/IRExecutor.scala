@@ -87,5 +87,8 @@ trait ExecutorEngine:
 trait IRExecutor:
   type Engine <: ExecutorEngine
 
+  val name: String
+  
   def instantiate(m: CompiledUnit): Engine
+
   

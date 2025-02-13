@@ -27,6 +27,10 @@ RUN sbt sbtVersion && \
 RUN git clone https://gitlab.rlp.net/plmz/sturdy.scala.git
 RUN cd sturdy.scala && sbt sturdy_core/publishLocal
 
+# Install and publish scala-benchmark locally
+RUN git clone https://gitlab.rlp.net/plmz/benchmark-scala.git
+RUN cd benchmark-scala && sbt publishLocal
+
 # Install DDLog
 #RUN apt-get update -y && \ 
 #	apt-get install -y make gnupg build-essential libtinfo-dev zlib1g-dev libgmp-dev libc6-dev libgmp-dev

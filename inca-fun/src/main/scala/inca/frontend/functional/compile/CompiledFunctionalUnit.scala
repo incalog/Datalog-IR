@@ -145,4 +145,5 @@ object CompiledFunctionalUnit:
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.AliasElimination {},
+    //() => new optimize.WildcardDetection {}
   )

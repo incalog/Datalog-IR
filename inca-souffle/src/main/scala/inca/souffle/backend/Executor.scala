@@ -58,7 +58,8 @@ final case class SouffleCompileException(errList: Seq[String]) extends Exception
 // outputs are in <name>.csv of directory
 // tab is default delimiter
 class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
-
+  override val name: String = "Souffle"
+  
   case class ProgramConfig(dirFile: File, progFile: File, flags: Map[String, String]):
     val dirFilePath: String = dirFile.getAbsolutePath
     val progFilePath: String = progFile.getAbsolutePath
