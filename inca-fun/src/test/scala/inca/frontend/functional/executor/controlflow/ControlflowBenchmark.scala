@@ -10,7 +10,7 @@ import inca.{ascent, souffle, viatra}
 import java.io.File
 
 object ControlflowBenchmark:
-  val outDir: Option[File] = Some(File("benchmark/inca_fun/ControlFlowFunctional"))
+  val outDir: Option[File] = Some(File("benchmark/inca_fun/ControlFlow"))
 
   @main
   def measureControlFlow(): Unit =
