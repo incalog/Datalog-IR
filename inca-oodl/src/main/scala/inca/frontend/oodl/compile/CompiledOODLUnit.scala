@@ -76,11 +76,6 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
     val module = compiler.compileModule(ssa)
     Seq(module)
 
-/*override lazy val lowered: IRModule =
-  val low = super.lowered
-  println(low)
-  low*/
-
 object CompiledOODLUnit:
   // Important:
   // 1. Not before block

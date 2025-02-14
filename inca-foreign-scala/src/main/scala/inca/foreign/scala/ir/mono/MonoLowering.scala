@@ -27,11 +27,6 @@ trait MonoLowering extends BaseLowering with primitive.Visitor:
 
   override def requiredIRs: Set[BaseIR] = Set(set.IR, demand.IR, foreign.IR, aggregate.IR)
 
-  /** Return the scala type name of input inca type */
-  inline private def getSTName(ty: Type): String = visitType(ty) match
-    case sty: ScalaType => sty.name
-    case _ => throw new IllegalAccessError(s"Expected a ScalaType, but got $ty")
-
   var inputConversion: Option[(Type, Type)] = None
   var outputConversion: Option[(Type, Type)] = None
 

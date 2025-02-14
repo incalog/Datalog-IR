@@ -5,7 +5,6 @@ import inca.ir.util.SourceLocation
 
 object ParseUtil {
   def parseTupleIndex(name: Name): Option[Int] =
-    val startsWithUnderscore = name.name.startsWith("_")
     try {
       Some(name.name.substring(1).toInt)
     } catch {
