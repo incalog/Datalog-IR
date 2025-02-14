@@ -45,3 +45,43 @@ object ControlflowBenchmark:
     val benchmark = FunctionalBenchmark("ControlFlow", configs, "mainTransitiveFlow", Seq(prog), outDir)
     val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)
+
+  @main
+  def measureInterval(): Unit =
+    val code = FileUtil.readFileFromResource("functional/controlflow/Interval.finca")
+    val options = FunctionalCompilerOptions.default
+    val prog = nestedWhileProgram(5, 20)
+
+    // Measure statistics exactly once
+    val statConfig = FunctionalBenchmarkConfig("", "", code, FunctionalExecutor(viatra.backend.Executor()), options,
+      optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline,
+      postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+    )
+    val statBenchmark = FunctionalBenchmark("Interval", Seq(statConfig), "mainFinalVar", Seq(prog), outDir)
+
+    val statsDs = statBenchmark.measureStatistics()
+    val optimDs = statBenchmark.measureOptimizations()
+    val sizeDs = statBenchmark.measureRelationStatistics()
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
+
+    // Measure execution time
+    val execs = Seq(
+      viatra.backend.Executor(),
+    )
+    val configs = execs.flatMap { exec =>
+      Seq(
+        FunctionalBenchmarkConfig(exec.name, "unoptimized", code, FunctionalExecutor(exec), options,
+          postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+        ),
+        FunctionalBenchmarkConfig(exec.name, "optimized", code, FunctionalExecutor(exec), options,
+          optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline,
+          postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+        )
+      )
+    }
+    val benchmark = FunctionalBenchmark("Interval", configs, "mainFinalVar", Seq(prog), outDir)
+    val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
+    println(perfDs.toTable)

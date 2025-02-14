@@ -20,6 +20,7 @@ case class FunctionalBenchmarkConfig(category: String,
                                      exec: FunctionalExecutor,
                                      options: FunctionalCompilerOptions = FunctionalCompilerOptions.default,
                                      pipeline: List[() => BaseIRVisitor] = CompiledFunctionalUnit.pipeline,
+                                     postProcessingPipeline: List[() => BaseIRVisitor] = List(),
                                      optimizationPipeline: List[() => Optimizer] = List()) extends BenchmarkConfig:
   override val name = s"$category$DELIMITER$group"
   override def toString: String = name
@@ -35,6 +36,7 @@ case class FunctionalBenchmark(override val name: String,
   override def setupCompiledUnit(config: FunctionalBenchmarkConfig): CompiledFunctionalUnit =
     val compiled = config.exec.compileFunction(config.code, config.options)
     compiled.setPipeline(config.pipeline)
+    compiled.setPostProcessingPipeline(config.postProcessingPipeline)
     compiled.setOptimizationPipeline(config.optimizationPipeline)
     compiled
 

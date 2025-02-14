@@ -101,13 +101,13 @@ trait ScalaLowering extends BaseScalaLowering:
       case UnOp(term, "abs") =>
         typedParams(term).map { case (t, ty) =>
           val sty = compileType(ty)
-          val lambdaCode = s"(arg: $sty) => arg.abs"
+          val lambdaCode = s"(arg: ${sty.name}) => arg.abs"
           ScalaTerm(lambdaCode, sty, Seq(t))
         }
       case UnOp(term, op) =>
         typedParams(term).map { case (t, ty) =>
           val sty = compileType(ty)
-          val lambdaCode = s"(arg: $sty) => ${op}arg"
+          val lambdaCode = s"(arg: ${sty.name}) => ${op}arg"
           ScalaTerm(lambdaCode, sty, Seq(t))
         }
       case _ =>

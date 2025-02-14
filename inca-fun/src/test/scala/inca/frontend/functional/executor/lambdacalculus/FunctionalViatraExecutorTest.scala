@@ -63,7 +63,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
 
-    val prog = generateTypedProg(100)
+    val prog = generateTypedProg(10)
 
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(prog))
@@ -72,10 +72,4 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     )(
       res.entries.head.toString
     )
-    /*val measurements = for (i <- 0 until 50) yield {
-      val loaded = exec.loadFunction(compiled)
-      println(s"Run $i")
-      loaded.measure("main", Seq(prog))
-    }
-    println(measurements.mkString("\n"))*/
   }

@@ -409,9 +409,9 @@ object GeneratePSystem:
       val tyCode = sty.name
 
       val paramNames = compiledArgs.flatMap(c => pVar2Code(c)._1).map(v => s""""$v"""")
-      val argTys = scalaTerm.inTypes.map(sty => sty.name)
       val code =
         if (isApp)
+          //println(s"The term code: $termCode")
           s"""($termCode)(${compiledArgs.map(c => pVar2Code(c)._2).mkString(", ")})"""
         else
           s"$termCode"
