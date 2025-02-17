@@ -33,27 +33,43 @@ import DefList._
 import Exp._
 import Def._
 
-/*private def generateAST(i: Int, end: Int): Exp =
-  if (i < end)
-    Cons(
-      DefV(s"a$i", Var(s"a${i+1}")),
-      generateAST(i+1, end)
-    )
-  else
-    Num(3)
 
-def generateProg(size: Int) = generateAST(0, size).toADT
-*/
-
-def generateProgram(size: Int, step: Int): ADT =
-  val nodes = Range.inclusive(1, size).flatMap { i =>
-    val forward = DefV(s"a${i - 1}", Var(s"a$i"))
-    if (i % step == 0)
-      val back = DefV(s"a$i", Var(s"a${i - step}"))
-      Seq(forward, back)
-    else
-      Seq(forward)
+def makeProg(from: Int, to: Int, step: Int): List[Def] = {
+  if (from < to) {
+    val next = from + step
+    val lineDefs: List[Def] = makeLine(from, next)
+    val circleDef = DefV(s"a$from", Add(Var(s"a$next"), Num(from)))
+    val recDefs: List[Def] = makeProg(next, to, step)
+    lineDefs ::: (circleDef :: recDefs)
+  } else {
+    val circleDef = DefV(s"a$from", Add(Var("a0"), Num(from)))
+    List(circleDef)
   }
+}
+
+def makeLine(i: Int, to: Int): List[Def] = {
+  if (i < to) {
+    val n = i + 1
+    val d = DefV(s"a$i", Add(Var(s"a$n"), Num(i)))
+    d :: makeLine(n, to)
+  } else {
+    List()
+  }
+}
+
+/**
+ * s = step
+ * m = size
+ *
+ * ________________  ____________ _____...
+ * |                 |            |
+ * |                 v            v
+ * a_0 -> a_1 -> ... a_s -> ... ->  ... -> a_{m+1}
+ * ^                                        |
+ * |________________________________________|
+ */
+def generateProgram(size: Int, step: Int): ADT =
+  val nodes = makeProg(0, size, step)
   nodes.foldRight[DefList](Nil()) {
     case (node, acc) => Cons(node, acc)
   }.toADT
