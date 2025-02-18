@@ -151,7 +151,7 @@ object GenerateAscent:
       case _ => throw new RuntimeException("Untyped terms !")
     }
     case ir.Eq(lhs, rhs, true) =>
-      Seq(Atom.NotEqual(compileTerm(rhs), compileTerm(lhs)))
+      Seq(Atom.NotEqual(compileTerm(rhs, noClone = true), compileTerm(lhs, noClone = true)))
     case arith.BinCompare(lhs, rhs, "<") =>
       Seq(Atom.LesserThan(compileTerm(lhs), compileTerm(rhs)))
     case arith.BinCompare(lhs, rhs, ">") =>

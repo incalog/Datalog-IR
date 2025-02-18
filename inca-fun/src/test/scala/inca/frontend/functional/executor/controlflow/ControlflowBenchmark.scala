@@ -85,3 +85,77 @@ object ControlflowBenchmark:
     val benchmark = FunctionalBenchmark("Interval", configs, "mainFinalVar", Seq(prog), outDir)
     val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)
+
+  @main
+  def measureControlFlowDemandStrategies(): Unit =
+    val code = FileUtil.readFileFromResource("functional/controlflow/CFlow.finca")
+    val options = FunctionalCompilerOptions.default
+    val prog = nestedWhileProgram(5, 20)
+
+    // Measure execution time
+    val execs = Seq(
+      ascent.backend.Executor(Fixed(1)),
+      viatra.backend.Executor(),
+      souffle.backend.Executor(Fixed(1)),
+    )
+    val configs = execs.flatMap { exec =>
+      Seq(
+        FunctionalBenchmarkConfig(exec.name, "normal", code, FunctionalExecutor(exec), options,
+          pipeline = CompiledFunctionalUnit.createPipeline(false),
+          optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline,
+        ),
+        FunctionalBenchmarkConfig(exec.name, "supplementary", code, FunctionalExecutor(exec), options,
+          pipeline = CompiledFunctionalUnit.createPipeline(true),
+          optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline,
+        )
+      )
+    }
+
+    val benchmark = FunctionalBenchmark("ControlFlow_demand", configs, "mainTransitiveFlow", Seq(prog), outDir)
+
+    val statsDs = benchmark.measureStatistics()
+    val optimDs = benchmark.measureOptimizations()
+    val sizeDs = benchmark.measureRelationStatistics()
+    val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
+    println(perfDs.toTable)
+
+  @main
+  def measureIntervalDemandStrategies(): Unit =
+    val code = FileUtil.readFileFromResource("functional/controlflow/Interval.finca")
+    val options = FunctionalCompilerOptions.default
+    val prog = nestedWhileProgram(5, 20)
+
+    // Measure execution time
+    val execs = Seq(
+      viatra.backend.Executor(),
+    )
+    val configs = execs.flatMap { exec =>
+      Seq(
+        FunctionalBenchmarkConfig(exec.name, "normal", code, FunctionalExecutor(exec), options,
+          pipeline = CompiledFunctionalUnit.createPipeline(false),
+          optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline,
+          postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+        ),
+        FunctionalBenchmarkConfig(exec.name, "supplementary", code, FunctionalExecutor(exec), options,
+          pipeline = CompiledFunctionalUnit.createPipeline(true),
+          optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline,
+          postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+        )
+      )
+    }
+
+    val benchmark = FunctionalBenchmark("Interval_demand", configs, "mainFinalVar", Seq(prog), outDir)
+
+    val statsDs = benchmark.measureStatistics()
+    val optimDs = benchmark.measureOptimizations()
+    val sizeDs = benchmark.measureRelationStatistics()
+    val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
+    println(perfDs.toTable)

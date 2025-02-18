@@ -109,3 +109,27 @@ object CasestudiesBenchmark:
     val benchmark = OODLBenchmark("FlowSensitiveSignAnalysis", configs, "main", Seq(), outDir)
     val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)
+
+  @main
+  def measureSignAnalysisDemandStrategies(): Unit =
+    val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
+    val options = OODLCompilerOptions.default
+
+    // Measure execution time
+    val execs = Seq(viatra.backend.Executor(DRedReteBackendFactory.INSTANCE))
+    val configs = execs.flatMap { exec =>
+      Seq(
+        OODLBenchmarkConfig(exec.name, "normal", code, OODLExecutor(exec), options, pipeline = CompiledOODLUnit.createPipeline(false), optimizationPipeline = CompiledOODLUnit.optimizationPipeline, includePostProcessingPipeline = true),
+        OODLBenchmarkConfig(exec.name, "supplementary", code, OODLExecutor(exec), options, pipeline = CompiledOODLUnit.createPipeline(true), optimizationPipeline = CompiledOODLUnit.optimizationPipeline, includePostProcessingPipeline = true)
+      )
+    }
+    val benchmark = OODLBenchmark("FlowSensitiveSignAnalysis_demand", configs, "main", Seq(), outDir)
+    val statsDs = benchmark.measureStatistics()
+    val optimDs = benchmark.measureOptimizations()
+    val sizeDs = benchmark.measureRelationStatistics()
+    val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
+    println(perfDs.toTable)

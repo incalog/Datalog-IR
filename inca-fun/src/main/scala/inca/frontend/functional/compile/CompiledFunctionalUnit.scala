@@ -117,26 +117,27 @@ object CompiledFunctionalUnit:
 
   //class BoolIROptimizer(analysis: IRConstantAbstractInterpreter) extends BaseIROptimizer(analysis)
 
-  val pipeline: List[() => BaseIRVisitor] = List(
-    () => new typeparam.Lowering {},
-    () => new aggregateset.Lowering {},
-    () => new SyntacticOptimizer {},
-    () => new set.Lowering {},
-    () => new map.Lowering {},
-    () => new bool.optimize.DnfOptimizer {},
+  def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
+    List(
+      () => new typeparam.Lowering {},
+      () => new aggregateset.Lowering {},
+      () => new SyntacticOptimizer {},
+      () => new set.Lowering {},
+      () => new map.Lowering {},
+      () => new bool.optimize.DnfOptimizer {},
+      () => new bool.Lowering {},
+      () => new datamatch.Lowering {},
+      () => new block.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      if (withDemandOutlining)
+        () => new demand.LoweringWithSupplementaries {}
+      else
+        () => new demand.Lowering {},
+      () => new tuple.Lowering {},
+    ) // arith + string + data
 
-    //() => new disjunction.Lowering {},
-    //() => new optimize.AliasElimination {},
-    //() => new Rewriter(aeval => new BoolIROptimizer(aeval)) {},
-    () => new bool.Lowering {},
-    () => new datamatch.Lowering {},
-    () => new block.Lowering {},
-    () => new disjunction.Lowering {},
-    () => new not.Lowering {},
-    () => new demand.Lowering {},
-    //() => new demand.LoweringWithSupplementaries {},
-    () => new tuple.Lowering {},
-  ) // arith + string + data
+  val pipeline: List[() => BaseIRVisitor] = createPipeline(false) // arith + string + data
 
   val optimizationPipeline: List[() => Optimizer] = List(
     () => new optimize.RemoveDuplicatedRelations {},

@@ -83,12 +83,6 @@ object CompiledOODLUnit:
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false)
 
   def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
-    val demandLowering = () => {
-      if withDemandOutlining then
-        new demand.LoweringWithSupplementaries {}
-      else
-        new demand.Lowering {}
-    }
     List(
       () => new mono.Lowering(optimizeMono = true) {},
       () => new MonoScalaLowering {},
@@ -103,7 +97,10 @@ object CompiledOODLUnit:
       () => new impure.Lowering {},
       () => new disjunction.Lowering {},
       () => new not.Lowering {},
-      demandLowering,
+      if (withDemandOutlining)
+        () => new demand.LoweringWithSupplementaries {}
+      else
+        () => new demand.Lowering {},
       () => new tuple.Lowering {},
 
       () => new optimize.IdentityCastElimination {},
