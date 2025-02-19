@@ -45,9 +45,10 @@ trait RemoveDuplicatedRelations extends IRVisitor, Optimizer:
 
       // Insert one relation for each collision
       val newRelations = collisionMap.map {
-        case (bodies, Seq(rel)) =>
+        case (bodies, Seq(rel)) => preserveHints(rel) {
           Relation(rel.name, rel.params, bodies.toSeq)
-        case (bodies, rels) =>
+        }
+        case (bodies, rels) => preserveHints(rels) {
           val newRelName = rels.head.name
           val allParams = rels.flatMap(_.params).distinct
           rewritingMap ++= rels.map { rel =>
@@ -55,6 +56,7 @@ trait RemoveDuplicatedRelations extends IRVisitor, Optimizer:
             rel.name -> (newRelName, paramReordering)
           }.toMap
           Relation(newRelName, allParams, bodies.toSeq)
+        }
       }
 
       // Rewrite all calls, aggregate calls etc.
@@ -71,8 +73,7 @@ trait RemoveDuplicatedRelations extends IRVisitor, Optimizer:
   override def visitRelation(relation: Relation): Seq[Relation] = phase match
     case Phase.CollectCollisions =>
       val bodies = relation.bodies.toSet
-      println(s"Get the bodies: \n ${bodies.mkString("\n\n")}")
-      collisionMap.get(bodies) match
+        collisionMap.get(bodies) match
         case None => collisionMap += bodies -> Seq(relation)
         case Some(rels) =>
           logOptimizationStat("duplicate relation", 1, _+1)
