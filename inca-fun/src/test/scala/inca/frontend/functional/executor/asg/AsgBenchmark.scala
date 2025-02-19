@@ -45,3 +45,32 @@ object AsgBenchmark:
     val benchmark = FunctionalBenchmark("ASG", configs, "main", Seq(prog), outDir)
     val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)
+
+  @main
+  def measureAsgDemandStrategies(): Unit =
+    val code = FileUtil.readFileFromResource("functional/asg/DependencyAnalysis.finca")
+    val options = FunctionalCompilerOptions.default
+    val prog = generateProgram(50, 10)
+
+    // Measure execution time
+    val execs = Seq(
+      ascent.backend.Executor(Fixed(1)),
+      viatra.backend.Executor(),
+      souffle.backend.Executor(Fixed(1)),
+    )
+    val configs = execs.flatMap { exec =>
+      Seq(
+        FunctionalBenchmarkConfig(exec.name, "normal", code, FunctionalExecutor(exec), options, pipeline = CompiledFunctionalUnit.createPipeline(false), optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline),
+        FunctionalBenchmarkConfig(exec.name, "supplementary", code, FunctionalExecutor(exec), options, pipeline = CompiledFunctionalUnit.createPipeline(true), optimizationPipeline = CompiledFunctionalUnit.optimizationPipeline)
+      )
+    }
+    val benchmark = FunctionalBenchmark("ASG_demand", configs, "main", Seq(prog), outDir)
+    val statsDs = benchmark.measureStatistics()
+    val optimDs = benchmark.measureOptimizations()
+    val sizeDs = benchmark.measureRelationStatistics()
+    val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
+    println(perfDs.toTable)

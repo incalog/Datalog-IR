@@ -1,24 +1,15 @@
 package inca.ir.analysis.base.logger
 
-import inca.ir.{Arg, Atom, Body, Call, Eq, ExtensionalCall, Module, Name, Relation, Term, TermArg, Var, WildcardArg}
+import inca.ir.{Body, Name, Relation, Term, Var}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.values.Meet
-import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
 import sturdy.effect.TrySturdy
 import sturdy.fix.Logger
 import sturdy.values.Join
 
-import scala.compiletime.uninitialized
-import scala.collection.immutable.{AbstractSet, SortedSet}
 import scala.collection.mutable
-
-
-// TODO: This is all super hacky. What we actually want to do is:
-//  Get the unprocessed result after evaluating a body and annotate these values. Then, join those values with the
-//  previously annotated body value. However, for that we need a mapping from term -> SupColumn.
-//  Can we collect the SubColumn for each term during logging?
 
 /*
  An analysis logger is used to annotate Datalog AST notes with the computed analysis results.
@@ -78,12 +69,15 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
 
   override def enter(dom: FixIn): Unit = dom match
     case FixIn.Body(_, _, _) => supColumnStack.push(mutable.Map())
-    case _ =>
+    case _ => // nothing
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) =>
       supColumnStack.head.put(supName, t)
       //extractTermValue(supName).foreach(updateTermResult(t, _))
+    case (FixIn.Body(rel, ix, _), None) =>
+      // body failed
+      supColumnStack.pop()
     case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv, rawBody))) =>
       // map all terms to values
       val supColumnToTerm = supColumnStack.pop()
