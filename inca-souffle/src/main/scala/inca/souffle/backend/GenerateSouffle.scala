@@ -1,16 +1,18 @@
 package inca.souffle.backend
 
 import inca.ir
-import inca.ir.{RefByName, TAny, TermArg}
+import inca.ir.{Name, RefByName, TAny, TermArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
 import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Comparator.EQ
+import inca.util.Gensym
 
 // Core + Arithmetic + String + Data
 object GenerateSouffle:
+  val gensym = new Gensym()
 
   def compileModule(module: ir.Module): Program =
     val compilableFeatures = Set(ir.BaseIR, arith.IR, string.IR, data.IR, agg.IR)
@@ -68,8 +70,10 @@ object GenerateSouffle:
     }
     Program(contents)
 
-  private def compileBody(body: ir.Body): Seq[Atom] =
+  private def compileBody(body: ir.Body): Seq[Atom] = gensym.scoped {
+    gensym.register(body.vars.map(_.name.name))
     body.atoms.map(compileAtom)
+  }
 
   private def compileAtom(atom: ir.Atom): Atom = atom match
     case ir.Call(ref, args, false) => Atom.Call(qualifyName(ref.name), args.map(compileArg))
@@ -115,7 +119,9 @@ object GenerateSouffle:
   private def compileArg(a: ir.Arg): Term = a match
     case ir.TermArg(t) => compileTerm(t)
     case AggregateColumnArg(t) => compileTerm(t)
-    case ir.WildcardArg() => Term.Var("_")
+    case ir.WildcardArg() =>
+      // Work around a souffle bug, where wildcards cause ungrounded atoms
+      Term.Var(cleanName(gensym.freshName(Name("_"))))
 
   private def compileTerm(t: ir.Term): Term = t match
     case ir.Var(ref) => Term.Var(cleanName(ref.name))
