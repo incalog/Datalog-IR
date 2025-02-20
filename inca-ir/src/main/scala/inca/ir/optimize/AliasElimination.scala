@@ -44,16 +44,15 @@ trait AliasElimination extends IRVisitor with Optimizer:
       case _ => aliases += alias -> target
 
   private def addParameterAlias(alias: Name, param: Name): Unit =
-    paramAliases.get(alias) match
-      case Some(newTarget) => // nothing
+    aliases.get(alias) match
+      case Some(newTarget) => paramAliases += newTarget -> param
       case _ => paramAliases += alias -> param
 
   private def lookupAlias(alias: Name): Option[Name] = phase match
     case Phase.RemoveVariableAliases =>
       aliases.get(alias)
     case Phase.ReplaceVariablesByParameters =>
-      val resolvedAlias = aliases.getOrElse(alias, alias)
-      paramAliases.get(resolvedAlias)
+      paramAliases.get(alias)
     case _ => None
 
   private def isParam(name: Name): Boolean =
@@ -82,17 +81,17 @@ trait AliasElimination extends IRVisitor with Optimizer:
     }
 
   override def visitTerm(term: Term): Seq[Term] = term match
-    case v: Var => lookupAlias(v.name) match
+    case v: Var if (!isParam(v.name)) => lookupAlias(v.name) match
       case Some(name) => Seq(Var(RefByName(name)))
       case _ => super.visitTerm(v)
     case _ => super.visitTerm(term)
 
   override def visitAtom(atom: Atom): Seq[Atom] = phase match
     case Phase.RemoveVariableAliases => atom match
-      case Eq(v1: Var, v2: Var, false) => (v1.typ, v2.typ) match
+      case Eq(v1: Var, v2: Var, false) => (v1.typ.get, v2.typ.get) match
         case (_, _) if isParam(v1.name) && isParam(v2.name) =>
           super.visitAtom(atom)
-        case (Some(TermType(_, Mode.Binding)), Some(TermType(_, Mode.Bound))) =>
+        case (ty1, ty2) if ty1.mode.isBinding && ty2.mode.isBound =>
           if (isParam(v1.name)) {
             addParameterAlias(v2.name, v1.name)
             super.visitAtom(atom)
@@ -101,7 +100,7 @@ trait AliasElimination extends IRVisitor with Optimizer:
             addAlias(v1.name, v2.name)
             Seq()
           }
-        case (Some(TermType(_, Mode.Bound)), Some(TermType(_, Mode.Binding))) =>
+        case (ty1, ty2) if ty1.mode.isBound && ty2.mode.isBinding =>
           if (isParam(v2.name)) {
             addParameterAlias(v1.name, v2.name)
             super.visitAtom(atom)

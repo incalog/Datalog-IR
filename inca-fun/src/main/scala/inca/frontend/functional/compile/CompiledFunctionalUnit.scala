@@ -140,14 +140,13 @@ object CompiledFunctionalUnit:
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false) // arith + string + data
 
   val optimizationPipeline: List[() => Optimizer] = List(
-    () => new optimize.WildcardDetection {}, // helps with detecting exact duplicates
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {},
     () => new optimize.WildcardDetection {}, // helps with detecting exact duplicates
     () => new optimize.RemoveDuplicatedRelations {},
+    () => new optimize.AliasElimination {},
     //() => new optimize.InlineSimpleRelations {}
   )
