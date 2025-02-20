@@ -83,7 +83,6 @@ object GenerateAscent:
         }
         val relDecl = ProgramContent.RelDecl(cleanName(name), pTy)
         val rules = relDecl +: bodies.zipWithIndex.map((p, idx) => scoped {
-          val r = cleanName(name)
           ProgramContent.Rule(cleanName(name), ps, compileBody(p))
         })
         rules
@@ -262,11 +261,12 @@ object GenerateAscent:
   // We need to clone enums, except when on the lhs of a let.
   // Note, we need clone since enums can not implement copy, because they are boxed
   private def compileTerm(t: ir.Term, noDeref: Boolean = false, noClone: Boolean = false): Term = t match {
-    case ir.Var(name) =>
-      val varTerm = Term.Var(cleanName(name.name))
-      val isRef = varRefs.contains(name.name.name)
+    case ir.Var(ref) =>
+      val varTerm = Term.Var(cleanName(ref.name))
+      val isRef = varRefs.contains(ref.name.name)
       val isData = t.typ.exists(_.ty.isInstanceOf[TData])
       val isString = t.typ.exists(_.ty == TString)
+
       val derefTerm = if (isRef && !noDeref) // (isRef && !isData && !noDeref)
         Term.DeRef(varTerm)
       else

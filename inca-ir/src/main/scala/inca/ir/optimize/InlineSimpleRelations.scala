@@ -11,7 +11,7 @@ import scala.compiletime.uninitialized
 object NoInlineHint extends Hint, Hint.Key:
   override def key: Key = this
 
-trait InlineSimpleRelations extends IRVisitor:
+trait InlineSimpleRelations extends IRVisitor with Optimizer:
   override def name: String = "InlineSimpleRelations"
 
   enum Phase:
@@ -62,6 +62,7 @@ trait InlineSimpleRelations extends IRVisitor:
         super.visitRelation(relation)
       case Phase.InlineRelations =>
         if shouldInline(relation.name) then
+          logOptimizationStat("inline relation", 1, _+1)
           Seq()
         else
           super.visitRelation(relation)
@@ -72,9 +73,9 @@ trait InlineSimpleRelations extends IRVisitor:
   }
 
   var varSubstitution: Map[Name, Name] = Map()
-  var paramSubstitution: Map[Name, Seq[Term]] = Map()
+  var paramSubstitution: Map[Name, Term] = Map()
 
-  def withSubstitutions[A](paramSubst: Map[Name, Seq[Term]], varSubst: Map[Name, Name])(f: => A): A = {
+  def withSubstitutions[A](paramSubst: Map[Name, Term], varSubst: Map[Name, Name])(f: => A): A = {
     val oldVarSubstitution = this.varSubstitution
     val oldParamSubstitution = this.paramSubstitution
 
@@ -120,8 +121,8 @@ trait InlineSimpleRelations extends IRVisitor:
         val body = relation.bodies.head
 
         val paramSubst = relation.params.zip(args).map {
-          case (p, TermArg(t)) => p.name -> super.visitTerm(t)
-          case (p, WildcardArg()) => p.name -> Seq(Var(gensym.freshName(p.name)))
+          case (p, TermArg(t)) => p.name -> t
+          case (p, WildcardArg()) => p.name -> Var(gensym.freshName(p.name))
           case (_, arg) => throw new RuntimeException(s"Unexpected argument $arg")
         }.toMap
 
@@ -142,7 +143,7 @@ trait InlineSimpleRelations extends IRVisitor:
         val freshName = varSubstitution(v.name)
         Seq(Var(freshName))
       case v: Var if paramSubstitution.contains(v.name) =>
-        paramSubstitution(v.name)
+        super.visitTerm(paramSubstitution(v.name))
       case _ =>
         super.visitTerm(term)
     case _ =>

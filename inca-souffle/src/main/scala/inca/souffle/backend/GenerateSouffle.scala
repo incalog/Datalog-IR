@@ -120,7 +120,9 @@ object GenerateSouffle:
     case ir.TermArg(t) => compileTerm(t)
     case AggregateColumnArg(t) => compileTerm(t)
     case ir.WildcardArg() =>
-      // Work around a souffle bug, where wildcards cause ungrounded atoms
+      // Work around a souffle bug, where wildcards cause "Ungrounded ADT branch"
+      // We can work around this by just using a fresh variable name instead of a wildcard
+      // See: https://github.com/souffle-lang/souffle/pull/2483
       Term.Var(cleanName(gensym.freshName(Name("_"))))
 
   private def compileTerm(t: ir.Term): Term = t match
