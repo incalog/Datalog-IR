@@ -11,13 +11,13 @@ trait AliasElimination extends IRVisitor with Optimizer:
 
   enum Phase:
     // Remove simple variable aliases (Note: this ignores equalities that contain a parameter)
-    //   e.g. a == 1, b: >< == a: <>, c: >< == b: <>, R(c)  ~>  a == 1, R(a)
+    //   e.g. a == 1, b: >< == a: <>, c: >< == b: <>, R(c)  ~>  a == 1, a == a, a == a, R(a)
     case RemoveVariableAliases
     // Replace variables with a parameter, if a corresponding equality exists
     //   e.g. Q(x) :- a: >< == 1, x: >< == a: <>  ~>  Q(x) :- x == 1
     case ReplaceVariablesByParameters
     // Remove equalities where lhs == rhs or lhs != rhs, but lhs is the same var as rhs
-    //  e.g. Q(a) :- a == a, R(a)  ~>  R(a)
+    //  e.g. Q(a) :- a == a, R(a)  ~>  Q(a) :- R(a)
     //  e.g. Q(a) :- a != a, R(a)  ~>  Q(a) :- .
     case SimplifyEqualities
 

@@ -5,7 +5,7 @@ import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
 import inca.ir.extension.set.SyntacticOptimizer
-import inca.ir.optimize.{Optimizer, WildcardDetection}
+import inca.ir.optimize.{Optimizer, ReplaceSingletonVariables}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, optimize, Module as IRModule}
@@ -143,9 +143,9 @@ object CompiledFunctionalUnit:
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
-    () => new optimize.WildcardDetection {}, // helps with detecting exact duplicates
+    () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.AliasElimination {},
     //() => new optimize.InlineSimpleRelations {}

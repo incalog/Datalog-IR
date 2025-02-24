@@ -13,11 +13,11 @@ import scala.collection.{immutable, mutable}
 import scala.collection.immutable.Queue
 import scala.compiletime.uninitialized
 
-// Detect if binding arguments are unused, and as such can be replaced by Wildcards.
-// While mostly cosmetic, this optimization also helps to execute Souffle programs. There is a bug in Souffle, that
-// incorrectly detects binding variables as ungrounded. However, this is not the case if a wildcard is used.
-// Best run before an interrelation constant analysis, since it also helps to remove unnecessary calls.
-class WildcardDetection extends IRVisitor with Optimizer:
+// A singleton variable is a variable that has exactly one binding side and is not used
+// otherwise in a body. We can replace these variables with wildcards.
+// This assists backends, since the can introduce existential checks for some calls now,
+// and it helps us to detect duplicated relations with a simple syntactic matching.
+class ReplaceSingletonVariables extends IRVisitor with Optimizer:
   override val name: String = "Wildcard rewriting"
 
   var params: Set[Ref[Var.Target]] = Set()

@@ -77,8 +77,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
     lazy val profilingProcess: ProcessBuilder =
       val fls = flagsToString(flags + ("p" -> profileFilePath))
-      Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath")
-
+      Process(s"souffle $fls --fact-dir=$dirFilePath/ --output-dir=$dirFilePath/ $progFilePath") // --disable-transformers=MakeIndexTransformer,ParallelTransformer,ReorderConditionsTransformer,EliminateDuplicatesTransformer,HoistConditionsTransformer,CollapseFiltersTransformer,ExpandFilterTransformer,IfConversionTransformer,IfExistsConversionTransformer,ReorderFilterBreak,TupleIdTransformer
 
   class Engine(config: ProgramConfig, inputFiles: Map[String, ProgramContent.Directive], outputFiles: Map[String, ProgramContent.Directive], relationDecl: Map[String, ProgramContent.RelationDecl]) extends ExecutorEngine:
     private var inputDirty = true
@@ -132,6 +131,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
         case _ => 0
       }.sum
 
+      // runtime excluding save time
       (runtimeInUs - savetimeInUs) * 1000
 
     // Create empty input files for all input relations
