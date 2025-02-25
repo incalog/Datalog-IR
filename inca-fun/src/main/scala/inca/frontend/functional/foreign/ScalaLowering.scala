@@ -10,7 +10,7 @@ import inca.foreign.scala.ir.primitive
 import inca.ir
 import inca.ir.Hint.preserveHints
 
-trait Lowering extends BaseLowering:
+trait ScalaLowering extends BaseLowering:
   override val name: String = "Foreign"
 
   override def loweredIRs: Set[BaseIR] = Set(iragg)

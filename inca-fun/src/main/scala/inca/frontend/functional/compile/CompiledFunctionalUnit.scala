@@ -112,7 +112,11 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
 
 object CompiledFunctionalUnit:
   val viatraPostProcessingPipeline: List[() => BaseIRVisitor] = List(
-    () => new foreign.Lowering {}
+    () => new foreign.ScalaLowering {}
+  )
+
+  val ddlogPostProcessingPipeline: List[() => BaseIRVisitor] = List(
+    () => new foreign.DDLogLowering {}
   )
 
   //class BoolIROptimizer(analysis: IRConstantAbstractInterpreter) extends BaseIROptimizer(analysis)

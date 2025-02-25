@@ -12,6 +12,7 @@ ThisBuild / Test / parallelExecution := false
 ThisBuild / fork := true
 
 val scalaVersionString = "3.5.2"
+val scalaTestVersionString = "3.2.16"
 
 
 val truediffVersion = "0.1.5-SNAPSHOT"
@@ -26,7 +27,7 @@ lazy val inca_ir = (project in file("inca-ir"))
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
 
       "de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1",
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       "de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
@@ -39,7 +40,9 @@ lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_viatra % "test->test")
   .dependsOn(inca_souffle % "test->test")
   .dependsOn(inca_ascent % "test->test")
+  .dependsOn(inca_ddlog % "test->test")
   .dependsOn(inca_foreign_scala % "compile->compile")
+  .dependsOn(inca_foreign_ddlog % "compile->compile")
   //.dependsOn(inca_foreign_scala % "compile->compile")
   .settings(
     scalaVersion := scalaVersionString,
@@ -48,7 +51,7 @@ lazy val inca_fun = (project in file("inca-fun"))
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
 
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
     )
@@ -67,7 +70,7 @@ lazy val inca_oodl = (project in file("inca-oodl"))
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
 
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
     )
@@ -82,7 +85,7 @@ lazy val inca_datalog = (project in file("inca-datalog"))
     scalaVersion := scalaVersionString,
 
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
     )
@@ -94,7 +97,7 @@ lazy val inca_foreign_scala = (project in file("inca-foreign-scala"))
     scalaVersion := scalaVersionString,
 
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
     )
   )
 
@@ -114,7 +117,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
       // Get logging information from viatra
       "org.apache.logging.log4j" %% "log4j-api-scala" % "13.1.0",
 
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
       // Datalog query engine
@@ -140,7 +143,7 @@ lazy val inca_souffle = (project in file("inca-souffle"))
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
 
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
       "com.lihaoyi" %% "upickle" % "3.2.0",
@@ -148,7 +151,7 @@ lazy val inca_souffle = (project in file("inca-souffle"))
   )
 
 inca_foreign_scala / libraryDependencies ++= Seq(
-  "org.scalatest" %% "scalatest" % "latest.integration" % Test
+  "org.scalatest" %% "scalatest" % scalaTestVersionString % Test
 )
 
 lazy val hazel_typing = (project in file("hazel-typing"))
@@ -160,7 +163,7 @@ lazy val hazel_typing = (project in file("hazel-typing"))
     scalaVersion := scalaVersionString,
 
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
     )
   )
 lazy val hazel_typing_diffable = (project in file("hazel-typing-diffable"))
@@ -174,7 +177,7 @@ lazy val hazel_typing_diffable = (project in file("hazel-typing-diffable"))
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
       ("de.uni-mainz.informatik.pl" %% "truediff" % truediffVersion).cross(CrossVersion.for3Use2_13),
 
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
     )
   )
 
@@ -189,7 +192,7 @@ lazy val inca_casestudy = (project in file("inca-casestudy"))
     scalaVersion := scalaVersionString,
 
     libraryDependencies ++= Seq(
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       "org.scalanlp" %% "breeze" % "2.1.0",
       "org.scalanlp" %% "breeze-viz" % "2.1.0"
     )
@@ -220,7 +223,7 @@ lazy val inca_ascent = (project in file("inca-ascent"))
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
 
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
       "com.lihaoyi" %% "upickle" % "3.2.0",
@@ -239,9 +242,34 @@ lazy val inca_bddbddb = (project in file("inca-bddbddb"))
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
 
-      "org.scalatest" %% "scalatest" % "3.2.16" % "test",
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       // Additional data structures, such as MultiDict
       "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
     )
   )
 
+lazy val inca_foreign_ddlog = (project in file("inca-foreign-ddlog"))
+  .dependsOn(inca_ir % "compile->compile")
+  .settings(
+    scalaVersion := scalaVersionString,
+
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
+    )
+  )
+
+lazy val inca_ddlog = (project in file("inca-ddlog"))
+  .dependsOn(inca_ir % "compile->compile")
+  .dependsOn(inca_foreign_ddlog % "compile->compile")
+  .settings(
+    scalaVersion := scalaVersionString,
+
+    libraryDependencies ++= Seq(
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
+
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
+      // Additional data structures, such as MultiDict
+      "org.scala-lang.modules" %% "scala-collection-contrib" % "0.3.0",
+    )
+  )

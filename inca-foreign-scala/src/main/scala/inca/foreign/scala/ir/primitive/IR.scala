@@ -6,17 +6,11 @@ import inca.ir.extension.arithmetic.{TDouble, TInt}
 import inca.ir.extension.bool.TBoolean
 import inca.ir.extension.data.TData
 import inca.ir.extension.string.TString
-import inca.ir.extension.aggregate.AggregationOperator
-import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoDefinition, MonoTypes, ArithmeticMonoDefinition as ArithMonoDef}
-import inca.ir.extension.block.Block
-import inca.ir.visitors.BaseIRVisitor
-import inca.foreign.scala.visitors.ScalaVisitor
+import inca.ir.extension.mono.{BuiltInMonoDefinition, MonoTypes}
 import inca.ir.extension.edbdata.{TEdbList, TEdbNode, TEdbValue}
-//import inca.ir.extension.edbdata.TEdbNode
 import inca.ir.extension.map.TMap
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
-import inca.util.Gensym
 
 object ScalaInca extends ForeignLanguage:
   override val name: Name = Name("Scala")

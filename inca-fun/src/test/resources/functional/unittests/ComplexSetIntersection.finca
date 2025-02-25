@@ -1,17 +1,17 @@
 module ComplexSetIntersection
 
-def A(): Set[Int] = {1, 2, 3, 4, 5}
-def B(): Set[Int] = {3, 4, 5}
-def C(): Set[Int] = {1, 2, 3, 4}
-def D(): Set[Int] = {15}
-@main def main(): Set[Int] = A() & B() & C()
-@main def main2(): Set[Int] = {(x*x) | x in A()} & { y | y in C()}
-@main def main3(): Set[Int] = {(x*x) | x in A()} & {(x+1) | x in D()}
+def setA(): Set[Int] = {1, 2, 3, 4, 5}
+def setB(): Set[Int] = {3, 4, 5}
+def setC(): Set[Int] = {1, 2, 3, 4}
+def setD(): Set[Int] = {15}
+@main def main(): Set[Int] = setA() & setB() & setC()
+@main def main2(): Set[Int] = {(x*x) | x in setA()} & { y | y in setC()}
+@main def main3(): Set[Int] = {(x*x) | x in setA()} & {(x+1) | x in setD()}
 @main def main4(): Set[Int] =
   let x = 5 in
-    {(y*x) | y in A()} & {(y+x) | y in B()}
+    {(y*x) | y in setA()} & {(y+x) | y in setB()}
 @main def main5(): Set[Int] =
-  {x | x in A()} & {x | x in B()} & {x | x in C()}
+  {x | x in setA()} & {x | x in setB()} & {x | x in setC()}
 @main def main6(): Set[Int] =
-  {x | x in A(), y in B(), x == y}
-//@main def main7(): Set[Int] = A() & D()
+  {x | x in setA(), y in setB(), x == y}
+//@main def main7(): Set[Int] = setA() & setD()

@@ -7,8 +7,6 @@ import inca.souffle.syntax.ProgramContent.{ComponentDecl, ComponentInit, Relatio
 case class Program(content: Seq[ProgramContent]) extends SourceLocation:
   override def toString: String = content.mkString("\n")
 
-var nextId: Int = 0
-
 enum ProgramContent extends SourceLocation with Identifiable:
   case TypeDecl(name: String, rhs: TypeDeclConstraint) extends ProgramContent, Resolvable[ComponentDecl]
   case RelationDecl(names: Seq[String], attrs: Seq[Attribute], qualifiers: Seq[Qualifier], choiceDomain: Option[ChoiceDomain]) extends ProgramContent, Resolvable[ComponentDecl]
