@@ -12,9 +12,7 @@ trait DataOps[V, R]:
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val dataOps: DataOps[V, RV]
-
-  override def evalModule(m: Module)(using Fixed): Map[SupColumn, RV] = super.evalModule(m)
-
+  
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case Construct(caseRef, args) =>
       val caseDef = caseRef.target.get

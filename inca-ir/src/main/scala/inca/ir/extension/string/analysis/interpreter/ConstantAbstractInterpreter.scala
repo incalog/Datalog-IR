@@ -49,8 +49,7 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match
     case (ConstantStringV(s1), ConstantStringV(s2)) => ConstantStringV(s1 ++ s2)
     case (Value.Top, _) | (_, Value.Top) => Value.Top
-    case _ =>
-      failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
+    case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
