@@ -35,7 +35,7 @@ case class Adornment(as: Seq[Adorn]):
 
 enum FixIn:
   case Term(term: ir.Term)
-  case Atom(atom: ir.Atom, body: ir.Body)
+  case Atom(atom: ir.Atom)
   case Assign(to: ir.Term, from: ir.Term)
   case Body(rel: ir.Relation, ruleIx: Int, paramNames: Seq[String])
   case EnterRelation(rel: ir.Relation, adornment: Adornment)
@@ -43,7 +43,7 @@ enum FixIn:
   override def toString: String = this match
     case FixIn.Term(t) => t.toString
     case FixIn.Assign(to, from) => s"$to = $from"
-    case FixIn.Atom(a, _) => a.toString
+    case FixIn.Atom(a) => a.toString
     case FixIn.Body(rel, ix, _) => s"${rel.name}: $ix" //b.toString
     case FixIn.EnterRelation(rel: ir.Relation, adornment: Adornment) => s"${rel.name.name}_$adornment"
 
@@ -138,7 +138,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
-    case FixIn.Atom(atom, _) =>
+    case FixIn.Atom(atom) =>
       //(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
       evalAtomOpen(atom);
       //println("  ## Success")
@@ -259,7 +259,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       val ordered = now.sortBy(at => atomOrderingOps.priority(at))
       if (rest.size == later.size)
         throw new IllegalStateException()
-      ordered.foreach(evalAtom(_, b))
+      ordered.foreach(evalAtom)
       rest = later
     }
     //b.atoms.foreach(evalAtom(_, b))
@@ -268,7 +268,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     (projectedBody, rawBody)
   }
 
-  inline def evalAtom(at: ir.Atom, body: ir.Body)(using rec: Fixed): Unit = rec(FixIn.Atom(at, body)) match
+  inline def evalAtom(at: ir.Atom)(using rec: Fixed): Unit = rec(FixIn.Atom(at)) match
     case FixOut.Atom() => ()
     case _ => throw new IllegalStateException()
 

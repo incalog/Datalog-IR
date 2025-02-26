@@ -140,7 +140,7 @@ class IRConstantAbstractInterpreter(
   //fix.Fixpoint.DEBUG = true
 
   //(new PrintingControlObserver()(println))
-  val graphBuilder: ControlEventGraphBuilder[Int, SupColumn, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
+  val graphBuilder = addControlObserver(new ControlEventGraphBuilder)
 
   private val stackConfig: StackConfig = if (logControlEvents)
     StackedStates(storeNonrecursiveOutput = true).withObservers(Seq(triggerControlEvent))

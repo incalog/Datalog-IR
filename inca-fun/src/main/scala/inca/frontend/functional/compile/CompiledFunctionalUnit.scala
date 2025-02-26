@@ -147,7 +147,7 @@ object CompiledFunctionalUnit:
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true, interRelational = true) {},
+    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
     () => new optimize.RemoveDuplicatedRelations {},

@@ -3,7 +3,8 @@ package inca.ir
 import inca.ir.*
 import inca.ir.analysis.Analyzable
 import inca.ir.typing.{Mode, Resolvable, Typeable}
-import inca.ir.util.SourceLocation
+import inca.ir.util.{Identifiable, SourceLocation}
+
 import scala.language.implicitConversions
 
 implicit def string2name(string: String): Name = Name(string)
@@ -148,12 +149,12 @@ case class RefByQualifiedName[Target](ns: Seq[Name]) extends Ref[Target]:
 
   override def toString: String = name.name //+ ":: " +  target
 
-trait Atom extends Analyzable with SourceLocation with Hints:
+trait Atom extends Analyzable with SourceLocation with Hints with Identifiable:
   def vars: Seq[Var]
   lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))
   lazy val unboundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBinding)
 
-trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints:
+trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints with Identifiable:
   def vars: Seq[Var]
 
   lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))
@@ -203,7 +204,7 @@ case class TermType(ty: Type, mode: Mode):
     else
       throw IllegalStateException(s"Unknown mode $mode")
 
-case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry, RelationBase:
+case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends ModuleEntry with RelationBase with Identifiable:
   def withName(name: String): Relation = this.copy(name = Name(name))
 
   override def toString: String = {
@@ -220,17 +221,17 @@ case class Relation(name: Name, params: Seq[Param], bodies: Seq[Body]) extends M
 
   def nonEmpty: Boolean = !isEmpty
 
-case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry, ExtensionalRelationBase:
+case class ExtensionalRelation(name: Name, params: Seq[Param]) extends ModuleEntry with ExtensionalRelationBase with Identifiable:
   def withName(name: String): ExtensionalRelation = this.copy(name = Name(name))
 
   override def toString: String = s"ext $name${params.mkString("(", ", ", ")")}"
 
   def signature: Seq[Type] = params.map(_.ty)
 
-case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints:
+case class Param(name: Name, ty: Type) extends SourceLocation with Var.Target with Hints with Identifiable:
   override def toString: String = s"$name: $ty"
 
-case class Body(atoms: Seq[Atom]) extends SourceLocation with Analyzable with Hints:
+case class Body(atoms: Seq[Atom]) extends SourceLocation with Analyzable with Hints with Identifiable:
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
 
   def vars: Seq[Var] = atoms.flatMap(_.vars)

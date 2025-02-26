@@ -9,31 +9,29 @@ import sturdy.fix.Logger
 
 import java.util.Objects
 
-trait DatalogControlObservable extends ControlObservable[Int, String, BaseIRException, (FixIn, List[Any])]
+trait DatalogControlObservable extends ControlObservable[Long, Long, BaseIRException, (FixIn, List[Any])]
 
 class ControlEventLogger[V, RV](observable: DatalogControlObservable)(using effects: EffectStack) extends Logger[FixIn, FixOut[V, RV]]:
   effects.addJoinObserver(observable)
 
   override def enter(dom: FixIn): Unit = dom match
     case FixIn.Term(term) => // nothing
-    case FixIn.Atom(call: Call, body) =>
+    case FixIn.Atom(call: Call) =>
       // Differentiate equal atoms with different binding information
-      val hash = Objects.hash(call +: body +: call.vars.map(_.typ):_*)
-      observable.triggerControlEvent(BasicControlEvent.BeginSection(hash.toString)(call.toString))
-    case FixIn.Atom(atom, body) =>
-      val hash = Objects.hash(atom +: body +: atom.vars.map(_.typ):_*)
-      observable.triggerControlEvent(BasicControlEvent.Atomic(hash)(atom.toString))
+      observable.triggerControlEvent(BasicControlEvent.BeginSection(call.id)(call.toString))
+    case FixIn.Atom(atom) =>
+      observable.triggerControlEvent(BasicControlEvent.Atomic(atom.id)(atom.toString))
     case FixIn.Body(rel, ix, paramNames) =>
-      observable.triggerControlEvent(BasicControlEvent.BeginSection(s"rule ${rel.name} $ix")(""))
+      observable.triggerControlEvent(BasicControlEvent.BeginSection(rel.bodies(ix).id)(s"rule ${rel.name.name} at $ix"))
     case FixIn.EnterRelation(rel, adornment) =>
-      observable.triggerControlEvent(BasicControlEvent.BeginSection(rel.name.name)(""))
+      observable.triggerControlEvent(BasicControlEvent.BeginSection(rel.id)(rel.name.name))
     case FixIn.Assign(_, _) =>
       // nothing, captured by atom
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = dom match
     case FixIn.Term(_) => // nothing
-    case FixIn.Atom(call: Call, _) => observable.triggerControlEvent(BasicControlEvent.EndSection())
-    case FixIn.Atom(_, _) =>
+    case FixIn.Atom(call: Call) => observable.triggerControlEvent(BasicControlEvent.EndSection())
+    case FixIn.Atom(_) => // nothing
     case FixIn.Body(_, _, _) => observable.triggerControlEvent(BasicControlEvent.EndSection())
     case FixIn.EnterRelation(_, _) => observable.triggerControlEvent(BasicControlEvent.EndSection())
     case FixIn.Assign(_, _) => // nothing
