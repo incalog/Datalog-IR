@@ -50,7 +50,7 @@ private class CDoubleVOrderingOps extends OrderingOps[Value, Boolean]:
   override def lt(v1: Value, v2: Value): Boolean = asDouble(v1) < asDouble(v2)
   override def le(v1: Value, v2: Value): Boolean = asDouble(v1) <= asDouble(v2)
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val intOps: IntegerOps[Int, Value] = CIntVOps(using failure, effects)
   val doubleOps: FloatOps[Double, Value] = CDoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, Boolean] = CIntVOrderingOps()

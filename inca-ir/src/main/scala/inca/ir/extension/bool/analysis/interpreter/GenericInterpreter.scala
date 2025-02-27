@@ -19,17 +19,16 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case AtomAsBool(a) =>
+      val sup = snapshotSupplementary()
       val res = except.tryCatch {
         evalAtom(a)
-        Topped.Actual(true)
+        booleanOps.boolLit(true)
       } /* catch */ { exec =>
-        Topped.Actual(false)
-      }
-      if (res.isActual)
-        termResult(booleanOps.boolLit(res.get))
-      else
-        // Should never happen in the concrete case
-        termResult(topV)
+        // negation does not bind => rollback the changes to the supplementary
+        updateSupplementaryUnchecked(_ => sup)
+        booleanOps.boolLit(false)
+      }(using joinV)
+      termResult(res)
     case BoolAnd(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.and)
     case BoolOr(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.or)
     case BoolNot(t) => unaryOp(evalTerm(t))(booleanOps.not)

@@ -22,6 +22,7 @@ class FiniteV extends Finite[Value]
 
 trait Value:
   def isConstant: Boolean
+  def isActual: Boolean = true
 
 object Value:
   case object Top extends Value:

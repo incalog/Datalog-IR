@@ -4,6 +4,7 @@ import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.IRTypechecker
@@ -1236,4 +1237,32 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     val firstEntry = mainRel.flattenEntry(mainRel.entries.head)
     assert(firstEntry.head == Seq(1, 2))
     assert(firstEntry.last.asInstanceOf[Int] == 2)
+  }
+
+  /* Boolean */
+
+  test("Boolean - AtomAsBool failing") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("out", TBoolean),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out"), AtomAsBool(
+            Call("fail", Seq(WildcardArg())))
+          )
+        ))
+      )).addHint(MainHint),
+      Relation("fail", Seq(
+        Param("x", TBoolean),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), BoolTrue),
+          Eq(Var("x"), BoolFalse),
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    println(mainRel.entries.head == false)
   }

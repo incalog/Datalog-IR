@@ -20,5 +20,5 @@ private class CDataVOps[R] extends DataOps[Value, R]:
     case _ => notMatching
 
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val dataOps: DataOps[Value, ConcreteRelation[Value]] = new CDataVOps

@@ -32,5 +32,5 @@ private class CAggregateOps(using failure: Failure, effects: EffectStack)
       case (CIntV(v1), CIntV(v2), ArithmeticAggregationOperator.MaxDouble) => CDoubleV(v1.max(v2))
 
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   override val aggregateOps: AggregateOps[Value] = new CAggregateOps()

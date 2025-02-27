@@ -13,10 +13,11 @@ import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.tuple.analysis as irtuple
 import inca.ir.extension.bool.analysis as irbool
+import sturdy.data.MayJoin
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
-import sturdy.effect.except.{Except, JoinedExcept}
+import sturdy.effect.except.{ConcreteExcept, Except, JoinedExcept}
 import sturdy.effect.failure.CollectedFailures
-import sturdy.effect.{EffectStack, TrySturdy}
+import sturdy.effect.{Concrete, EffectStack, TrySturdy}
 import sturdy.fix
 import sturdy.fix.{HasFixpointCache, StackConfig}
 import sturdy.fix.StackConfig.StackedStates
@@ -31,10 +32,10 @@ import inca.ir.analysis.base.effect.IRFailure
 import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.FiniteFixIn
 import inca.ir.analysis.base.values.JoinCRV
-import sturdy.values.exceptions.PowersetExceptional
+import sturdy.values.exceptions.ConcreteExceptional
 
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
-  extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]
+  extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]
   with irarith.interpreter.ConcreteInterpreter
   with irstr.interpreter.ConcreteInterpreter
   with irdata.interpreter.ConcreteInterpreter
@@ -54,11 +55,14 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
 
   override lazy val topV: Value = throw IllegalStateException("Concrete concrete does not support top value!")
 
+  // We don't join excepts in the concrete interpreter, because there is no case where we would need to join
+  override lazy val mayJoinRV: MayJoin.NoJoin[ConcreteRelation[Value]] = noJoin
+
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
   override lazy val boolOps: BooleanOps[Boolean] = ConcreteBooleanOps
 
-  override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
+  override lazy val except: Except[BaseIRException, BaseIRException, NoJoin] = new ConcreteExcept(using ConcreteExceptional[BaseIRException]) //new JoinedExcept(using PowersetExceptional[BaseIRException])
 
   given BooleanOps[Boolean] = boolOps
 

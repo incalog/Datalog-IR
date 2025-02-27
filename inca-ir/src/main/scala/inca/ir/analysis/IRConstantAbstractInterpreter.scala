@@ -3,7 +3,7 @@ package inca.ir.analysis
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, ConstantRelationOps, Meet, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConcreteRelation, ConstantRelation, ConstantRelationOps, Meet, Value}
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
@@ -13,7 +13,7 @@ import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
 import sturdy.control.ControlEventGraphBuilder
-import sturdy.data.WithJoin
+import sturdy.data.{MayJoin, WithJoin}
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Powerset, Topped, Widen}
 import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.effect.failure.{CollectedFailures, ObservableFailure}
@@ -96,6 +96,7 @@ class IRConstantAbstractInterpreter(
   override val joinV: WithJoin[Value] = implicitly
   override val joinRV: Join[RV] = implicitly
   override val joinUnit: WithJoin[Unit] = implicitly
+  override lazy val mayJoinRV: MayJoin.WithJoin[ConstantRelation] = MakeJoined(using joinRV, effects)
 
   // I don't think we need to widen tables for a constant analysis
   given Widen[RV] with {

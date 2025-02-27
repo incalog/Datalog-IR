@@ -10,7 +10,7 @@ case class CBoolV(bool: Boolean) extends Value:
   override def toString: String = bool.toString
   override def isConstant: Boolean = true
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val booleanOps: BooleanOps[Value] = new BooleanOps[Value]:
 
     override def boolLit(b: Boolean): Value = CBoolV(b)

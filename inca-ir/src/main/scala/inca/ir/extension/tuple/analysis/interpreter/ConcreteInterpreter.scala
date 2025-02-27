@@ -19,5 +19,5 @@ private class CTupleVOps(using failure: Failure) extends TupleOps[Value]:
     case CTupleV(ts) => failure(InvalidTupleProjection, s"Index $index out of bounds")
     case _ => failure(InvalidTupleProjection, s"Expected a tuple, but got $t")
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val tupleOps: TupleOps[Value] = new CTupleVOps()

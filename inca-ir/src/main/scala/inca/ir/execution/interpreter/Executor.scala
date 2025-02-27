@@ -11,6 +11,7 @@ import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.string.analysis.interpreter.CStringV
 import inca.ir.extension.data.analysis.interpreter.CDataV
 import inca.ir.extension.tuple.analysis.interpreter.CTupleV
+import inca.ir.extension.bool.analysis.interpreter.CBoolV
 import inca.ir.extension.string.TString
 
 // TODO: Support Scala code
@@ -84,6 +85,7 @@ class Executor extends IRExecutor:
       CDataV(caseDef, args.map(_.asInstanceOf[Value]))
 
     private def interpretfyTupleEntry(v: Any): Value =
+      // TODO: Support more values, such as Boolean
       transformEDBInput(v)(CStringV.apply, CIntV.apply, CDoubleV.apply, transformADT).asInstanceOf[Value]
 
     private def relationToCRV(rel: Relation) =
@@ -122,6 +124,7 @@ case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) ext
       case CStringV(s) => s
       case v@CDataV(caseName, args) => v.toString // TODO: Generate Scala ADT class at runtime?
       // non bases extensions
+      case CBoolV(bool) => bool
       case CTupleV(ts) => ts.map(convert)
 
     val queryMatches: Iterable[Seq[Any]] = table.rows.map(_.map(convert))

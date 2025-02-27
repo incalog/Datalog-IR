@@ -8,7 +8,7 @@ import inca.ir.analysis.base.effect
 import inca.ir.{Atom, MainHint, ModuleEntry}
 import inca.util.Gensym
 import sturdy.data.MayJoin.WithJoin
-import sturdy.data.{MakeJoined, MayJoin, mapJoin}
+import sturdy.data.{MakeJoined, noJoin, MayJoin, mapJoin}
 import sturdy.effect.except.Except
 import sturdy.effect.failure.{CollectedFailures, Failure}
 import sturdy.effect.{EffectList, EffectStack}
@@ -99,8 +99,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   given Failure = failure
 
-  lazy val except: Except[BaseIRException, ExcV, WithJoin]
-
+  // MayJoin on V used for excepts
   val joinV: J[V]
   lazy val topV: V
 
@@ -108,6 +107,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   def getIDB: Map[String, RV]
 
   implicit val joinRV: Join[RV]
+
+  // MayJoin on RV used for excepts
+  lazy val mayJoinRV: J[RV]
+
+  lazy val except: Except[BaseIRException, ExcV, J]
 
   val effects: EffectStack = //new EffectStack(EffectList(supplementaryTable, failure, except, idb))
     new EffectStack(EffectList(supplementaryTable, failure, except), {
@@ -120,9 +124,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def supplementaryTable: SupplementaryTable[RV]
 
+  def snapshotSupplementary(): RV = supplementaryTable.getTable
+  
   /** updates the supplementary table; ASSUMEs the new table is non-empty */
   inline def updateSupplementaryUnchecked(f: RV => RV): RV = supplementaryTable.update(f)
-
+  
   /** updates the supplementary table; CHECKs the new table is non-empty */
   def updateSupplementaryChecked(f: RV => RV): RV =
     val rv = f(supplementaryTable.getTable)
@@ -209,7 +215,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         })
       } /*catch*/ { exc =>
         relationOps.make(paramNames, Seq())
-      }
+      }(using mayJoinRV)
     relRes
   }}
 
@@ -235,7 +241,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       relationOps.project(relationOps.naturalJoin(supplementaryTable.getTable, edbRV), paramNames)
     } /*catch*/ { exc =>
       relationOps.make(paramNames, Seq())
-    }
+    }(using mayJoinRV)
   }}
 
   inline def evalBody(rel: ir.Relation, ix: Int, paramNames: Seq[String])(using rec: Fixed): RV = rec(FixIn.Body(rel, ix, paramNames)) match

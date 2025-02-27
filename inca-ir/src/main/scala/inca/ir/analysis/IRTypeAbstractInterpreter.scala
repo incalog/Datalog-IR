@@ -12,6 +12,7 @@ import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
+import sturdy.data.MayJoin
 import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.effect.except.{Except, JoinedExcept}
@@ -80,7 +81,8 @@ class IRTypeAbstractInterpreter(
   
   override val joinV: WithJoin[Value] = implicitly
   override val joinRV: Join[TRV] = implicitly
-  
+  override lazy val mayJoinRV: MayJoin.WithJoin[TypeRelation] = MakeJoined(using joinRV, effects)
+
   given Widen[TRV] with {
     override def apply(v1: TRV, v2: TRV): MaybeChanged[TRV] = joinRV(v1, v2)
   }

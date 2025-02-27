@@ -24,5 +24,5 @@ private class CStringVOps (using failure: Failure) extends StringOps[Value]:
     case (CStringV(s1), CStringV(s2)) => CStringV(s1 + s2)
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
-trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
+trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val stringOps: StringOps[Value] = CStringVOps(using failure)
