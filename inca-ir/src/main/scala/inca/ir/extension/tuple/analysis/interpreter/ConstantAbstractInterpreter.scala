@@ -42,7 +42,7 @@ trait ConstantMeetV extends BaseMeetV:
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
   with ConstantInterpreter:
 
-  val dataOps: TupleOps[Value] = new TupleOps[Value]:
+  val tupleOps: TupleOps[Value] = new TupleOps[Value]:
     override def tupleLit(ts: Seq[Value]): Value = ConstantTupleV(ts)
 
     override def project(t: Value, index: Int): Value = t match

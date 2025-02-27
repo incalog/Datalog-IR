@@ -20,4 +20,4 @@ private class CTupleVOps(using failure: Failure) extends TupleOps[Value]:
     case _ => failure(InvalidTupleProjection, s"Expected a tuple, but got $t")
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], Powerset[BaseIRException], NoJoin]:
-  val dataOps: TupleOps[Value] = new CTupleVOps()
+  val tupleOps: TupleOps[Value] = new CTupleVOps()

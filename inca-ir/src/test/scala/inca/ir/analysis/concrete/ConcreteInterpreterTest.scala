@@ -1,12 +1,13 @@
-package inca.ir.analysis
+package inca.ir.analysis.concrete
 
 import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
-import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
-import inca.ir.{Arg, BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
-import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
+import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
+import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.IRTypechecker
+import inca.ir.{Arg, BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.fix.Fixpoint
 
@@ -1212,4 +1213,27 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     val mainRel = res("main")
     assert(mainRel.size == 1)
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2)))
+  }
+
+
+  /* Tuple */
+
+  test("Tuple - Single relation") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("out1", TTuple(Seq(TInt, TInt))),
+        Param("out2", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+          Eq(Var("out2"), Project(Var("out1"), 1))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    val firstEntry = mainRel.flattenEntry(mainRel.entries.head)
+    assert(firstEntry.head == Seq(1, 2))
+    assert(firstEntry.last.asInstanceOf[Int] == 2)
   }

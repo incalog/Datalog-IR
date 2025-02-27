@@ -1,4 +1,4 @@
-package inca.ir.analysis.interpreter
+package inca.ir.analysis.concrete
 
 import inca.ir.analysis.base.values.ConcreteRelation
 import org.scalatest.funsuite.AnyFunSuiteLike

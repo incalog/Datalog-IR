@@ -9,7 +9,7 @@ import sturdy.values.Topped
 
 /*
   We can not really optimize anything with just the type information. This class is just here
-  to be a proof of concept to show how the abstract interpreter results can be used in the end.
+  to be a proof of concept to show how the abstract concrete results can be used in the end.
  */
 class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val computeControlEvents: Boolean) extends BaseIROptimizer[Value, TypeRelation, Value]:
   override def name: String = "Type Optimizer"

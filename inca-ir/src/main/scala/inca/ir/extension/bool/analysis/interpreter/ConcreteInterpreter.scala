@@ -1,13 +1,9 @@
 package inca.ir.extension.bool.analysis.interpreter
 
-import inca.ir.analysis.base.effect.{BaseIRException, BaseIRFailure}
-import inca.ir.analysis.base.values.Value.Top
+import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.values.{ConcreteRelation, Value}
-import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
-import inca.ir.extension.string.analysis.interpreter.InvalidStringConcat
 import sturdy.values.Powerset
 import sturdy.data.MayJoin.NoJoin
-import sturdy.effect.failure.Failure
 import sturdy.values.booleans.BooleanOps
 
 case class CBoolV(bool: Boolean) extends Value:

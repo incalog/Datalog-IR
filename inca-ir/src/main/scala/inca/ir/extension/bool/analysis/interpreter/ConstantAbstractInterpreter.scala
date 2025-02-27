@@ -4,18 +4,11 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
 import inca.ir.analysis.constant.ConstantInterpreter
-import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
-import sturdy.effect.{Effect, EffectStack}
-import sturdy.effect.failure.Failure
-import sturdy.values.{Powerset, Topped}
-import sturdy.values.floating.{FloatOps, LiftedFloatOps, ToppedFloatOps, given}
+import sturdy.values.Powerset
 import sturdy.data.MayJoin
 import sturdy.values.Topped
 import sturdy.values.booleans.BooleanOps
-import sturdy.values.integer.{ConcreteIntegerOps, IntegerOps, LiftedIntegerOps, ToppedIntegerOps}
-import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps, ToppedCertainOrderingOps}
-import sturdy.data.{MakeJoined, WithJoin}
-import sturdy.values.integer.given_OrderingOps_Int_Boolean
+import sturdy.data.WithJoin
 
 case class ConstantBoolV(bool: Boolean) extends Value:
   override def toString: String = bool.toString
@@ -40,21 +33,21 @@ trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boole
   with ConstantInterpreter:
 
   val booleanOps: BooleanOps[Value] = new BooleanOps[Value]:
-    
+
     override def boolLit(b: Boolean): Value = ConstantBoolV(b)
-    
+
     override def and(v1: Value, v2: Value): Value = (v1, v2) match
       case (_, ConstantBoolV(false)) | (ConstantBoolV(false), _) => ConstantBoolV(false)
       case (ConstantBoolV(b1), ConstantBoolV(b2)) => ConstantBoolV(b1 && b2)
       case (_, Value.Top) | (Value.Top, _) => Value.Top
       case _ => failure(InvalidBooleanOp, s"Can not apply logical and between $v1 and $v2")
-      
+
     override def or(v1: Value, v2: Value): Value = (v1, v2) match
       case (_, ConstantBoolV(true)) | (ConstantBoolV(true), _) => ConstantBoolV(true)
       case (ConstantBoolV(b1), ConstantBoolV(b2)) => ConstantBoolV(b1 || b2)
       case (_, Value.Top) | (Value.Top, _) => Value.Top
       case _ => failure(InvalidBooleanOp, s"Can not apply logical or between $v1 and $v2")
-      
+
     override def not(v: Value): Value = v match
       case ConstantBoolV(b) => ConstantBoolV(!b)
       case Value.Top => Value.Top

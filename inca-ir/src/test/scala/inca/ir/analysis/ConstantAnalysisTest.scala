@@ -3,13 +3,13 @@ package inca.ir.analysis
 import inca.ir.analysis.base.values.{ConstantRelation, Value}
 import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
+import inca.ir.printer.IRDebugPrinter
 import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
-import inca.ir.extension.data.analysis.interpreter.ConstantDataV
-import inca.ir.printer.IRDebugPrinter
 
 class ConstantAnalysisTest extends AnyFunSuiteLike:
 

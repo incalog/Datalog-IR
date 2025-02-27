@@ -3,7 +3,6 @@ package inca.ir.execution.interpreter
 import inca.ir
 import inca.ir.{CompiledUnit, Name}
 import inca.ir.analysis.IRConcreteInterpreter
-import inca.ir.analysis.base.interpreter.{FixIn, FixOut}
 import inca.ir.analysis.base.values.{ConcreteRelation, Value}
 import inca.ir.execution.{ADT, ExecutorEngine, IRExecutor, Relation, RelationName, RelationUpdateListener, UnitRelation, transformEDBInput}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
@@ -11,9 +10,8 @@ import inca.ir.extension.arithmetic.analysis.interpreter.{CDoubleV, CIntV}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.string.analysis.interpreter.CStringV
 import inca.ir.extension.data.analysis.interpreter.CDataV
+import inca.ir.extension.tuple.analysis.interpreter.CTupleV
 import inca.ir.extension.string.TString
-import sturdy.effect.TrySturdy
-import sturdy.values.references.AllocationSiteAddr
 
 // TODO: Support Scala code
 // TODO: Support incremental updates
@@ -114,18 +112,19 @@ class Executor extends IRExecutor:
 // Lazy conversion of values
 case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) extends Relation:
   private var evaled: Boolean = false
-  lazy val outputRel =
+
+  lazy val outputRel: Relation =
     evaled = true
 
-    val queryMatches: Iterable[Seq[Any]] = table.rows.map { vs =>
-      vs.map {
-        case CIntV(i) => i
-        case CDoubleV(d) => d
-        case CStringV(s) => s
-        case v@CDataV(caseName, args) => v.toString // TODO: Generate Scala ADT class at runtime?
-      }
-    }
+    def convert(v: Value): Any = v match
+      case CIntV(i) => i
+      case CDoubleV(d) => d
+      case CStringV(s) => s
+      case v@CDataV(caseName, args) => v.toString // TODO: Generate Scala ADT class at runtime?
+      // non bases extensions
+      case CTupleV(ts) => ts.map(convert)
 
+    val queryMatches: Iterable[Seq[Any]] = table.rows.map(_.map(convert))
     Relation.from(name, parameterNames, queryMatches)
 
   override type Tuple = Any

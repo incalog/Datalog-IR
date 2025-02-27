@@ -11,6 +11,8 @@ import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.aggregate.analysis as iragg
+import inca.ir.extension.tuple.analysis as irtuple
+import inca.ir.extension.bool.analysis as irbool
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.CollectedFailures
@@ -36,7 +38,9 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   with irarith.interpreter.ConcreteInterpreter
   with irstr.interpreter.ConcreteInterpreter
   with irdata.interpreter.ConcreteInterpreter
-  with iragg.interpreter.ConcreteInterpreter:
+  with iragg.interpreter.ConcreteInterpreter
+  with irtuple.interpreter.ConcreteInterpreter
+  with irbool.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 
@@ -48,7 +52,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   // Concrete interpretation must always be inter-relational
   override val interRelational: Boolean = true
 
-  override lazy val topV: Value = throw IllegalStateException("Concrete interpreter does not support top value!")
+  override lazy val topV: Value = throw IllegalStateException("Concrete concrete does not support top value!")
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
 
@@ -69,7 +73,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   override val joinV: NoJoin[Value] = implicitly
   override val joinRV: Join[CRV] = implicitly
   
-  // Only correct for concrete Datalog interpreter
+  // Only correct for concrete Datalog concrete
   given Widen[CRV] with {
     override def apply(v1: CRV, v2: CRV): MaybeChanged[CRV] = joinRV(v1, v2)
   }

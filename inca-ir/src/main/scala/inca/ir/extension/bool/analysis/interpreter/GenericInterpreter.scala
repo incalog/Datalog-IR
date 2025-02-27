@@ -35,4 +35,5 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case BoolNot(t) => unaryOp(evalTerm(t))(booleanOps.not)
     case BoolTrue => termResult(booleanOps.boolLit(true))
     case BoolFalse => termResult(booleanOps.boolLit(false))
+    case _ => super.evalTermOpen(term)
 
