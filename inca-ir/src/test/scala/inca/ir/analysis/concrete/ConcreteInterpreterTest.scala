@@ -4,6 +4,7 @@ import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
@@ -1404,6 +1405,122 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    println(res("main").asTable)
     assert(res("main").size == 2)
+  }
+
+  test("Disjunction - Not") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("x", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Disjunction(Seq(
+            Eq(Var("y"), IntNum(0)),
+            Eq(Var("y"), IntNum(0))
+          ), Seq(
+            Eq(Var("y"), IntNum(0)),
+            Not(Eq(Var("y"), IntNum(0)))
+          ))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head.asInstanceOf[Int] == 1)
+  }
+
+  test("Disjunction - Factorial") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Disjunction(Seq(
+            Call("input", Seq(Var("n$0"))),
+            Eq(Var("n$0"), IntNum(1), true),
+            Eq(Var("n"), Sub(Var("n$0"), IntNum(1)))
+          ), Seq(
+            Eq(Var("n"), IntNum(3))
+          ))
+        ))
+      )),
+      Relation("fac", Seq(
+        Param("n", TInt),
+        Param("r", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("n"))),
+          Disjunction(Seq(
+            Eq(Var("n"), IntNum(1)),
+            Eq(Var("r"), IntNum(1))
+          ), Seq(
+            Eq(Var("n"), IntNum(1), true),
+            Call("fac", Seq(Sub(Var("n"), IntNum(1)), Var("r$0"))),
+            Eq(Var("r"), Mul(Var("n"), Var("r$0")))
+          ))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("fac")
+    assert(mainRel.size == 3)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 1)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
+  }
+
+  /* Block */
+
+  test("Block - Factorial") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("ext_main$input", Seq(Param("n", TInt))),
+      Relation("fact", Seq(
+        Param("n", TInt),
+        Param("fact_result$0", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("fact_result$0"), Block(Seq(
+            Call("fact$input", Seq(Var("n"))),
+            Eq(Var("n"), IntNum(1))
+          ), IntNum(1))
+        ))),
+        Body(Seq(
+          Eq(Var("fact_result$0"), Block(Seq(
+            Call("fact$input", Seq(Var("n"))),
+            Eq(Var("n"), IntNum(1), true),
+            Call("fact", Seq(Sub(Var("n"), IntNum(1)), Var("fact_call$0"))),
+          ), Mul(Var("n"), Var("fact_call$0"))))
+        ))),
+      ),
+      Relation("main", Seq(
+        Param("n", TInt),
+        Param("main_result$0", TInt)
+      ), Seq(
+        Body(Seq(
+          ExtensionalCall("ext_main$input", Seq(Var("n"))),
+          Call("fact", Seq(Var("n"), Var("main_result$0")))
+        )),
+      )).addHint(MainHint),
+      Relation("fact$input", Seq(
+        Param("n$0", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("n$0"), Block(Seq(
+            Call("fact$input", Seq(Var("n"))),
+            Eq(Var("n"), IntNum(1), true),
+          ), Sub(Var("n"), IntNum(1))))
+        )),
+        Body(Seq(
+          ExtensionalCall("ext_main$input", Seq(Var("n$0"))),
+        ))
+      ))
+    ))
+
+    val res = interp(mod, Seq(execution.Relation1("ext_main$input", Seq("param_0"), Seq(Seq(5)))))
+    val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(5, 120)))
   }

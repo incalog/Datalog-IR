@@ -16,7 +16,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val aggregateOps: AggregateOps[V]
 
   override def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
-    //case AggregateColumnArg(t) if boundInSupplementary(t) => Some(evalTerm(t))
+    //case AggregateColumnArg(t) if canDetermineValue(t) => Some(evalTerm(t))
     case AggregateColumnArg(t) => None
     case _ => super.evalArg(arg)
 
@@ -50,7 +50,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
     // the expected
     val AggregateColumnArg(t) = args(aggColumnIndex): @unchecked
-    val expectedAggResult = if (boundInSupplementary(t)) Some(evalTerm(t)) else None
+    val expectedAggResult = if (canDetermineValue(t)) Some(evalTerm(t)) else None
     val resultColumn = extractVarName(t).map(_.name).getOrElse(gensym.fresh("agg"))
 
     // eval the actual call in a new scoped environment

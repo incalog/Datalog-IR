@@ -1,4 +1,4 @@
-package inca.ir.extension.demand.analysis.interpreter
+package inca.ir.extension.block.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
@@ -7,6 +7,7 @@ import inca.ir.analysis.constant.ConstantInterpreter
 import sturdy.values.Powerset
 import sturdy.data.MayJoin
 import sturdy.values.Topped
+import sturdy.values.booleans.BooleanOps
 import sturdy.data.WithJoin
 
 trait ConstantEqOps extends BaseEqOps

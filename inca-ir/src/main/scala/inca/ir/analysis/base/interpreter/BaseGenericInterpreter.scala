@@ -313,12 +313,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   protected def boundInSupplementary(s: String): Boolean =
     relationOps.hasColumn(supplementaryTable.getTable, s)
 
-  protected def boundInSupplementary(t: ir.Term): Boolean =
-    val sup = supplementaryTable.getTable
-    t.vars.forall { v => relationOps.hasColumn(sup, v.name.name) }
+  protected def canDetermineValue(t: ir.Term): Boolean =
+    t.vars.forall { v => boundInSupplementary(v.name.name) }
 
   protected final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
-    (boundInSupplementary(lhs), boundInSupplementary(rhs), neg) match
+    (canDetermineValue(lhs), canDetermineValue(rhs), neg) match
       case (false, false, _) => failure(InvalidBindings, s"Equality between two binding terms: $lhs and $rhs")
       case (true, true, _) => evalCompare(lhs, rhs, neg)
       case (false, _, false) => evalAssign(lhs, rhs)
@@ -326,7 +325,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
   protected def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
-    case ir.TermArg(t) if boundInSupplementary(t) => Some(evalTerm(t))
+    case ir.TermArg(t) if canDetermineValue(t) => Some(evalTerm(t))
     case ir.TermArg(t) => None
     case ir.WildcardArg() => None
     case _ => failure(UnknownArg, s"Unknown arg $arg")

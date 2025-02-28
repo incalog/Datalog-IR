@@ -16,6 +16,7 @@ import inca.ir.extension.bool.analysis as irbool
 import inca.ir.extension.demand.analysis as irdemand
 import inca.ir.extension.not.analysis as irnot
 import inca.ir.extension.disjunction.analysis as irdisjunction
+import inca.ir.extension.block.analysis as irblock
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.NoJoin
 import sturdy.effect.except.{ConcreteExcept, Except}
@@ -46,7 +47,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   with irbool.interpreter.ConcreteInterpreter
   with irdemand.interpreter.ConcreteInterpreter
   with irnot.interpreter.ConcreteInterpreter
-  with irdisjunction.interpreter.ConcreteInterpreter:
+  with irdisjunction.interpreter.ConcreteInterpreter 
+  with irblock.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 
@@ -94,8 +96,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   given EqOps[Value, Boolean] = eqOps
 
   override val relationOps: RelationOps[Value, Boolean, CRV] = new ConcreteRelationOps[Value]
-
-
+  
   var looper: HasFixpointCache[FixIn, FixOut[Value, CRV]] = null
   def setLooper[A <: HasFixpointCache[FixIn, FixOut[Value, CRV]]](a: A): A =
     looper = a
