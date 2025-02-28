@@ -13,11 +13,12 @@ import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.tuple.analysis as irtuple
 import inca.ir.extension.bool.analysis as irbool
+import inca.ir.extension.demand.analysis as irdemand
 import sturdy.data.MayJoin
-import sturdy.data.MayJoin.{NoJoin, WithJoin}
-import sturdy.effect.except.{ConcreteExcept, Except, JoinedExcept}
+import sturdy.data.MayJoin.NoJoin
+import sturdy.effect.except.{ConcreteExcept, Except}
 import sturdy.effect.failure.CollectedFailures
-import sturdy.effect.{Concrete, EffectStack, TrySturdy}
+import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.fix
 import sturdy.fix.{HasFixpointCache, StackConfig}
 import sturdy.fix.StackConfig.StackedStates
@@ -29,7 +30,6 @@ import sturdy.values.*
 import sturdy.data.given
 import sturdy.values.given
 import inca.ir.analysis.base.effect.IRFailure
-import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.FiniteFixIn
 import inca.ir.analysis.base.values.JoinCRV
 import sturdy.values.exceptions.ConcreteExceptional
@@ -41,7 +41,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   with irdata.interpreter.ConcreteInterpreter
   with iragg.interpreter.ConcreteInterpreter
   with irtuple.interpreter.ConcreteInterpreter
-  with irbool.interpreter.ConcreteInterpreter:
+  with irbool.interpreter.ConcreteInterpreter
+  with irdemand.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 

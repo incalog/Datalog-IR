@@ -6,6 +6,7 @@ import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
+import inca.ir.extension.demand.TDemand
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.IRTypechecker
 import inca.ir.{Arg, BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
@@ -1264,5 +1265,34 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     val mainRel = res("main")
-    println(mainRel.entries.head == false)
+    assert(mainRel.entries.head == false)
+  }
+
+  /* Demand */
+
+  test("Demand - Double Num") {
+    val mod = Module("Test2", BaseIR.language + arithIR, Seq(
+      Relation("double", Seq(
+        Param("in", TDemand(TInt)),
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out"), Mul(Var("in"), IntNum(2)))
+        ))
+      )),
+      Relation("main", Seq(
+        Param("res", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("double", Seq(IntNum(5), Var("res")))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").entries.head == 10)
+    val doubleRel = res("double")
+    val firstEntry = doubleRel.flattenEntry(doubleRel.entries.head)
+    assert(firstEntry.head.asInstanceOf[Int] == 5)
+    assert(firstEntry.last.asInstanceOf[Int] == 10)
   }

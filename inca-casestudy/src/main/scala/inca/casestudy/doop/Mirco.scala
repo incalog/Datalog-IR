@@ -99,4 +99,13 @@ object Mirco:
     runMicroDL(compiled => inca.ascent.backend.Executor(Auto).instantiate(compiled))
   }
 
+  @main
+  def runMicroDlDDlog(): Unit = {
+    runMicroDL(compiled => inca.ddlog.backend.Executor().instantiate(compiled))
+  }
+
+  @main
+  def runMicroDlInterpreter(): Unit = {
+    runMicroDL(compiled => inca.ir.execution.interpreter.Executor().instantiate(compiled))
+  }
 

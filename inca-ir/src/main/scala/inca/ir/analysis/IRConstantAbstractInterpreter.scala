@@ -14,7 +14,7 @@ import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.tuple.analysis as irtuple
 import inca.ir.extension.bool.analysis as irbool
-//import inca.ir.extension.demand.analysis as irdemand
+import inca.ir.extension.demand.analysis as irdemand
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Powerset, Topped, Widen}
@@ -45,7 +45,8 @@ private class IRJoinV extends Join[Value] with BaseJoinV
   with irstr.interpreter.ConstantJoinV
   with irdata.interpreter.ConstantJoinV
   with irtuple.interpreter.ConstantJoinV
-  with irbool.interpreter.ConstantJoinV:
+  with irbool.interpreter.ConstantJoinV
+  with irdemand.interpreter.ConstantJoinV:
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
     MaybeChanged(join(v1, v2), v1)
@@ -56,6 +57,7 @@ private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseM
   with irdata.interpreter.ConstantMeetV
   with irtuple.interpreter.ConstantMeetV
   with irbool.interpreter.ConstantMeetV
+  with irdemand.interpreter.ConstantMeetV
 
 private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
   with irarith.interpreter.ConstantEqOps
@@ -63,6 +65,7 @@ private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEq
   with irdata.interpreter.ConstantEqOps(using boolOps)
   with irtuple.interpreter.ConstantEqOps(using boolOps)
   with irbool.interpreter.ConstantEqOps(using boolOps)
+  with irdemand.interpreter.ConstantEqOps
 
 class IRConstantAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
@@ -70,19 +73,26 @@ class IRConstantAbstractInterpreter(
     override val interRelational: Boolean = false
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
-  with ConstantInterpreter
-  with irarith.interpreter.ConstantAbstractInterpreter
-  with irstr.interpreter.ConstantAbstractInterpreter
-  with irdata.interpreter.ConstantAbstractInterpreter
-  with iragg.interpreter.ConstantAbstractInterpreter
-  with irtuple.interpreter.ConstantAbstractInterpreter
-  with irbool.interpreter.ConstantAbstractInterpreter
-  with DatalogControlObservable:
+    with ConstantInterpreter
+    with irarith.interpreter.ConstantAbstractInterpreter
+    with irstr.interpreter.ConstantAbstractInterpreter
+    with irdata.interpreter.ConstantAbstractInterpreter
+    with iragg.interpreter.ConstantAbstractInterpreter
+    with irtuple.interpreter.ConstantAbstractInterpreter
+    with irbool.interpreter.ConstantAbstractInterpreter
+    with irdemand.interpreter.ConstantAbstractInterpreter
+    with DatalogControlObservable:
 
   type RV = ConstantRelation
 
   private class IRAtomOrderingOps extends BaseAtomOrderingOps
+    with irarith.ordering.AtomOrderingOps
+    with irstr.ordering.AtomOrderingOps
+    with iragg.ordering.AtomOrderingOps
     with irdata.ordering.AtomOrderingOps
+    with irtuple.ordering.AtomOrderingOps
+    with irbool.ordering.AtomOrderingOps
+    with irdemand.ordering.AtomOrderingOps
   
   override val atomOrderingOps = new IRAtomOrderingOps
   

@@ -2,7 +2,6 @@ package inca.ir.extension.bool.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.values.{ConcreteRelation, Value}
-import sturdy.values.Powerset
 import sturdy.data.MayJoin.NoJoin
 import sturdy.values.booleans.BooleanOps
 

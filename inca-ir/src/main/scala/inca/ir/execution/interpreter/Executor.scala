@@ -117,7 +117,7 @@ case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) ext
   lazy val outputRel: Relation =
     evaled = true
 
-    def convert(v: Value): Any = v match
+    def convert(v: Value): Any = v match {
       case CIntV(i) => i
       case CDoubleV(d) => d
       case CStringV(s) => s
@@ -125,6 +125,7 @@ case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) ext
       // non bases extensions
       case CBoolV(bool) => bool
       case CTupleV(ts) => ts.map(convert)
+    }
 
     val queryMatches: Iterable[Seq[Any]] = table.rows.map(_.map(convert))
     Relation.from(name, parameterNames, queryMatches)

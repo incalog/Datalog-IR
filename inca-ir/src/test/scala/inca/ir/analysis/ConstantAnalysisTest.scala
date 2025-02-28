@@ -7,6 +7,7 @@ import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
+import inca.ir.extension.demand.TDemand
 import inca.ir.extension.tuple.analysis.interpreter.ConstantTupleV
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.printer.IRDebugPrinter
@@ -1146,5 +1147,33 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assert(mainRel.cols == Seq("out"))
     assert(mainRel.rows == Seq(ConstantBoolV(false)))
     assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  /* Demand */
+
+  test("Demand - Double Num") {
+    val mod = Module("Test2", BaseIR.language + arithIR, Seq(
+      Relation("double", Seq(
+        Param("in", TDemand(TInt)),
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out"), Mul(Var("in"), IntNum(2)))
+        ))
+      )),
+      Relation("main", Seq(
+        Param("res", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("double", Seq(IntNum(5), Var("res")))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").cols == Seq("res"))
+    assert(res("double").cols == Seq("in", "out"))
+    assert(res("main").rows == Seq(ConstantIntV(10)))
+    assert(res("double").rows == Seq(ConstantIntV(5), ConstantIntV(10)))
   }
 
