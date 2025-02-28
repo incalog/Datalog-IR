@@ -7,6 +7,7 @@ import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum,
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.not.Not
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.IRTypechecker
 import inca.ir.{Arg, BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
@@ -1295,4 +1296,91 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     val firstEntry = doubleRel.flattenEntry(doubleRel.entries.head)
     assert(firstEntry.head.asInstanceOf[Int] == 5)
     assert(firstEntry.last.asInstanceOf[Int] == 10)
+  }
+
+  /* Negate */
+
+  test("Not - Filter") {
+    val mod = Module("Test", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("n"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(2)),
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(3)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("t", TInt),
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("t"))),
+          Not(Eq(Var("t"), IntNum(1))),
+          Eq(Var("n"), Var("t")),
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.size == 2)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(2, 2)))
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 3)))
+  }
+
+  test("Not - EDB call") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("input_edge", Seq(
+        Param("a", TInt),
+        Param("b", TInt)
+      )),
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(1).arg, WildcardArg()))),
+          Eq(Var("x"), IntNum(5)),
+          Eq(Var("y"), IntNum(6))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(1), IntNum(2)))),
+          Eq(Var("x"), IntNum(7)),
+          Eq(Var("y"), IntNum(8))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(2), IntNum(2)))),
+          Eq(Var("x"), IntNum(9)),
+          Eq(Var("y"), IntNum(10))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(4), IntNum(4)))),
+          Eq(Var("x"), IntNum(11)),
+          Eq(Var("y"), IntNum(12))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(WildcardArg(), IntNum(2).arg))),
+          Eq(Var("x"), IntNum(13)),
+          Eq(Var("y"), IntNum(14))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    // 9	10
+    // 11	12
+
+    val res = interp(mod, Seq(
+      execution.Relation.from("input_edge", Seq("a", "b"), Seq(Seq(1, 2), Seq(3, 2)))
+    ))
+
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(9, 10)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(11, 12)))
   }

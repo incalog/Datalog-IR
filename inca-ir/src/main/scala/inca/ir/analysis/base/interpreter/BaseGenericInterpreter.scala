@@ -100,7 +100,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   given Failure = failure
 
   // MayJoin on V used for excepts
-  val joinV: J[V]
+  val mayJoinV: J[V]
   lazy val topV: V
 
   var edb: Map[String, RV] = Map()
@@ -125,10 +125,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   def supplementaryTable: SupplementaryTable[RV]
 
   def snapshotSupplementary(): RV = supplementaryTable.getTable
-  
+
   /** updates the supplementary table; ASSUMEs the new table is non-empty */
   inline def updateSupplementaryUnchecked(f: RV => RV): RV = supplementaryTable.update(f)
-  
+
   /** updates the supplementary table; CHECKs the new table is non-empty */
   def updateSupplementaryChecked(f: RV => RV): RV =
     val rv = f(supplementaryTable.getTable)
@@ -139,7 +139,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       rv
     }
 
-  implicit def joinUnit: J[Unit]
+  implicit def mayJoinUnit: J[Unit]
 
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {

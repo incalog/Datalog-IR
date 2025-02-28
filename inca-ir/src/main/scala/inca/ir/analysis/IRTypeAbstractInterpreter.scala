@@ -79,7 +79,7 @@ class IRTypeAbstractInterpreter(
 
   given EqOps[Value, Topped[Boolean]] = eqOps
   
-  override val joinV: WithJoin[Value] = implicitly
+  override val mayJoinV: WithJoin[Value] = implicitly
   override val joinRV: Join[TRV] = implicitly
   override lazy val mayJoinRV: MayJoin.WithJoin[TypeRelation] = MakeJoined(using joinRV, effects)
 
@@ -87,7 +87,7 @@ class IRTypeAbstractInterpreter(
     override def apply(v1: TRV, v2: TRV): MaybeChanged[TRV] = joinRV(v1, v2)
   }
   
-  override val joinUnit: WithJoin[Unit] = implicitly
+  override val mayJoinUnit: WithJoin[Unit] = implicitly
 
   override val supplementaryTable: SupplementaryTable[TRV] = new ASupplementaryTable[TRV]() {
     override def initialTable: TRV = TypeRelation(Seq(), Seq(), Topped.Actual(false))

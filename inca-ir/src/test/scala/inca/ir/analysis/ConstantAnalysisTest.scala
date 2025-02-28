@@ -8,11 +8,12 @@ import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.not.Not
 import inca.ir.extension.tuple.analysis.interpreter.ConstantTupleV
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.typing.IRTypechecker
-import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList, term2Arg}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
 
@@ -1175,5 +1176,107 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assert(res("double").cols == Seq("in", "out"))
     assert(res("main").rows == Seq(ConstantIntV(10)))
     assert(res("double").rows == Seq(ConstantIntV(5), ConstantIntV(10)))
+  }
+
+  /* Not */
+
+  test("Not - Filter") {
+    val mod = Module("Test", BaseIR.language + arithIR, Seq(
+      Relation("input", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("n"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(2)),
+        )),
+        Body(Seq(
+          Eq(Var("n"), IntNum(3)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("t", TInt),
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input", Seq(Var("t"))),
+          Not(Eq(Var("t"), IntNum(1))),
+          Eq(Var("n"), Var("t")),
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val constRes = interp(mod)
+    val inputRelType = constRes("input")
+    assert(inputRelType.cols == Seq("n"))
+    assert(inputRelType.rows == Seq(Value.Top))
+    assertResult(Topped.Actual(false))(inputRelType.empty)
+
+    val mainRelType = constRes("main")
+    assert(mainRelType.cols == Seq("t", "n"))
+    assert(mainRelType.rows == Seq(Value.Top, Value.Top))
+    assertResult(Topped.Top)(mainRelType.empty)
+  }
+
+  test("Not - EDB call") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("input_edge", Seq(
+        Param("a", TInt),
+        Param("b", TInt)
+      )),
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(1).arg, WildcardArg()))),
+          Eq(Var("x"), IntNum(5)),
+          Eq(Var("y"), IntNum(6))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(1), IntNum(2)))),
+          Eq(Var("x"), IntNum(7)),
+          Eq(Var("y"), IntNum(8))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(2), IntNum(2)))),
+          Eq(Var("x"), IntNum(9)),
+          Eq(Var("y"), IntNum(10))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(IntNum(4), IntNum(4)))),
+          Eq(Var("x"), IntNum(11)),
+          Eq(Var("y"), IntNum(12))
+        )),
+        Body(Seq(
+          Not(ExtensionalCall("input_edge", Seq(WildcardArg(), IntNum(2).arg))),
+          Eq(Var("x"), IntNum(13)),
+          Eq(Var("y"), IntNum(14))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    // 9	10
+    // 11	12
+
+    var constRes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
+    ))
+
+    var edgeRelType = constRes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
+    assertResult(Topped.Actual(false))(edgeRelType.empty)
+
+    constRes = interp(mod, Map(
+      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
+    ))
+
+    edgeRelType = constRes("edge")
+    assert(edgeRelType.cols == Seq("x", "y"))
+    assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
+    //println(edgeRelType.empty)
+    assertResult(Topped.Top)(edgeRelType.empty)
   }
 

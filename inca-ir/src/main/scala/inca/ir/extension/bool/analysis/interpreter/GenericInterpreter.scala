@@ -27,7 +27,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         // negation does not bind => rollback the changes to the supplementary
         updateSupplementaryUnchecked(_ => sup)
         booleanOps.boolLit(false)
-      }(using joinV)
+      }(using mayJoinV)
       termResult(res)
     case BoolAnd(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.and)
     case BoolOr(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.or)

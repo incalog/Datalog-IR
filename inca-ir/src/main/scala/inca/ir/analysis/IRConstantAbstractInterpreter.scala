@@ -15,6 +15,7 @@ import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.tuple.analysis as irtuple
 import inca.ir.extension.bool.analysis as irbool
 import inca.ir.extension.demand.analysis as irdemand
+import inca.ir.extension.not.analysis as irnot
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Powerset, Topped, Widen}
@@ -46,7 +47,8 @@ private class IRJoinV extends Join[Value] with BaseJoinV
   with irdata.interpreter.ConstantJoinV
   with irtuple.interpreter.ConstantJoinV
   with irbool.interpreter.ConstantJoinV
-  with irdemand.interpreter.ConstantJoinV:
+  with irdemand.interpreter.ConstantJoinV
+  with irnot.interpreter.ConstantJoinV:
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
     MaybeChanged(join(v1, v2), v1)
@@ -58,6 +60,7 @@ private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseM
   with irtuple.interpreter.ConstantMeetV
   with irbool.interpreter.ConstantMeetV
   with irdemand.interpreter.ConstantMeetV
+  with irnot.interpreter.ConstantMeetV
 
 private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
   with irarith.interpreter.ConstantEqOps
@@ -66,6 +69,7 @@ private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEq
   with irtuple.interpreter.ConstantEqOps(using boolOps)
   with irbool.interpreter.ConstantEqOps(using boolOps)
   with irdemand.interpreter.ConstantEqOps
+  with irnot.interpreter.ConstantEqOps
 
 class IRConstantAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
@@ -81,6 +85,7 @@ class IRConstantAbstractInterpreter(
     with irtuple.interpreter.ConstantAbstractInterpreter
     with irbool.interpreter.ConstantAbstractInterpreter
     with irdemand.interpreter.ConstantAbstractInterpreter
+    with irnot.interpreter.ConstantAbstractInterpreter
     with DatalogControlObservable:
 
   type RV = ConstantRelation
@@ -93,6 +98,7 @@ class IRConstantAbstractInterpreter(
     with irtuple.ordering.AtomOrderingOps
     with irbool.ordering.AtomOrderingOps
     with irdemand.ordering.AtomOrderingOps
+    with irnot.ordering.AtomOrderingOps
   
   override val atomOrderingOps = new IRAtomOrderingOps
   
@@ -114,9 +120,9 @@ class IRConstantAbstractInterpreter(
 
   given Join[Value] = new IRJoinV
 
-  override val joinV: WithJoin[Value] = implicitly
+  override val mayJoinV: WithJoin[Value] = implicitly
   override val joinRV: Join[RV] = implicitly
-  override val joinUnit: WithJoin[Unit] = implicitly
+  override val mayJoinUnit: WithJoin[Unit] = implicitly
   override lazy val mayJoinRV: MayJoin.WithJoin[ConstantRelation] = MakeJoined(using joinRV, effects)
 
   // I don't think we need to widen tables for a constant analysis
@@ -137,7 +143,11 @@ class IRConstantAbstractInterpreter(
       with irarith.logger.AnalysisAnnotator[Value, RV, Value]
       with irdata.logger.AnalysisAnnotator[Value, RV, Value]
       with irstr.logger.AnalysisAnnotator[Value, RV, Value]
-      with iragg.logger.AnalysisAnnotator[Value, RV, Value]:
+      with iragg.logger.AnalysisAnnotator[Value, RV, Value]
+      with irtuple.logger.AnalysisAnnotator[Value, RV, Value]
+      with irbool.logger.AnalysisAnnotator[Value, RV, Value]
+      with irdemand.logger.AnalysisAnnotator[Value, RV, Value]
+      with irnot.logger.AnalysisAnnotator[Value, RV, Value]:
 
     override def extractColumns(rv: RV): Seq[String] =
       relationOps.columns(rv)
