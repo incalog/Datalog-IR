@@ -12,6 +12,9 @@ import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
+import inca.ir.extension.tuple.analysis as irtuple
+import inca.ir.extension.bool.analysis as irbool
+//import inca.ir.extension.demand.analysis as irdemand
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Powerset, Topped, Widen}
@@ -40,7 +43,9 @@ import inca.ir.analysis.base.interpreter.CCombineFixOut
 private class IRJoinV extends Join[Value] with BaseJoinV
   with irarith.interpreter.ConstantJoinV
   with irstr.interpreter.ConstantJoinV
-  with irdata.interpreter.ConstantJoinV:
+  with irdata.interpreter.ConstantJoinV
+  with irtuple.interpreter.ConstantJoinV
+  with irbool.interpreter.ConstantJoinV:
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
     MaybeChanged(join(v1, v2), v1)
@@ -49,11 +54,15 @@ private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseM
   with irarith.interpreter.ConstantMeetV
   with irstr.interpreter.ConstantMeetV
   with irdata.interpreter.ConstantMeetV
+  with irtuple.interpreter.ConstantMeetV
+  with irbool.interpreter.ConstantMeetV
 
-private class IREqOps extends BaseEqOps
+private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
   with irarith.interpreter.ConstantEqOps
   with irstr.interpreter.ConstantEqOps
-  with irdata.interpreter.ConstantEqOps
+  with irdata.interpreter.ConstantEqOps(using boolOps)
+  with irtuple.interpreter.ConstantEqOps(using boolOps)
+  with irbool.interpreter.ConstantEqOps(using boolOps)
 
 class IRConstantAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
@@ -66,6 +75,8 @@ class IRConstantAbstractInterpreter(
   with irstr.interpreter.ConstantAbstractInterpreter
   with irdata.interpreter.ConstantAbstractInterpreter
   with iragg.interpreter.ConstantAbstractInterpreter
+  with irtuple.interpreter.ConstantAbstractInterpreter
+  with irbool.interpreter.ConstantAbstractInterpreter
   with DatalogControlObservable:
 
   type RV = ConstantRelation

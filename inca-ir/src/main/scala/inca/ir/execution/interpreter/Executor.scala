@@ -85,7 +85,7 @@ class Executor extends IRExecutor:
       CDataV(caseDef, args.map(_.asInstanceOf[Value]))
 
     private def interpretfyTupleEntry(v: Any): Value =
-      // TODO: Support more values, such as Boolean
+      // TODO: Support more values, such as Boolean as input
       transformEDBInput(v)(CStringV.apply, CIntV.apply, CDoubleV.apply, transformADT).asInstanceOf[Value]
 
     private def relationToCRV(rel: Relation) =
@@ -96,7 +96,6 @@ class Executor extends IRExecutor:
     override def insert(edb: Relation): Unit =
       inputDirty = true
       interp.insertEDB(edb.name, relationToCRV(edb))
-
 
     override def remove(edb: Relation): Unit =
       inputDirty = true

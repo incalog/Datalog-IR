@@ -3,8 +3,12 @@ package inca.ir.analysis
 import inca.ir.analysis.base.values.{ConstantRelation, Value}
 import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
+import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
+import inca.ir.extension.tuple.analysis.interpreter.ConstantTupleV
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
@@ -1090,5 +1094,57 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assert(mainEdgeRelType.cols == Seq("x"))
     assert(mainEdgeRelType.rows == Seq(ConstantIntV(3)))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
+  }
+
+  /* Tuple */
+
+  test("Tuple - Single relation") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("out1", TTuple(Seq(TInt, TInt))),
+        Param("out2", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+          Eq(Var("out2"), Project(Var("out1"), 1))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.cols == Seq("out1", "out2"))
+    assert(mainRel.rows == Seq(ConstantTupleV(Seq(ConstantIntV(1), ConstantIntV(2))), ConstantIntV(2)))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  /* Boolean */
+
+  test("Boolean - AtomAsBool failing") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("out", TBoolean),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out"), AtomAsBool(
+            Call("fail", Seq(WildcardArg())))
+          )
+        ))
+      )).addHint(MainHint),
+      Relation("fail", Seq(
+        Param("x", TBoolean),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), BoolTrue),
+          Eq(Var("x"), BoolFalse),
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.cols == Seq("out"))
+    assert(mainRel.rows == Seq(ConstantBoolV(false)))
+    assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
