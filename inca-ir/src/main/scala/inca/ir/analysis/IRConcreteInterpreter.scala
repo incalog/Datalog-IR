@@ -15,6 +15,7 @@ import inca.ir.extension.tuple.analysis as irtuple
 import inca.ir.extension.bool.analysis as irbool
 import inca.ir.extension.demand.analysis as irdemand
 import inca.ir.extension.not.analysis as irnot
+import inca.ir.extension.disjunction.analysis as irdisjunction
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.NoJoin
 import sturdy.effect.except.{ConcreteExcept, Except}
@@ -44,7 +45,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   with irtuple.interpreter.ConcreteInterpreter
   with irbool.interpreter.ConcreteInterpreter
   with irdemand.interpreter.ConcreteInterpreter
-  with irnot.interpreter.ConcreteInterpreter:
+  with irnot.interpreter.ConcreteInterpreter
+  with irdisjunction.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 

@@ -248,14 +248,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Body(rv, _) => rv
     case _ => throw new IllegalStateException()
 
-  private def isAssignable(at: Atom, supCols: Seq[String]): Boolean = at match
+  protected def isAssignable(at: Atom, supCols: Seq[String]): Boolean = at match
     case ir.Eq(lhs, rhs, false) =>
       extractVarName(rhs).isDefined && lhs.unboundVars.isEmpty && lhs.boundVars.map(_.name.name).forall(supCols.contains) ||
         extractVarName(lhs).isDefined && rhs.unboundVars.isEmpty && rhs.boundVars.map(_.name.name).forall(supCols.contains)
     case _ => false
 
-  def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): (RV, RV) = supplementaryTable.scoped {
-    var rest = b.atoms
+  protected def evalAtoms(ats: Seq[Atom])(using rec: Fixed): Unit =
+    //b.atoms.foreach(evalAtom(_, b))
+    var rest = ats
     while (rest.nonEmpty) {
       val sup = supplementaryTable.getTable
       val supCols = relationOps.columns(sup)
@@ -268,7 +269,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       ordered.foreach(evalAtom)
       rest = later
     }
-    //b.atoms.foreach(evalAtom(_, b))
+
+  def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): (RV, RV) = supplementaryTable.scoped {
+    evalAtoms(b.atoms)
     val rawBody = supplementaryTable.getTable
     val projectedBody = relationOps.project(rawBody, paramNames)
     (projectedBody, rawBody)

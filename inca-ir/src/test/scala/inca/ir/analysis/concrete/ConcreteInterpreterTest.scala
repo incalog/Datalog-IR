@@ -7,6 +7,7 @@ import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum,
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.disjunction.Disjunction
 import inca.ir.extension.not.Not
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.typing.IRTypechecker
@@ -1383,4 +1384,26 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(edgeRel.size == 2)
     assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(9, 10)))
     assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(11, 12)))
+  }
+
+  /* Disjunction */
+
+  test("Disjunction - Comparison") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("x", TInt)
+      ), Seq(
+        Body(Seq(
+          Disjunction(Seq(
+            Eq(Var("x"), IntNum(1))
+          ), Seq(
+            Eq(Var("x"), IntNum(2))
+          ))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    println(res("main").asTable)
+    assert(res("main").size == 2)
   }

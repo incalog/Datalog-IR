@@ -14,7 +14,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   // This naive approach does not work.
   // E.g. consider a filter
   //  Q(x) :- x == 1 v x == 2 x == 3
-  //  R(x) :- Q(x), x == 1.
+  //  R(x) :- Q(x), Not(x == 1).
   // If we use the naive approach below, then we reset the supplementary to the state
   // before the filtering! However, what we want to do is negate the filter from == to !=.
   // This naive approach would only work for existential queries.
