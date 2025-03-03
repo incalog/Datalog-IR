@@ -105,7 +105,21 @@ class TypeRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin
           (1 to newCols.size).map(_ => v)
         }.toSeq
         TypeRelation(newCols, newRows, emp)
-  
+
+  override def groupBy(rv: TypeRelation, accumulatorCols: Seq[String], groupByCols: Seq[String])
+                      (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[Row]) => Row): TypeRelation =
+      rv match
+        case TypeRelation.Empty(cols) => TypeRelation.Empty(newCols)
+        case TypeRelation.NonEmpty(cols, rows, empty) =>
+          val groupyByIndices = groupByCols.map(cols.indexOf)
+          val groupByValues = groupyByIndices.map(rows.apply)
+          val accIndices = accumulatorCols.map(cols.indexOf)
+          val accValues = accIndices.map(rows.apply)
+          val newRows = f(groupByValues, Seq(accValues))
+          if (newRows.size != newCols.size)
+            throw IllegalStateException("Number of new columns must match arity of new rows.")
+          TypeRelation.NonEmpty(newCols, newRows, empty)
+
   override def fold(rv: TypeRelation, initial: Row)(f: (Row, Row) => Row): TypeRelation =
     rv match
       case TypeRelation.Empty(cols) =>

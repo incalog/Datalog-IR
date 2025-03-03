@@ -12,7 +12,7 @@ import inca.ir.extension.datamatch.{Case, Match, IR as datamatchIR}
 import inca.ir.extension.demand.{TDemand, IR as demandIR}
 import inca.ir.extension.disjunction.{Disjunction, IR as disjunctionIR}
 import inca.ir.extension.not.{Not, IR as notIR}
-import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
+import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
@@ -1347,7 +1347,6 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    println(res.map(_._2.asTable))
     assert(res("main").size == 1)
     assert(res("main").entries.head == "CN")
   }
@@ -1790,4 +1789,59 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     val mainRes = res("main")
     assert(mainRes.size == 1)
     assert(mainRes.entries.head == Set())
+  }
+
+  test("Set - SetFrom") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("nums", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TSet(TInt))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetFrom(RefByName("nums")))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Set(1, 2))
+  }
+
+  test("Set - SetFrom (Tuple)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("nums", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(3)),
+          Eq(Var("y"), IntNum(4))
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TSet(TTuple(Seq(TInt, TInt))))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetFrom(RefByName("nums")))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Set(Seq(1, 2), Seq(3, 4)))
   }

@@ -5,7 +5,8 @@ import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion}
 import inca.ir.*
 import inca.ir.analysis.base.effect.EmptySupplementary
-import sturdy.data.{MayJoin, mapJoin, MakeJoined}
+import inca.ir.extension.tuple.analysis.interpreter.TupleOps
+import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
 trait SetOps[V, B]:
   def setLit(vs: Seq[V]): V
@@ -17,9 +18,10 @@ trait SetOps[V, B]:
   def iter(s: V): Iterable[V]
 
 
-// TODO: Support ConstantRelationOps
-
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
+  // SetFrom can produce a Set with tuple values from a relation.
+  // That means, we need at least a way to create a TupleLit.
+  val tupleOps: TupleOps[V]
   val setOps: SetOps[V, B]
 
   override protected def canDetermineValue(t: Term): Boolean = t match
@@ -29,11 +31,28 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case SetLit(ts) => naryOp(ts.map(evalTerm))(setOps.setLit)
     case SetFrom(ref) =>
-      // TODO: Implement me
       val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
-      // 1. Eval the call and get all projected columns
-      // 2. Use the evaluated RV to construct a set (How to do that?)
-      ???
+      val resultColumn = gensym.fresh("result")
+      updateSupplementaryChecked { sup =>
+        val columnsBefore = relationOps.columns(sup)
+        except.tryCatch {
+          val accCols = r.params.map(_ => gensym.fresh("arg"))
+          val args = accCols.map(c => ir.TermArg(Var(c)))
+          evalCall(r, r.params, args, false)
+          val newSup = supplementaryTable.getTable
+          relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
+            case (groupedVals, elemVals) if accCols.size == 1 =>
+              groupedVals :+ setOps.setLit(elemVals.flatten)
+            case (groupedVals, elemVals) =>
+              // we need to create a tuple here
+              val tups = elemVals.map(tupleOps.tupleLit)
+              groupedVals :+ setOps.setLit(tups)
+          })
+        } /* catch */ { exec =>
+          relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
+        }(using mayJoinRV)
+      }
+      resultColumn
     case SetUnion(ts) => naryOp(ts.map(evalTerm))(setOps.union)
     case SetIntersection(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(setOps.intersect)
     case SetComprehension(elem, atoms) =>
@@ -44,42 +63,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         except.tryCatch {
           evalAtoms(atoms)
           val elemCol = evalTerm(elem)
-
-          // TODO: I think this should be a groupBy on the columns before:
-          //  val groupByCols = columnsBefore
-          //  groupBy(accumulatorCols: Seq[String], groupByCols: Seq[String])(newCols: Seq[String], f: (groupByCols: Row[V], accValues: Seq[Row[V]]) => Row[V]): RV
-          //  groupBy(accumulatorCols: Seq[String], groupByCols: Seq[String])(newCols: Seq[String], {
-          //    case (groupedCols: Seq[V], vs: Seq[Seq[V]]) =>  // for each group
-          //      val newValues = vs.map(_.apply(0)) // we only have a single element we want to accumulate
-          //      groupedCols :+ setOps.setLit(newValues)
-          //  })
-          //  This should drop all other columns
-          //  Concrete impl could look like this:
-          //  val rows = Seq(
-          //    Seq(1,2,4,5),
-          //    Seq(1,2,7,8),
-          //    Seq(1,3,4,9)
-          //  )
-          //  // val groupByIndices = groupByColumns.map(cols.indexOf)
-          //  val groupByIndices = Seq(0,1)
-          //  val accIndices = Seq(2, 3)
-          //  val grouped = rows.groupBy(row => groupByIndices.map(row.apply))
-          //  grouped.map { (groupedRows, rows) =>
-          //    val accValues = rows.map(row => accIndices.map(row.apply))
-          //    println(s"$groupedRows -> $accValues")
-          //  }
           val newSup = supplementaryTable.getTable
-          val elemColIdx = relationOps.columnIndex(newSup, elemCol)
-          val allCols = relationOps.columns(newSup)
-
-          val initial = allCols.indices.map(_ => setOps.setLit(Seq()))
-          var resRV = relationOps.fold(newSup, initial) { (acc, row) =>
-            val preV = acc(elemColIdx)
-            val newV = setOps.setLit(Seq(row(elemColIdx)))
-            row.updated(elemColIdx, setOps.union(Seq(preV, newV)))
-          }
-          resRV = relationOps.copyColumn(resRV, elemCol, resultColumn)
-          relationOps.project(resRV, columnsBefore :+ resultColumn)
+          relationOps.groupBy(newSup, elemCol, columnsBefore)(columnsBefore :+ resultColumn, {
+            (groupedVals, elemVals) => groupedVals :+ setOps.setLit(elemVals)
+          })
         } /* catch */ { exec =>
           relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
         }(using mayJoinRV)
@@ -109,4 +96,3 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         }
       }
     case _ => super.evalAtomOpen(at)
-

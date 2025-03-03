@@ -92,6 +92,20 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def map(rv: ConstantRelation, columnName: String)(f: Seq[Value] => Value): ConstantRelation =
     rv.withRows(rv.cols :+ columnName, rows => rows :+ f(rows))
 
+  override def groupBy(rv: ConstantRelation, accumulatorCols: Seq[String], groupByCols: Seq[String])
+                      (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[Row]) => Row): ConstantRelation =
+    rv match
+      case ConstantRelation.Empty(cols) => ConstantRelation.Empty(newCols)
+      case ConstantRelation.NonEmpty(cols, rows, empty) => 
+        val groupyByIndices = groupByCols.map(cols.indexOf) 
+        val groupByValues = groupyByIndices.map(rows.apply)
+        val accIndices = accumulatorCols.map(cols.indexOf)
+        val accValues = accIndices.map(rows.apply)
+        val newRows = f(groupByValues, Seq(accValues))
+        if (newRows.size != newCols.size)
+          throw IllegalStateException("Number of new columns must match arity of new rows.")
+        ConstantRelation.NonEmpty(newCols, newRows, empty)
+
   override def fold(rv: ConstantRelation, initial: Row)(f: (Row, Row) => Row): ConstantRelation = rv match
     case ConstantRelation.Empty(cols) =>
       ConstantRelation(cols, initial, empty = Topped.Actual(false))

@@ -26,7 +26,16 @@ trait RelationOps[V, B, RV]:
   
   def map(rv: RV, columnName: String)(f: Row => V): RV
 
-  /** may produce empty table */
+  /** may produce empty table (but only if you use groupByCols that don't exist in rv) */
+  def groupBy(rv: RV, accumulatorCols: Seq[String], groupByCols: Seq[String])
+             (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[Row]) => Row): RV
+
+  def groupBy(rv: RV, accumulatorCol: String, groupByCols: Seq[String])
+             (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[V]) => Row): RV =
+    groupBy(rv, Seq(accumulatorCol), groupByCols)(newCols, { (groupedValues, accValues) =>
+      f(groupedValues, accValues.flatten)
+    })
+
   def fold(rv: RV, initial: Row)(f: (Row, Row) => Row): RV
 
   /** may produce empty table */

@@ -51,6 +51,85 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
         yield row1 ++ row2
     ConcreteRelation(allCols, cartesianValues)
 
+  /**
+   * Groups rows by the given groupBy columns and applies an aggregation function
+   * to compute new columns based on the accumulator columns.
+   *
+   * Example:
+   *
+   * Original table:
+   * +------------+----------+-----+
+   * | date       | category | value |
+   * +------------+----------+-----+
+   * | 2025-02-28 | food     | 10  |
+   * | 2025-02-28 | food     | 15  |
+   * | 2025-02-28 | transport| 5   |
+   * | 2025-02-27 | food     | 20  |
+   * +------------+----------+-----+
+   *
+   * Function call:
+   * groupBy(
+   *  accumulatorCols = Seq("value"),
+   *  groupByCols = Seq("date", "category")
+   * )(
+   *  newCols = Seq("date", "category", "sumValue"),
+   *  (groupedValues, accValues) => groupedValues ++ Seq(accValues.flatten.sum)
+   * )
+   *
+   * Explanation:
+   * - groupByCols: Seq("date", "category")
+   * - accumulatorCols: Seq("value")
+   * - newCols: Seq("date", "category", "sumValue")
+   * - Aggregation: Sum the `value` column for each (date, category) group.
+   *
+   * After grouping:
+   * +------------+----------+------------+
+   * | date       | category | values     |
+   * +------------+----------+------------+
+   * | 2025-02-28 | food     | [10, 15]   |
+   * | 2025-02-28 | transport| [5]        |
+   * | 2025-02-27 | food     | [20]       |
+   * +------------+----------+------------+
+   *
+   * After applying f:
+   * +------------+----------+---------+
+   * | date       | category | sumValue |
+   * +------------+----------+---------+
+   * | 2025-02-28 | food     | 25      |
+   * | 2025-02-28 | transport| 5       |
+   * | 2025-02-27 | food     | 20      |
+   * +------------+----------+---------+
+   *
+   * Result:
+   * ConcreteRelation(
+   *  cols = Seq("date", "category", "sumValue"),
+   *  rows = Set(
+   *   Seq("2025-02-28", "food", 25),
+   *   Seq("2025-02-28", "transport", 5),
+   *   Seq("2025-02-27", "food", 20)
+   *  )
+   * )
+   *
+   * @param accumulatorCols Columns to aggregate (e.g., ["value"])
+   * @param groupByCols     Columns to group by (e.g., ["date", "category"])
+   * @param newCols         Columns in the resulting table
+   * @param f               Aggregation function applied to each group
+   * @return New ConcreteRelation with grouped and aggregated data
+   */
+  def groupBy(accumulatorCols: Seq[String], groupByCols: Seq[String])
+             (newCols: Seq[String], f: (groupByValues: Seq[V], accValues: Seq[Seq[V]]) => Seq[V]): ConcreteRelation[V] =
+    val groupByIndices = groupByCols.map(cols.indexOf)
+    val accIndices = accumulatorCols.map(cols.indexOf)
+    val grouped = rows.groupBy(row => groupByIndices.map(row.apply))
+    val newRows = grouped.map { (groupedValues, rows) =>
+      val accValues = rows.toSeq.map(row => accIndices.map(row.apply))
+      val newRow = f(groupedValues, accValues)
+      if (newRow.size != newCols.size)
+        throw IllegalStateException("Number of new columns must match arity of new rows.")
+      newRow
+    }
+    ConcreteRelation(newCols, newRows.toSet)
+
   def fold(initial: Seq[V])(f: (Seq[V], Seq[V]) => Seq[V]): ConcreteRelation[V] =
     val foldedValue = rows.foldLeft(initial)(f)
     ConcreteRelation(cols, Set(foldedValue))
@@ -112,16 +191,20 @@ class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   override def filter(rv: ConcreteRelation[V])(f: Row => Boolean): ConcreteRelation[V] =
     rv.filter(f)
 
-  def filterEq(rv: RV, col: String, col2: String): RV =
+  override def filterEq(rv: RV, col: String, col2: String): RV =
     val lix = columnIndex(rv, col)
     val rix = columnIndex(rv, col2)
     filter(rv)(row => eqOps.equ(row(lix), row(rix)))
   
-  def filterNeq(rv: RV, col: String, col2: String): RV =
+  override def filterNeq(rv: RV, col: String, col2: String): RV =
     val lix = columnIndex(rv, col)
     val rix = columnIndex(rv, col2)
     filter(rv)(row => eqOps.neq(row(lix), row(rix)))
-  
+
+  override def groupBy(rv: RV, accumulatorCols: Seq[String], groupByCols: Seq[String])
+                      (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[Row]) => Row): RV =
+    rv.groupBy(accumulatorCols, groupByCols)(newCols, f)
+
   override def fold(rv: ConcreteRelation[V], initial: Row)(f: (Row, Row) => Row): ConcreteRelation[V] =
     rv.fold(initial)(f)
 
