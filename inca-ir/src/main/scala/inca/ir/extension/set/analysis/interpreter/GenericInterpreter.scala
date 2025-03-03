@@ -45,7 +45,29 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           evalAtoms(atoms)
           val elemCol = evalTerm(elem)
 
-          // FIXME: Kind of hacky, is there a better way? Also, is this even correct?
+          // TODO: I think this should be a groupBy on the columns before:
+          //  val groupByCols = columnsBefore
+          //  groupBy(accumulatorCols: Seq[String], groupByCols: Seq[String])(newCols: Seq[String], f: (groupByCols: Row[V], accValues: Seq[Row[V]]) => Row[V]): RV
+          //  groupBy(accumulatorCols: Seq[String], groupByCols: Seq[String])(newCols: Seq[String], {
+          //    case (groupedCols: Seq[V], vs: Seq[Seq[V]]) =>  // for each group
+          //      val newValues = vs.map(_.apply(0)) // we only have a single element we want to accumulate
+          //      groupedCols :+ setOps.setLit(newValues)
+          //  })
+          //  This should drop all other columns
+          //  Concrete impl could look like this:
+          //  val rows = Seq(
+          //    Seq(1,2,4,5),
+          //    Seq(1,2,7,8),
+          //    Seq(1,3,4,9)
+          //  )
+          //  // val groupByIndices = groupByColumns.map(cols.indexOf)
+          //  val groupByIndices = Seq(0,1)
+          //  val accIndices = Seq(2, 3)
+          //  val grouped = rows.groupBy(row => groupByIndices.map(row.apply))
+          //  grouped.map { (groupedRows, rows) =>
+          //    val accValues = rows.map(row => accIndices.map(row.apply))
+          //    println(s"$groupedRows -> $accValues")
+          //  }
           val newSup = supplementaryTable.getTable
           val elemColIdx = relationOps.columnIndex(newSup, elemCol)
           val allCols = relationOps.columns(newSup)
@@ -77,7 +99,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case SetMember(mem, s) => // iterate over the set
       val memCol = extractVarName(mem).get.name
       val setCol = evalTerm(s)
-      updateSupplementaryUnchecked { sup =>
+      updateSupplementaryChecked { sup =>
         val setIx = relationOps.columnIndex(sup, setCol)
         relationOps.flatMap(sup) { row =>
           val memValues = setOps.iter(row(setIx))
