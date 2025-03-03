@@ -12,6 +12,7 @@ import inca.ir.extension.string.analysis.interpreter.CStringV
 import inca.ir.extension.data.analysis.interpreter.CDataV
 import inca.ir.extension.tuple.analysis.interpreter.CTupleV
 import inca.ir.extension.bool.analysis.interpreter.CBoolV
+import inca.ir.extension.set.analysis.interpreter.CSetV
 import inca.ir.extension.string.TString
 
 // TODO: Support Scala code
@@ -125,6 +126,7 @@ case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) ext
       // non bases extensions
       case CBoolV(bool) => bool
       case CTupleV(ts) => ts.map(convert)
+      case CSetV(ts) => ts.map(convert)
     }
 
     val queryMatches: Iterable[Seq[Any]] = table.rows.map(_.map(convert))

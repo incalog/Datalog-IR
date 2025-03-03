@@ -8,7 +8,7 @@ import sturdy.data.MayJoin
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
 
-  override def canDetermineValue(t: Term): Boolean = t match
+  override protected def canDetermineValue(t: Term): Boolean = t match
     case Block(_, t) => true
     case _ => super.canDetermineValue(t)
 

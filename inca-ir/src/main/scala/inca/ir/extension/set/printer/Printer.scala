@@ -11,7 +11,7 @@ trait Printer extends BaseIRPrinter:
 
   override def prettyPrint(term: Term): String = term match
     case SetLit(ts) => ts.map(prettyPrint).mkString("Set(", ", ", ")")
-    case SetFrom(name) => s"Set.from(${prettyPrint(name)})"
+    case SetFrom(ref) => s"Set.from(${prettyPrint(ref)})"
     case SetUnion(ts) => ts.map(prettyPrint).mkString("(", " ∪ ", ")")
     case SetIntersection(t1, t2) =>  s"(${prettyPrint(t1)} ∩ ${prettyPrint(t2)}"
     case SetComprehension(elem, atoms) => s"Set(${prettyPrint(elem)} | ${atoms.map(prettyPrint).mkString(", ")})"

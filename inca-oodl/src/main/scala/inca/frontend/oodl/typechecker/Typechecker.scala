@@ -679,7 +679,7 @@ class Typechecker extends TypeContext with TypeIO:
             assertSubtype(typecheckExp(predicate.get, None), TBoolean, target)
           ty
         case _ =>
-          error("Expects set type for member test", expression)
+          error("Expects set type for contains test", expression)
           bindVar(name, setMember, TAny, immutable = true)
           TAny
       }

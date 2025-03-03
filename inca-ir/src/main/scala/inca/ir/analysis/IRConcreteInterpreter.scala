@@ -18,6 +18,7 @@ import inca.ir.extension.not.analysis as irnot
 import inca.ir.extension.disjunction.analysis as irdisjunction
 import inca.ir.extension.block.analysis as irblock
 import inca.ir.extension.datamatch.analysis as irdatamatch
+import inca.ir.extension.set.analysis as irset
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.NoJoin
 import sturdy.effect.except.{ConcreteExcept, Except}
@@ -50,7 +51,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   with irnot.interpreter.ConcreteInterpreter
   with irdisjunction.interpreter.ConcreteInterpreter 
   with irblock.interpreter.ConcreteInterpreter
-  with irdatamatch.interpreter.ConcreteInterpreter:
+  with irdatamatch.interpreter.ConcreteInterpreter
+  with irset.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 

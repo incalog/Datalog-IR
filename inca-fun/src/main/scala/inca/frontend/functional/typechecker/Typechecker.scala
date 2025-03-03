@@ -365,9 +365,9 @@ class Typechecker extends TypeContext with TypeIO {
   def typecheckSetMember(mem: SetMember, bindTupVars: Boolean): Unit = {
     val tySetContent = mem match {
       case SetMember(_, Var(name), _) if isData(name) =>
-        // this is a type member test
+        // this is a type contains test
         mem.isTypeMember = true
-        error(s"Type member test is not supported currently", mem)
+        error(s"Type contains test is not supported currently", mem)
         TAny
 
       case SetMember(_, set, _) =>

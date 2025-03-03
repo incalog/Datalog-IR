@@ -3,7 +3,7 @@ package inca.ir.analysis.concrete
 import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
-import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, LT, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, IR as stringIR}
 import inca.ir.extension.block.{Block, IR as blockIR}
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as boolIR}
@@ -12,6 +12,7 @@ import inca.ir.extension.datamatch.{Case, Match, IR as datamatchIR}
 import inca.ir.extension.demand.{TDemand, IR as demandIR}
 import inca.ir.extension.disjunction.{Disjunction, IR as disjunctionIR}
 import inca.ir.extension.not.{Not, IR as notIR}
+import inca.ir.extension.set.{SetComprehension, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
@@ -1656,4 +1657,137 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     val res = interp(mod)
     assert(res("main").size == 1)
     assert(res("main").entries.head == "CN")
+  }
+
+  /* Set */
+
+  test("Set - Literal") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("main", Seq(
+        Param("out", TSet(TInt))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out"), SetLit(Seq(IntNum(1), IntNum(2))))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Set(1,2))
+  }
+
+  test("Set - Union") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("main", Seq(
+        Param("out", TSet(TInt))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2)))),
+          Eq(Var("y"), SetLit(Seq(IntNum(2), IntNum(3)))),
+          Eq(Var("out"), SetUnion(Var("x"), Var("y")))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Set(1, 2, 3))
+  }
+
+  test("Set - Intersect") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("main", Seq(
+        Param("out", TSet(TInt))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2)))),
+          Eq(Var("y"), SetLit(Seq(IntNum(2), IntNum(3)))),
+          Eq(Var("out"), SetIntersection(Var("x"), Var("y")))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Set(2))
+  }
+
+  test("Set - Member (binding)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("main", Seq(
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2), IntNum(3), IntNum(4), IntNum(5)))),
+          SetMember(Var("out"), Var("x"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRes = res("main")
+    assert(mainRes.size == 5)
+    assert(mainRes.toSet == Set(1, 2, 3, 4, 5))
+  }
+
+  test("Set - Member (bound)") {
+    val mod = Module("Test1", BaseIR.language + boolIR + arithIR + setIR, Seq(
+      Relation("main", Seq(
+        Param("out", TBoolean)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2), IntNum(3), IntNum(4), IntNum(5)))),
+          SetMember(IntNum(1), Var("x")),
+          Eq(BoolTrue, Var("out"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRes = res("main")
+    assert(mainRes.size == 1)
+    assert(mainRes.entries.head == true)
+  }
+
+  test("Set - Comprehension") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("main", Seq(
+        Param("out", TSet(TInt))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2), IntNum(3), IntNum(4), IntNum(5)))),
+          Eq(Var("out"), SetComprehension(Var("x$i"), Seq(
+            SetMember(Var("x$i"), Var("x")),
+            LT(Var("x$i"), IntNum(3))
+          )))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRes = res("main")
+    assert(mainRes.size == 1)
+    assert(mainRes.entries.head == Set(1, 2))
+  }
+
+  test("Set - Comprehension (Empty)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + setIR, Seq(
+      Relation("main", Seq(
+        Param("out", TSet(TInt))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2), IntNum(3), IntNum(4), IntNum(5)))),
+          Eq(Var("out"), SetComprehension(Var("x$i"), Seq(
+            SetMember(Var("x$i"), Var("x")),
+            LT(Var("x$i"), IntNum(0))
+          )))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRes = res("main")
+    assert(mainRes.size == 1)
+    assert(mainRes.entries.head == Set())
   }
