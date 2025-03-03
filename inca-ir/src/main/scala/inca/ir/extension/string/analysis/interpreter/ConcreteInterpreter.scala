@@ -10,7 +10,7 @@ import sturdy.data.MayJoin.NoJoin
 case object InvalidStringConcat extends BaseIRFailure
 
 case class CStringV(value: String) extends Value:
-  override def toString: String = value
+  override def toString: String = s"\"$value\""
   override def isConstant: Boolean = true
 
 private class CStringVOps (using failure: Failure) extends StringOps[Value]:

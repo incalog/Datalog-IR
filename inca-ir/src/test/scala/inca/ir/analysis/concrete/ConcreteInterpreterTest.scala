@@ -4,17 +4,30 @@ import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, Mul, Sub, TInt, IR as arithIR}
-import inca.ir.extension.block.Block
-import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
+import inca.ir.extension.string.{StringConcat, StringLit, TString, IR as stringIR}
+import inca.ir.extension.block.{Block, IR as blockIR}
+import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as boolIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
-import inca.ir.extension.demand.TDemand
-import inca.ir.extension.disjunction.Disjunction
-import inca.ir.extension.not.Not
-import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
+import inca.ir.extension.datamatch.{Case, Match, IR as datamatchIR}
+import inca.ir.extension.demand.{TDemand, IR as demandIR}
+import inca.ir.extension.disjunction.{Disjunction, IR as disjunctionIR}
+import inca.ir.extension.not.{Not, IR as notIR}
+import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.typing.IRTypechecker
-import inca.ir.{Arg, BaseIR, Body, Call, CompiledTestUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.util.SourceLocation
+import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, RefByName, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
-import sturdy.fix.Fixpoint
+
+private case class CompiledInterpreterTestUnit(mod: Module) extends CompiledUnit:
+  setPipeline(Nil)
+
+  override def compilerOptions: CompilerOptions = CompilerOptions.default
+  override def name: Name = mod.name
+  override def sourceLocation: SourceLocation = mod.name
+  override def isClosedWorld: Boolean = true
+  override val irModules: Seq[Module] = Seq(mod)
+  override val otherUnits: Seq[CompiledUnit] = Seq()
 
 
 class ConcreteInterpreterTest extends AnyFunSuiteLike:
@@ -24,7 +37,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     typechecker.checkProgram(Seq(mod))
 
     val interp = new Executor
-    val compiled = CompiledTestUnit(mod)
+    val compiled = CompiledInterpreterTestUnit(mod)
     val engine = interp.instantiate(compiled)
     edb.foreach(engine.insert)
     engine.readAll().map(r => r.name -> r).toMap
@@ -1224,7 +1237,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   /* Tuple */
 
   test("Tuple - Single relation") {
-    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+    val mod = Module("Test1", BaseIR.language + arithIR + tupleIR, Seq(
       Relation("main", Seq(
         Param("out1", TTuple(Seq(TInt, TInt))),
         Param("out2", TInt)
@@ -1246,7 +1259,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   /* Boolean */
 
   test("Boolean - AtomAsBool failing") {
-    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+    val mod = Module("Test1", BaseIR.language + arithIR + boolIR, Seq(
       Relation("main", Seq(
         Param("out", TBoolean),
       ), Seq(
@@ -1274,7 +1287,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   /* Demand */
 
   test("Demand - Double Num") {
-    val mod = Module("Test2", BaseIR.language + arithIR, Seq(
+    val mod = Module("Test2", BaseIR.language + arithIR + demandIR, Seq(
       Relation("double", Seq(
         Param("in", TDemand(TInt)),
         Param("out", TInt)
@@ -1300,10 +1313,48 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(firstEntry.last.asInstanceOf[Int] == 10)
   }
 
+  test("Demand - Recursive") {
+    val mod = Module("Test3", BaseIR.language + stringIR + demandIR + arithIR + dataIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("count", Seq(
+        Param("x", TDemand(TData("TList"))),
+        Param("prevC", TDemand(TString)),
+        Param("c", TString)
+      ), Seq(
+        Body(Seq(
+          Deconstruct(Var("x"), "TNil", Seq()),
+          Eq(Var("c"), StringConcat(Var("prevC"), StringLit("N")))
+        )),
+        Body(Seq(
+          Deconstruct(Var("x"), "TCons", Seq(Var("hd"), Var("tail"))),
+          Eq(Var("tmp"), StringConcat(Var("prevC"), StringLit("C"))),
+          Call("count", Seq(Var("tail"), Var("tmp"), Var("c")))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("c", TString),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("z"), Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))),
+          Call("count", Seq(Var("z"), StringLit(""), Var("c")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    println(res.map(_._2.asTable))
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == "CN")
+  }
+
   /* Negate */
 
   test("Not - Filter") {
-    val mod = Module("Test", BaseIR.language + arithIR, Seq(
+    val mod = Module("Test", BaseIR.language + arithIR + notIR, Seq(
       Relation("input", Seq(
         Param("n", TInt),
       ), Seq(
@@ -1337,7 +1388,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   }
 
   test("Not - EDB call") {
-    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+    val mod = Module("Test3", BaseIR.language + arithIR + notIR, Seq(
       ExtensionalRelation("input_edge", Seq(
         Param("a", TInt),
         Param("b", TInt)
@@ -1390,7 +1441,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   /* Disjunction */
 
   test("Disjunction - Comparison") {
-    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+    val mod = Module("Test1", BaseIR.language + arithIR + disjunctionIR, Seq(
       Relation("main", Seq(
         Param("x", TInt)
       ), Seq(
@@ -1409,7 +1460,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   }
 
   test("Disjunction - Not") {
-    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+    val mod = Module("Test1", BaseIR.language + disjunctionIR + notIR + arithIR, Seq(
       Relation("main", Seq(
         Param("x", TInt)
       ), Seq(
@@ -1432,7 +1483,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
   }
 
   test("Disjunction - Factorial") {
-    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+    val mod = Module("Test3", BaseIR.language + disjunctionIR + arithIR, Seq(
       Relation("input", Seq(
         Param("n", TInt),
       ), Seq(
@@ -1472,10 +1523,51 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(3, 6)))
   }
 
+  test("Disjunction - Recursive") {
+    val mod = Module("Test3", BaseIR.language + stringIR + disjunctionIR + demandIR + arithIR + dataIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("count", Seq(
+        Param("x", TDemand(TData("TList"))),
+        Param("prevC", TDemand(TString)),
+        Param("c", TString)
+      ), Seq(
+        Body(Seq(
+          Disjunction(
+            Seq(
+              Deconstruct(Var("x"), "TNil", Seq()),
+              Eq(Var("c"), StringConcat(Var("prevC"), StringLit("N")))
+            ),
+            Seq(
+              Deconstruct(Var("x"), "TCons", Seq(Var("hd"), Var("tail"))),
+              Eq(Var("tmp"), StringConcat(Var("prevC"), StringLit("C"))),
+              Call("count", Seq(Var("tail"), Var("tmp"), Var("c")))
+            )
+          )
+        )),
+      )),
+
+      Relation("main", Seq(
+        Param("c", TString),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("z"), Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))),
+          Call("count", Seq(Var("z"), StringLit(""), Var("c")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == "CN")
+  }
+
   /* Block */
 
   test("Block - Factorial") {
-    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+    val mod = Module("Test3", BaseIR.language + arithIR + blockIR, Seq(
       ExtensionalRelation("ext_main$input", Seq(Param("n", TInt))),
       Relation("fact", Seq(
         Param("n", TInt),
@@ -1523,4 +1615,45 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     val mainRel = res("main")
     assert(mainRel.size == 1)
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(5, 120)))
+  }
+
+  /* Datamatch */
+
+  test("Datamatch - Recursive") {
+    val mod = Module("Test3", BaseIR.language + stringIR + datamatchIR + demandIR + arithIR + dataIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("count", Seq(
+        Param("x", TDemand(TData("TList"))),
+        Param("prevC", TDemand(TString)),
+        Param("c", TString)
+      ), Seq(
+        Body(Seq(
+          Match(Var("x"), Seq(
+            Case(RefByName("TNil"), Seq(), Seq(
+              Eq(Var("c"), StringConcat(Var("prevC"), StringLit("N")))
+            )),
+            Case(RefByName("TCons"), Seq(Var("hd"), Var("tail")), Seq(
+              Eq(Var("tmp"), StringConcat(Var("prevC"), StringLit("C"))),
+              Call("count", Seq(Var("tail"), Var("tmp"), Var("c")))
+            )),
+          ))
+        )),
+      )),
+
+      Relation("main", Seq(
+        Param("c", TString),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("z"), Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))),
+          Call("count", Seq(Var("z"), StringLit(""), Var("c")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == "CN")
   }

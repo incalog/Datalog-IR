@@ -17,6 +17,7 @@ import inca.ir.extension.demand.analysis as irdemand
 import inca.ir.extension.not.analysis as irnot
 import inca.ir.extension.disjunction.analysis as irdisjunction
 import inca.ir.extension.block.analysis as irblock
+import inca.ir.extension.datamatch.analysis as irdatamatch
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.NoJoin
 import sturdy.effect.except.{ConcreteExcept, Except}
@@ -48,7 +49,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   with irdemand.interpreter.ConcreteInterpreter
   with irnot.interpreter.ConcreteInterpreter
   with irdisjunction.interpreter.ConcreteInterpreter 
-  with irblock.interpreter.ConcreteInterpreter:
+  with irblock.interpreter.ConcreteInterpreter
+  with irdatamatch.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 
@@ -111,6 +113,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
     reduced
 
   val stackConfig: StackConfig = StackedStates(storeNonrecursiveOutput = true)
+
+  //fix.Fixpoint.DEBUG = true
 
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, CRV]] =
     val fixPt =
