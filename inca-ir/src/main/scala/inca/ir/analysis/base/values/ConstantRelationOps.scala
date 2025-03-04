@@ -75,7 +75,13 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def project(rv: ConstantRelation, newColumns: Seq[String]): ConstantRelation =
     val colsIndex = newColumns.map(rv.cols.indexOf)
     rv.withRows(newColumns, rows => colsIndex.map(rows))
-  
+
+  override def extract(rv: ConstantRelation, columnNames: Seq[String]): Seq[Row] = rv match
+    case ConstantRelation.Empty(cs) => Seq(Seq())
+    case ConstantRelation.NonEmpty(cs, rs, emp) => 
+      val colIndices = columnNames.map(cs.indexOf)
+      Seq(colIndices.map(rs))
+
   override def projectAndRenameWithMultipleAliases(rv: ConstantRelation, subst: Map[String, Seq[String]]): ConstantRelation =
     val newCols = subst.values.flatten.toSeq
     rv match

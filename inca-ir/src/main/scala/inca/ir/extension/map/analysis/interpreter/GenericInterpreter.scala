@@ -12,6 +12,7 @@ import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
 trait MapOps[V, B]:
   def mapLit(vs: Seq[(V, V)]): V
+  def mapFun(f: V => Set[V]): V
   def concat(m1: V, m2: V): V
   def union(ts: Seq[V]): V
   def plus(m: V, k: V, v: V): V
@@ -54,7 +55,26 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapConcat(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(mapOps.concat)
     case MapPlus(map, key, value) => ternaryOp(evalTerm(map), evalTerm(key), evalTerm(value))(mapOps.plus)
     case MapUnion(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(mapOps.union)
-    case MapFun(params, valTerm) => ???
+    case MapFun(params, valTerm) =>
+      val mapFun = mapOps.mapFun(key => {
+        supplementaryTable.scoped {
+          val keys = tupleOps.iter(key)
+          val inputCols = params.map(_.name.name)
+          val evalContext = relationOps.make(inputCols, Seq(keys))
+          supplementaryTable.setTable(evalContext)
+          evalTerm(valTerm)
+
+          val sup = supplementaryTable.getTable
+          val outCols = relationOps.columns(sup).dropWhile(inputCols.contains)
+          val outputRows = relationOps.extract(sup, outCols)
+          val vs = outputRows.map { v =>
+            if (v.size == 1) v.head
+            else tupleOps.tupleLit(v)
+          }
+          vs.toSet
+        }
+      })
+      termResult(mapFun)
     case MapComprehension(key, value, atoms) =>
       val resultColumn = gensym.fresh("result")
       updateSupplementaryChecked { sup =>
@@ -78,7 +98,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapFrom(ref) =>
       val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
       // 1. Everything that is demanded is a key, the rest is a value
-      val (demanded, nondemanded) = r.params.partition(_.ty.isInstanceOf[TDemand])
+      val demanded = r.params.collect {
+        case Param(name, TDemand(_)) => name.name
+      }.toSet
 
       val resultColumn = gensym.fresh("result")
       updateSupplementaryChecked { sup =>
@@ -90,7 +112,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           evalCall(r, r.params, args, false)
           val newSup = supplementaryTable.getTable
 
-          // Confusing behaviour, but in accordance to the lowering.
+          val argToParam = accCols.zip(r.params.map(_.name.name)).toMap
+
+            // Confusing behaviour, but in accordance to the lowering.
           relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
             case (groupedVals, accVals) if demanded.isEmpty =>
               // 3. Create a set if we don't have demanded parameters aka keys
@@ -103,11 +127,11 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             case (groupedVals, accVals: Seq[Seq[V]]) =>
               // 4. Create a map only if we have demanded parameters
               val kvs = accVals.map { row =>
-                val (namedInputVals, namedOutputVals) = accCols.zip(row).partition((c, _) => demanded.contains(c))
+                val (namedInputVals, namedOutputVals) = accCols.zip(row).partition((c, _) => demanded.contains(argToParam(c)))
                 val inputVals = namedInputVals.map(_._2)
                 val outputVals = namedOutputVals.map(_._2)
                 // Don't create unary tuples
-                (demanded.size, nondemanded.size) match
+                (inputVals.size, outputVals.size) match
                   case (1, 1) => inputVals.head -> outputVals.head
                   case (1, _) => inputVals.head -> tupleOps.tupleLit(outputVals)
                   case (_, 1) => tupleOps.tupleLit(inputVals) -> outputVals.head
@@ -124,10 +148,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       resultColumn
     case MapLookUp(map, key) =>
       val resName = gensym.fresh("result")
+      val mapCol = evalTerm(map)
+      val keyCol = evalTerm(key)
       updateSupplementaryUnchecked { sup =>
         val columnsBefore = relationOps.columns(sup)
-        val mapIx = relationOps.columnIndex(sup, evalTerm(map))
-        val keyIx = relationOps.columnIndex(sup, evalTerm(key))
+        val mapIx = relationOps.columnIndex(sup, mapCol)
+        val keyIx = relationOps.columnIndex(sup, keyCol)
         relationOps.flatMap(sup) { row =>
           val vs = mapOps.lookup(row(mapIx), row(keyIx))
           relationOps.make(columnsBefore :+ resName, vs.map(v => row :+ v))

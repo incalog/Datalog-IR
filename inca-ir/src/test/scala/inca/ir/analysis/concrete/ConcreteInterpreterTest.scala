@@ -11,12 +11,13 @@ import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Decons
 import inca.ir.extension.datamatch.{Case, Match, IR as datamatchIR}
 import inca.ir.extension.demand.{TDemand, IR as demandIR}
 import inca.ir.extension.disjunction.{Disjunction, IR as disjunctionIR}
+import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.not.{Not, IR as notIR}
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
-import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, RefByName, Relation, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, RefByName, Relation, TNothing, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
 
@@ -1845,3 +1846,192 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(res("main").size == 1)
     assert(res("main").entries.head == Set(Seq(1, 2), Seq(3, 4)))
   }
+
+  /* Map */
+
+  test("Map - Empty") {
+    val mod = Module("Test1", BaseIR.language + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(
+          Param("m", TMap(TNothing, TNothing))
+        ),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapLit.empty)
+        )))
+      )
+    ))
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map())
+}
+
+  test("Map - Literal") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapLit.from((StringLit("A"), IntNum(1)), (StringLit("B"), IntNum(2))))
+        )))
+      )
+    ))
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      "A" -> Set(1),
+      "B" -> Set(2)
+    ))
+  }
+
+  test("Map - Union") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+          Eq(Var("m2"), MapUnion(Var("m1"), MapLit.from((StringLit("B"), IntNum(2)))))
+        )))
+      )
+    ))
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      "A" -> Set(1),
+      "B" -> Set(2)
+    ))
+  }
+
+  test("Map - Union (Collision)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+          Eq(Var("m2"), MapUnion(Var("m1"), MapLit.from((StringLit("A"), IntNum(2)))))
+        )))
+      )
+    ))
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      "A" -> Set(1, 2),
+    ))
+  }
+
+  test("Map - From Relation") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapFrom("someCall"))
+        )))
+      ),
+      Relation(
+        "someCall",
+        Seq(
+          Param("k", TDemand(TString)),
+          Param("v", TInt)
+        ),
+        Seq(
+          Body(Seq(
+            Eq(Var("k"), StringLit("A")),
+            Eq(Var("v"), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var("k"), StringLit("B")),
+            Eq(Var("v"), IntNum(2))
+          ))
+        )
+      )
+    ))
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      "A" -> Set(1),
+      "B" -> Set(2)
+    ))
+  }
+
+  test("Map - Comprehension") {
+    val mod = Module("Test1", BaseIR.language + arithIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TInt, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit(Seq((IntNum(1), IntNum(2))))),
+          Eq(Var("m2"), MapComprehension(Var("k"), Add(Var("v"), IntNum(1)), Seq(
+            MapContains(Var("m1"), Var("k")),
+            Eq(Var("v"), MapLookUp(Var("m1"), Var("k")))
+          )))
+        )))
+      )
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      1 -> Set(3),
+    ))
+  }
+
+  test("Map - plus (collision)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+          Eq(Var("m2"), MapPlus(Var("m1"), StringLit("A"), IntNum(2)))
+        )))
+      )
+    ))
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      "A" -> Set(2),
+    ))
+  }
+
+  test("Map - plus (No collision)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+          Eq(Var("m2"), MapPlus(Var("m1"), StringLit("B"), IntNum(2)))
+        )))
+      )
+    ))
+    val res = interp(mod)
+    println(res("main").asTable)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      "A" -> Set(1),
+      "B" -> Set(2),
+    ))
+  }
+
+  // TODO: Not working
+  /*test("Map - Fun") {
+    val mod = Module("Test1", BaseIR.language + arithIR + mapIR, Seq(
+      Relation("main",
+        Seq(Param("x", TInt)),
+        Seq(Body(Seq(
+          Eq(Var("map1"), MapLit(Seq(IntNum(1) -> IntNum(2), IntNum(3) -> IntNum(4)))),
+          Eq(Var("map2"), MapFun(Seq(Param("key", TInt)), MapLookUp(Var("map1"), Var("key")))),
+          Eq(Var("x"), MapLookUp(Var("map2"), IntNum(1)))
+        )))
+      )
+    ))
+    val res = interp(mod)
+    println(res("main").asTable)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == Map(
+      1 -> Set(2),
+    ))
+  }*/

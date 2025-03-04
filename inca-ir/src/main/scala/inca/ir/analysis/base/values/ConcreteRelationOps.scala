@@ -188,6 +188,10 @@ class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   override def project(rv: ConcreteRelation[V], cols: Seq[String]): ConcreteRelation[V] =
     rv.project(cols)
 
+  override def extract(rv: ConcreteRelation[V], columnNames: Seq[String]): Seq[Row] =
+    val colIndices = columnNames.map(rv.cols.indexOf)
+    rv.rows.map(row => colIndices.map(row)).toSeq
+
   override def filter(rv: ConcreteRelation[V])(f: Row => Boolean): ConcreteRelation[V] =
     rv.filter(f)
 

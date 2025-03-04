@@ -91,6 +91,12 @@ class TypeRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin
     val colsIndex = newColumns.map(rv.cols.indexOf)
     rv.withRows(newColumns, rows => colsIndex.map(rows))
 
+  override def extract(rv: TypeRelation, columnNames: Seq[String]): Seq[Row] = rv match
+    case TypeRelation.Empty(cs) => Seq(Seq())
+    case TypeRelation.NonEmpty(cs, rs, emp) =>
+      val colIndices = columnNames.map(cs.indexOf)
+      Seq(colIndices.map(rs))
+  
   override def map(rv: TypeRelation, columnName: String)(f: Seq[Value] => Value): TypeRelation =
     rv.withRows(rv.cols :+ columnName, rows => rows :+ f(rows))
 

@@ -18,6 +18,10 @@ private class CTupleVOps(using failure: Failure) extends TupleOps[Value]:
     case CTupleV(ts) if index >= 0 && (index < ts.size) => ts(index)
     case CTupleV(ts) => failure(InvalidTupleProjection, s"Index $index out of bounds")
     case _ => failure(InvalidTupleProjection, s"Expected a tuple, but got $t")
+  override def iter(t: Value): Seq[Value] = t match
+    case CTupleV(ts) => ts
+    case _ => Seq(t)
+
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val tupleOps: TupleOps[Value] = new CTupleVOps()

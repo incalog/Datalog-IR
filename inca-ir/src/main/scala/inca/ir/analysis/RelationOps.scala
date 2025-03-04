@@ -23,7 +23,9 @@ trait RelationOps[V, B, RV]:
     rename(project(rv, subst.keys.toSeq), subst)
 
   def projectAndRenameWithMultipleAliases(rv: RV, subst: Map[String, Seq[String]]): RV
-  
+
+  def extract(rv: RV, columnNames: Seq[String]): Seq[Row]
+
   def map(rv: RV, columnName: String)(f: Row => V): RV
 
   /** may produce empty table (but only if you use groupByCols that don't exist in rv) */

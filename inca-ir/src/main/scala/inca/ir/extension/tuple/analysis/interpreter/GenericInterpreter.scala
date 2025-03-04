@@ -12,6 +12,7 @@ case object InvalidTupleProjection extends BaseIRFailure
 trait TupleOps[V]:
   def tupleLit(ts: Seq[V]): V
   def project(t: V, index: Int): V
+  def iter(t: V): Seq[V]
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val tupleOps: TupleOps[V]
