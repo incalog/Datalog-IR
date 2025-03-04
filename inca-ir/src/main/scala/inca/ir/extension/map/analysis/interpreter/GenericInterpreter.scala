@@ -46,12 +46,35 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
   override protected def canDetermineValue(t: Term): Boolean = t match
     case _: MapComprehension => true
+    case _: MapFun => true
     case _ => super.canDetermineValue(t)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case MapLit(ts) => naryTupleOp(ts.map(evalTermTuple))(mapOps.mapLit)
+    case MapConcat(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(mapOps.concat)
+    case MapPlus(map, key, value) => ternaryOp(evalTerm(map), evalTerm(key), evalTerm(value))(mapOps.plus)
+    case MapUnion(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(mapOps.union)
     case MapFun(params, valTerm) => ???
-    case MapComprehension(key, value, atoms) => ???
+    case MapComprehension(key, value, atoms) =>
+      val resultColumn = gensym.fresh("result")
+      updateSupplementaryChecked { sup =>
+        val columnsBefore = relationOps.columns(sup)
+        except.tryCatch {
+          evalAtoms(atoms)
+          val keyCol = evalTerm(key)
+          val valCol = evalTerm(value)
+          val newSup = supplementaryTable.getTable
+          relationOps.groupBy(newSup, Seq(keyCol, valCol), columnsBefore)(columnsBefore :+ resultColumn, {
+            (groupedVals, elemVals: Seq[Seq[V]]) =>
+              groupedVals :+ mapOps.mapLit(elemVals.map(kv => kv.head -> kv.last))
+          })
+        } /* catch */ { exec =>
+          // FIXME: To be in accordance with the lowering we need to differentiate empty maps based on the type
+          //  e.g Map[K, V]() != Map[K1, V1]() if (K1 != K) || (V != V1)
+          relationOps.map(sup, resultColumn) { _ => mapOps.mapLit(Seq()) }
+        }(using mayJoinRV)
+      }
+      resultColumn
     case MapFrom(ref) =>
       val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
       // 1. Everything that is demanded is a key, the rest is a value
@@ -111,12 +134,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         }
       }
       resName
-    case MapPlus(map, key, value) =>
-      ternaryOp(evalTerm(map), evalTerm(key), evalTerm(value))(mapOps.plus)
-    case MapConcat(t1, t2) =>
-      binaryOp(evalTerm(t1), evalTerm(t2))(mapOps.concat)
-    case MapUnion(t1, t2) =>
-      naryOp(Seq(t1, t2).map(evalTerm))(mapOps.union)
     case _ => super.evalTermOpen(term)
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
