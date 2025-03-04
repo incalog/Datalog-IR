@@ -2016,8 +2016,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     ))
   }
 
-  // TODO: Not working
-  /*test("Map - Fun") {
+  test("Map - Fun") {
     val mod = Module("Test1", BaseIR.language + arithIR + mapIR, Seq(
       Relation("main",
         Seq(Param("x", TInt)),
@@ -2029,9 +2028,23 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
       )
     ))
     val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == 2)
+  }
+
+  /*test("Map - Fun (Map return)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + mapIR, Seq(
+      Relation("main",
+        Seq(Param("m", TMap(TInt, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("map1"), MapLit(Seq(IntNum(1) -> IntNum(2), IntNum(3) -> IntNum(4)))),
+          Eq(Var("m"), MapFun(Seq(Param("key", TInt)), MapLookUp(Var("map1"), Var("key")))),
+          Eq(Var("x"), MapLookUp(Var("m"), IntNum(1)))
+        )))
+      )
+    ))
+    val res = interp(mod)
     println(res("main").asTable)
     assert(res("main").size == 1)
-    assert(res("main").entries.head == Map(
-      1 -> Set(2),
-    ))
+    assert(res("main").entries.head == 2)
   }*/

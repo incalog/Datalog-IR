@@ -59,13 +59,19 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val mapFun = mapOps.mapFun(key => {
         supplementaryTable.scoped {
           val keys = tupleOps.iter(key)
+          // This should always be a cartesian product, based on the fact that our typechecker
+          // prevents name shadowing.
           val inputCols = params.map(_.name.name)
-          val evalContext = relationOps.make(inputCols, Seq(keys))
+          val evalContext = relationOps.naturalJoin(
+            relationOps.make(inputCols, Seq(keys)),
+            supplementaryTable.getTable
+          )
+          val columnsBefore = relationOps.columns(evalContext)
           supplementaryTable.setTable(evalContext)
           evalTerm(valTerm)
 
           val sup = supplementaryTable.getTable
-          val outCols = relationOps.columns(sup).dropWhile(inputCols.contains)
+          val outCols = relationOps.columns(sup).dropWhile(columnsBefore.contains)
           val outputRows = relationOps.extract(sup, outCols)
           val vs = outputRows.map { v =>
             if (v.size == 1) v.head

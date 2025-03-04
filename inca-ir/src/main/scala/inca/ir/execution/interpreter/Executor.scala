@@ -12,7 +12,7 @@ import inca.ir.extension.string.analysis.interpreter.CStringV
 import inca.ir.extension.data.analysis.interpreter.CDataV
 import inca.ir.extension.tuple.analysis.interpreter.CTupleV
 import inca.ir.extension.bool.analysis.interpreter.CBoolV
-import inca.ir.extension.map.analysis.interpreter.CMapV
+import inca.ir.extension.map.analysis.interpreter.{CMapFunV, CMapV}
 import inca.ir.extension.set.analysis.interpreter.CSetV
 import inca.ir.extension.string.TString
 
@@ -131,6 +131,8 @@ case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) ext
       case CMapV(ts) => ts.map { (k, vs) =>
         convert(k) -> vs.map(convert)
       }
+      case CMapFunV(f) =>
+        throw UnsupportedOperationException("CMapFunV is not supported as output")
     }
 
     val queryMatches: Iterable[Seq[Any]] = table.rows.map(_.map(convert))
