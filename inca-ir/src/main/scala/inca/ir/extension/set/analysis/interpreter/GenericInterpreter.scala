@@ -50,6 +50,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
               groupedVals :+ setOps.setLit(tups)
           })
         } /* catch */ { exec =>
+          // FIXME: To be in accordance with the lowering we need to differentiate empty sets based on the type
+          //  e.g Set[Int]() != Set[String]() 
           relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
         }(using mayJoinRV)
       }
@@ -67,6 +69,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             (groupedVals, elemVals) => groupedVals :+ setOps.setLit(elemVals)
           })
         } /* catch */ { exec =>
+          // FIXME: To be in accordance with the lowering we need to differentiate empty sets based on the type
+          //  e.g Set[Int]() != Set[String]() 
           relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
         }(using mayJoinRV)
       }

@@ -10,7 +10,7 @@ case class CMapV(ts: Map[Value, Set[Value]]) extends Value:
   override def isConstant: Boolean = ts.forall((k, v) => k.isConstant && v.forall(_.isConstant))
 
 private class CMapVOps extends MapOps[Value, Boolean]:
-  override def mapLit(vs: Seq[(Value, Value)]): Value = 
+  override def mapLit(vs: Seq[(Value, Value)]): Value =
     val values = vs.groupBy(_._1).map { (k, kv) => k -> kv.map(_._2).toSet }
     CMapV(values)
 
@@ -39,9 +39,9 @@ private class CMapVOps extends MapOps[Value, Boolean]:
     case CMapV(ts) if ts.contains(k) => ts(k).toSeq
     case CMapV(ts) => throw IllegalArgumentException(s"Key $k not found in map $ts")
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
-  
-  override def iter(m: Value): Iterable[(Value, Value)] = m match
-    case CMapV(ts) => ts.flatMap((k, v) => v.map(k -> _))
+
+  override def keyIter(m: Value): Iterable[Value] = m match
+    case CMapV(ts) => ts.keys
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:

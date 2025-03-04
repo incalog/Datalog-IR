@@ -16,10 +16,10 @@ trait MapOps[V, B]:
   def union(ts: Seq[V]): V
   def plus(m: V, k: V, v: V): V
   def lookup(m: V, k: V): Seq[V]
-  // Check if mem is contained in the set m
-  def contains(s: V, mem: V): B
-  // Produce an iterable for all values of a set m
-  def iter(s: V): Iterable[(V, V)]
+  // Check if key is contained in the map m
+  def contains(m: V, key: V): B
+  // Produce an iterable for all keys in map m
+  def keyIter(m: V): Iterable[V]
 
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
@@ -93,7 +93,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
               groupedVals :+ map
           })
         } /* catch */ { exec =>
-          relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
+          // FIXME: To be in accordance with the lowering we need to differentiate empty maps based on the type
+          //  e.g Map[K, V]() != Map[K1, V1]() if (K1 != K) || (V != V1)
+          relationOps.map(sup, resultColumn) { _ => mapOps.mapLit(Seq()) }
         }(using mayJoinRV)
       }
       resultColumn
@@ -118,5 +120,24 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case _ => super.evalTermOpen(term)
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
-    case MapContains(map, key) => ???
+    case MapContains(map, key) if canDetermineValue(key) => // containment check
+      val keyCol = evalTerm(key)
+      val mapCol = evalTerm(map)
+      updateSupplementaryChecked { sup =>
+        val keyIdx = relationOps.columnIndex(sup, keyCol)
+        val mapIdx = relationOps.columnIndex(sup, mapCol)
+        relationOps.filter(sup) { row => mapOps.contains(row(mapIdx), row(keyIdx)) }
+      }
+    case MapContains(map, key) => // iterate over keys
+      val keyCol = extractVarName(key).get.name
+      val mapCol = evalTerm(map)
+      updateSupplementaryChecked { sup =>
+        val columnsBefore = relationOps.columns(sup)
+        val mapIdx = relationOps.columnIndex(sup, mapCol)
+
+        relationOps.flatMap(sup) { row =>
+          val keyValues = mapOps.keyIter(row(mapIdx)).toSeq
+          relationOps.make(columnsBefore :+ keyCol, keyValues.map(v => row :+ v))
+        }
+      }
     case _ => super.evalAtomOpen(at)
