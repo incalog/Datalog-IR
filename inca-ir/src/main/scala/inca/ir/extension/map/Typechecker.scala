@@ -26,23 +26,17 @@ trait Typechecker extends BaseIRTypechecker:
         checkTerm(nextVal, tyV, Mode.Bound)
       }
       TMap(tyK, tyV).bound
-    case MapFrom(name) =>
-      lookupModuleEntry(name) match
-        case Some(Relation(_, params, _)) =>
-          val tys = params.map(_.ty)
-          // should check nondemanded is also non-empty
-          val (demanded, nondemanded) = tys.partition(_.isInstanceOf[TDemand])
-          val output = TTuple.make(nondemanded)
-          if (demanded.isEmpty)
-            TSet(output).bound
-          else {
-            val input = TTuple.make(demanded.map(_.asInstanceOf[TDemand].ty))
-            TMap(input, output).bound
-          }
-        case _ =>
-          error(s"Cannot find relation $name", term)
-          TMap(TNothing, TNothing).bound
-
+    case MapFrom(ref) =>
+      val tys = inferRelationRef(ref, false, term)
+      // should check nondemanded is also non-empty
+      val (demanded, nondemanded) = tys.partition(_.isInstanceOf[TDemand])
+      val output = TTuple.make(nondemanded)
+      if (demanded.isEmpty)
+        TSet(output).bound
+      else {
+        val input = TTuple.make(demanded.map(_.asInstanceOf[TDemand].ty))
+        TMap(input, output).bound
+      }
     case fun@MapFun(params, valTerm) => scopedVariables(fun.names) {
       params.foreach { p =>
         registerVar(p.name, p, p.ty)

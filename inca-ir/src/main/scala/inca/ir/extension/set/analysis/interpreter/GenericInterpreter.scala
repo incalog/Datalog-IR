@@ -30,6 +30,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case SetLit(ts) => naryOp(ts.map(evalTerm))(setOps.setLit)
+    case SetUnion(ts) => naryOp(ts.map(evalTerm))(setOps.union)
+    case SetIntersection(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(setOps.intersect)
     case SetFrom(ref) =>
       val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
       val resultColumn = gensym.fresh("result")
@@ -44,7 +46,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             case (groupedVals, elemVals) if accCols.size == 1 =>
               groupedVals :+ setOps.setLit(elemVals.flatten)
             case (groupedVals, elemVals) =>
-              // we need to create a tuple here
               val tups = elemVals.map(tupleOps.tupleLit)
               groupedVals :+ setOps.setLit(tups)
           })
@@ -53,8 +54,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         }(using mayJoinRV)
       }
       resultColumn
-    case SetUnion(ts) => naryOp(ts.map(evalTerm))(setOps.union)
-    case SetIntersection(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(setOps.intersect)
     case SetComprehension(elem, atoms) =>
       // { elem | if atoms hold }
       val resultColumn = gensym.fresh("result")

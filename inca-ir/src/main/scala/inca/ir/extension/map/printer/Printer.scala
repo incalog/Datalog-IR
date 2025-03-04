@@ -11,7 +11,7 @@ trait Printer extends BaseIRPrinter:
 
   override def prettyPrint(term: Term): String = term match
     case MapLit(ts) => s"Map(${ts.map { (t1, t2) => s"${prettyPrint(t1)} -> ${prettyPrint(t2)}" }.mkString(", ")})"
-    case MapFrom(name) => s"Map.from(${prettyPrint(name)})"
+    case MapFrom(ref) => s"Map.from(${prettyPrint(ref)})"
     case MapFun(params, valTerm) => s"MapFun(${params.map(prettyPrint).mkString(", ")} => ${prettyPrint(valTerm)})"
     case MapPlus(map, key, value) => s"${prettyPrint(map)} += ${prettyPrint(key)} -> ${prettyPrint(value)}"
     case MapUnion(t1, t2) => s"${prettyPrint(t1)} ∪ ${prettyPrint(t2)}"

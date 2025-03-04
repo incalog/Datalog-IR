@@ -16,8 +16,8 @@ trait Visitor extends BaseIRVisitor:
           case (k, v) => visitTerm(k).zip(visitTerm(v))
         }
         Seq(MapLit(tts))
-      case MapFrom(name) =>
-        Seq(MapFrom(name))
+      case MapFrom(ref) =>
+        Seq(MapFrom(visitRef(ref)))
       case MapFun(params, valTerm) =>
         visitTerm(valTerm).map(MapFun(params.flatMap(visitParam), _))
       case MapPlus(map, key, value) =>

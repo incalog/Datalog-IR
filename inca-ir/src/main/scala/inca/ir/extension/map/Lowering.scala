@@ -134,8 +134,8 @@ trait Lowering extends BaseLowering:
                 Seq(Eq(Var(keyVar), tt._1), Eq(Var(valVar), tt._2))
               }))))
         Seq(callAddConstructor(term, mapEnum))
-      case MapFrom(name) =>
-        val rel = currentModule.relations.getOrElse(name, throw new IllegalStateException(s"Unknown relation $name"))
+      case MapFrom(ref) =>
+        val rel = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation $name"))
         val mapEnum = new MapEnum:
           override def apply(keyVar: Name, valVar: Name): Seq[Atom] =
             val params = rel.params.map(p => p -> Var(gensym.freshName(p.name)))
@@ -145,7 +145,7 @@ trait Lowering extends BaseLowering:
             val valArgs = valParams.map(_._2)
             Seq(
               Eq(TupleLit.make(keyArgs), Var(keyVar)),
-              Call(name, args.map(_.arg)),
+              Call(ref, args.map(_.arg), false),
               Eq(TupleLit.make(valArgs), Var(valVar))
             )
         Seq(callAddConstructor(term, mapEnum))
