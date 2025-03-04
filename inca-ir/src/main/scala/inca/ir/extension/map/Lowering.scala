@@ -135,7 +135,7 @@ trait Lowering extends BaseLowering:
               }))))
         Seq(callAddConstructor(term, mapEnum))
       case MapFrom(ref) =>
-        val rel = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation $name"))
+        val rel = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
         val mapEnum = new MapEnum:
           override def apply(keyVar: Name, valVar: Name): Seq[Atom] =
             val params = rel.params.map(p => p -> Var(gensym.freshName(p.name)))

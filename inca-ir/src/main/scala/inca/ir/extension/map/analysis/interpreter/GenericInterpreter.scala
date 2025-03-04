@@ -2,9 +2,11 @@ package inca.ir.extension.map.analysis.interpreter
 
 import inca.ir
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
-import inca.ir.extension.map.{MapLit, MapFun, MapComprehension, MapFrom, MapLookUp, MapPlus, MapConcat, MapUnion, MapContains}
+import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion}
 import inca.ir.*
 import inca.ir.analysis.base.effect.EmptySupplementary
+import inca.ir.extension.demand.TDemand
+import inca.ir.extension.set.analysis.interpreter.SetOps
 import inca.ir.extension.tuple.analysis.interpreter.TupleOps
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
@@ -21,6 +23,10 @@ trait MapOps[V, B]:
 
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
+  // We need both of these for MapFrom
+  val tupleOps: TupleOps[V]
+  val setOps: SetOps[V, B]
+
   val mapOps: MapOps[V, B]
 
   private def naryTupleOp(rs: Seq[(SupColumn, SupColumn)])(f: Seq[(V, V)] => V): SupColumn =
@@ -46,17 +52,60 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapLit(ts) => naryTupleOp(ts.map(evalTermTuple))(mapOps.mapLit)
     case MapFun(params, valTerm) => ???
     case MapComprehension(key, value, atoms) => ???
-    case MapFrom(ref) => ???
+    case MapFrom(ref) =>
+      val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
+      // 1. Everything that is demanded is a key, the rest is a value
+      val (demanded, nondemanded) = r.params.partition(_.ty.isInstanceOf[TDemand])
+
+      val resultColumn = gensym.fresh("result")
+      updateSupplementaryChecked { sup =>
+        val columnsBefore = relationOps.columns(sup)
+        except.tryCatch {
+          // 2. Evaluate the relation we want to convert to a map
+          val accCols = r.params.map(_ => gensym.fresh("arg"))
+          val args = accCols.map(c => ir.TermArg(Var(c)))
+          evalCall(r, r.params, args, false)
+          val newSup = supplementaryTable.getTable
+
+          // Confusing behaviour, but in accordance to the lowering.
+          relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
+            case (groupedVals, accVals) if demanded.isEmpty =>
+              // 3. Create a set if we don't have demanded parameters aka keys
+              if (accCols.size == 1)
+                // Don't create unary tuples
+                groupedVals :+ setOps.setLit(accVals.flatten)
+              else
+                val tups = accVals.map(tupleOps.tupleLit)
+                groupedVals :+ setOps.setLit(tups)
+            case (groupedVals, accVals: Seq[Seq[V]]) =>
+              // 4. Create a map only if we have demanded parameters
+              val kvs = accVals.map { row =>
+                val (namedInputVals, namedOutputVals) = accCols.zip(row).partition((c, _) => demanded.contains(c))
+                val inputVals = namedInputVals.map(_._2)
+                val outputVals = namedOutputVals.map(_._2)
+                // Don't create unary tuples
+                (demanded.size, nondemanded.size) match
+                  case (1, 1) => inputVals.head -> outputVals.head
+                  case (1, _) => inputVals.head -> tupleOps.tupleLit(outputVals)
+                  case (_, 1) => tupleOps.tupleLit(inputVals) -> outputVals.head
+              }
+              val map = mapOps.mapLit(kvs)
+              groupedVals :+ map
+          })
+        } /* catch */ { exec =>
+          relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
+        }(using mayJoinRV)
+      }
+      resultColumn
     case MapLookUp(map, key) =>
       val resName = gensym.fresh("result")
       updateSupplementaryUnchecked { sup =>
+        val columnsBefore = relationOps.columns(sup)
         val mapIx = relationOps.columnIndex(sup, evalTerm(map))
         val keyIx = relationOps.columnIndex(sup, evalTerm(key))
-        relationOps.flatMap(sup) { row => 
+        relationOps.flatMap(sup) { row =>
           val vs = mapOps.lookup(row(mapIx), row(keyIx))
-          mapJoin(vs, { value =>
-            relationOps.map(sup, resName) { _ => value }
-          })
+          relationOps.make(columnsBefore :+ resName, vs.map(v => row :+ v))
         }
       }
       resName
