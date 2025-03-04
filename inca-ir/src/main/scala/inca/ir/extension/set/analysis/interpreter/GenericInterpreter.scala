@@ -86,12 +86,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val memCol = extractVarName(mem).get.name
       val setCol = evalTerm(s)
       updateSupplementaryChecked { sup =>
+        val columnsBefore = relationOps.columns(sup)
         val setIx = relationOps.columnIndex(sup, setCol)
+
         relationOps.flatMap(sup) { row =>
-          val memValues = setOps.iter(row(setIx))
-          mapJoin(memValues, { value =>
-            relationOps.map(sup, memCol) { _ => value }
-          })
+          val memValues = setOps.iter(row(setIx)).toSeq
+          relationOps.make(columnsBefore :+ memCol, memValues.map(v => row :+ v))
         }
       }
     case _ => super.evalAtomOpen(at)

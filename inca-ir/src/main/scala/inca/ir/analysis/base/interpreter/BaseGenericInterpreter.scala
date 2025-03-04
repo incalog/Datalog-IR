@@ -433,6 +433,16 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     }
     resName
 
+  protected def ternaryOp(first: SupColumn, second: SupColumn, third: SupColumn)(f: (V, V, V) => V): SupColumn =
+    val resName = gensym.fresh("result")
+    updateSupplementaryUnchecked { sup =>
+      val firstIx = relationOps.columnIndex(sup, first)
+      val secondIx = relationOps.columnIndex(sup, second)
+      val thirdIx = relationOps.columnIndex(sup, third)
+      relationOps.map(sup, resName) { row => f(row(firstIx), row(secondIx), row(thirdIx)) }
+    }
+    resName
+
   protected def naryOp(rs: Seq[SupColumn])(f: Seq[V] => V): SupColumn =
     val resName = gensym.fresh("result")
     updateSupplementaryUnchecked { sup =>

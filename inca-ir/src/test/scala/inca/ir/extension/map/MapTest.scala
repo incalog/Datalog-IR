@@ -25,7 +25,7 @@ class MapTest extends AnyFunSuiteLike {
     def lower(l: BaseLowering, m: Module): Module =
       val checker = new IRTypechecker
       try checker.checkProgram(Seq(m))
-      //finally checker.getErrors.foreach(println)
+      finally checker.getErrors.foreach(println)
       //println(s"Lowering ${l.name}")
       val lowered = l.lower(m)
       //println(lowered)
@@ -35,6 +35,7 @@ class MapTest extends AnyFunSuiteLike {
     typecheckerBefore.checkProgram(Seq(mod))
     //println(mod)
     val lowered = mapLowering.foldLeft(mod)((mod, l) => lower(l, mod))
+    //println(lowered)
     lowered
 
   test("Empty map") {
@@ -68,6 +69,18 @@ class MapTest extends AnyFunSuiteLike {
       Seq(Body(Seq(
         Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
         Eq(Var("m2"), MapUnion(Var("m1"), MapLit.from((StringLit("B"), IntNum(2)))))
+      )))
+    )
+    module(mainRelation)
+  }
+
+  test("Map union - Collision") {
+    val mainRelation = Relation(
+      "main",
+      Seq(Param("m2", TMap(TString, TInt))),
+      Seq(Body(Seq(
+        Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+        Eq(Var("m2"), MapUnion(Var("m1"), MapLit.from((StringLit("A"), IntNum(2)))))
       )))
     )
     module(mainRelation)
