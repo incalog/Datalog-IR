@@ -20,6 +20,7 @@ import inca.ir.extension.block.analysis as irblock
 import inca.ir.extension.datamatch.analysis as irdatamatch
 import inca.ir.extension.set.analysis as irset
 import inca.ir.extension.map.analysis as irmap
+import inca.ir.extension.impure.analysis as irimpure
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.NoJoin
 import sturdy.effect.except.{ConcreteExcept, Except}
@@ -40,6 +41,9 @@ import inca.ir.analysis.base.interpreter.FiniteFixIn
 import inca.ir.analysis.base.values.JoinCRV
 import sturdy.values.exceptions.ConcreteExceptional
 
+case class ExecutionFailed(msg: String) extends Throwable:
+  override def toString: String = msg
+
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]
   with irarith.interpreter.ConcreteInterpreter
@@ -54,7 +58,8 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   with irblock.interpreter.ConcreteInterpreter
   with irdatamatch.interpreter.ConcreteInterpreter
   with irset.interpreter.ConcreteInterpreter
-  with irmap.interpreter.ConcreteInterpreter:
+  with irmap.interpreter.ConcreteInterpreter
+  with irimpure.interpreter.ConcreteInterpreter:
 
   type CRV = ConcreteRelation[Value]
 
@@ -132,6 +137,16 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
       fix.log(new PrintLogger, fixPt).fixpoint
     else
       fixPt.fixpoint
+
+  override def evalModule(m: ir.Module)(using Fixed): Map[String, ConcreteRelation[Value]] =
+    val res = failure.fallible(super.evalModule(m))
+    if (res.isFailing)
+      val msg = res.failures.map { (kind, message) =>
+        s"[$kind]: $message"
+      }.set.mkString("\n")
+      throw ExecutionFailed(msg)
+    else
+      res.get
 
 
 

@@ -8,14 +8,16 @@ import inca.ir.analysis.base.effect
 import inca.ir.{Atom, MainHint, ModuleEntry}
 import inca.util.Gensym
 import sturdy.data.MayJoin.WithJoin
-import sturdy.data.{MakeJoined, noJoin, MayJoin, mapJoin}
+import sturdy.data.{MakeJoined, MayJoin, mapJoin, noJoin}
 import sturdy.effect.except.Except
 import sturdy.effect.failure.{CollectedFailures, Failure}
-import sturdy.effect.{EffectList, EffectStack}
+import sturdy.effect.{Effect, EffectList, EffectStack}
 import sturdy.fix.Fixpoint
 import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
+
+import scala.collection.immutable.ArraySeq
 
 // TODO:
 //  1. Concrete Interpreter (agg)
@@ -113,11 +115,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   lazy val except: Except[BaseIRException, ExcV, J]
 
+  def additionalEffects: Seq[Effect] = Seq()
+  def additionalInputEffects: Seq[Effect] = Seq()
+  def additionalOutputEffects: Seq[Effect] = Seq()
+
   val effects: EffectStack = //new EffectStack(EffectList(supplementaryTable, failure, except, idb))
-    new EffectStack(EffectList(supplementaryTable, failure, except), {
-      case _: FixIn.EnterRelation => EffectList(supplementaryTable)
+    new EffectStack(EffectList(ArraySeq(supplementaryTable, failure, except) ++ additionalEffects), {
+      case _: FixIn.EnterRelation => EffectList(ArraySeq(supplementaryTable) ++ additionalInputEffects)
     }, {
-      case _: FixIn.EnterRelation => EffectList(except, failure)
+      case _: FixIn.EnterRelation => EffectList(ArraySeq(except, failure) ++ additionalOutputEffects)
     })
 
   given EffectStack = effects
@@ -201,10 +207,15 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case FixOut.Relation(p) => p
       case _ => throw new IllegalStateException()
 
+  protected def relationParams(r: ir.Relation): Seq[ir.Param] = r.params
+  protected def relationParams(r: ir.RequireRelation): Seq[ir.Param] = r.params
+  protected def relationParams(r: ir.ExtensionalRelation): Seq[ir.Param] = r.params
+  protected def relationParams(r: ir.RequireExtensionalRelation): Seq[ir.Param] = r.params
+
   def evalRelationOpen(r: ir.Relation, adorn: Adornment)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
     gensym.register(r.bodies.flatMap(_.vars.map(_.name.name)))
 
-    val paramNames = r.params.map(p => p.name.name)
+    val paramNames = relationParams(r).map(p => p.name.name)
 
     val relRes = if (r.bodies.isEmpty)
       relationOps.make(paramNames, Seq())
@@ -220,10 +231,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   }}
 
   def evalExtensionalRelation(r: ir.ExtensionalRelation)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
-    gensym.register(r.params.map(_.name.name))
+    gensym.register(relationParams(r).map(_.name.name))
 
     val relName = r.name.name
-    val paramNames = r.params.map(_.name.name)
+    val paramNames = relationParams(r).map(_.name.name)
     val rv = edb.get(relName) match
       case Some(value) => value
       case _ => relationOps.make(paramNames, Seq())
@@ -255,7 +266,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case _ => false
 
   protected def evalAtoms(ats: Seq[Atom])(using rec: Fixed): Unit =
-    //b.atoms.foreach(evalAtom(_, b))
     var rest = ats
     while (rest.nonEmpty) {
       val sup = supplementaryTable.getTable
@@ -274,6 +284,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     evalAtoms(b.atoms)
     val rawBody = supplementaryTable.getTable
     val projectedBody = relationOps.project(rawBody, paramNames)
+    // RawBody is only used for annotation purposes, it is not needed for the actual interpretation
     (projectedBody, rawBody)
   }
 
@@ -395,12 +406,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   def evalAtomOpen(at: ir.Atom)(using Fixed): Unit = at match
     case ir.Eq(lhs, rhs, neg) => evalEq(lhs, rhs, neg)
     case ir.Call(ref, args, neg) => ref.target match
-      case Some(r: ir.Relation) => evalCall(r, r.params, args, neg)
-      case Some(r: ir.RequireRelation) => evalCall(r, r.params, args, neg)
+      case Some(r: ir.Relation) => evalCall(r, relationParams(r), args, neg)
+      case Some(r: ir.RequireRelation) => evalCall(r, relationParams(r), args, neg)
       case _ => failure(RefNotFound, s"Can not find call reference $ref")
     case ir.ExtensionalCall(ref, args, neg) => ref.target match
-      case Some(r: ir.ExtensionalRelation) => evalCall(r, r.params, args, neg)
-      case Some(r: ir.RequireExtensionalRelation) => evalCall(r, r.params, args, neg)
+      case Some(r: ir.ExtensionalRelation) => evalCall(r, relationParams(r), args, neg)
+      case Some(r: ir.RequireExtensionalRelation) => evalCall(r, relationParams(r), args, neg)
       case _ => failure(RefNotFound, s"Can not find extensional call reference $ref")
     case _ => failure(UnknownAtom, s"Unknown atom $at")
 

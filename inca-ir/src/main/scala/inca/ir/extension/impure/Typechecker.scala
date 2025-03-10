@@ -1,9 +1,7 @@
 package inca.ir.extension.impure
 
 import inca.ir.Atom
-import inca.ir.extension.disjunction.Disjunction
 import inca.ir.typing.{BaseIRTypechecker, Mode}
-import inca.ir.string2name
 
 trait Typechecker extends BaseIRTypechecker:
   protected override def checkAtom(atom: Atom, mode: Mode): Unit = atom match

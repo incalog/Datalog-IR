@@ -2,6 +2,7 @@ package inca.ir.analysis.concrete
 
 import inca.ir.execution.interpreter.{Executor, InterpreterRelation}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, map, not, set, tuple, typeparam}
 import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
 import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, IntNum, LT, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, IR as stringIR}
@@ -13,16 +14,31 @@ import inca.ir.extension.demand.{TDemand, IR as demandIR}
 import inca.ir.extension.disjunction.{Disjunction, IR as disjunctionIR}
 import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.not.{Not, IR as notIR}
-import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
+import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, SyntacticOptimizer, TSet, IR as setIR}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
+import inca.ir.extension.impure.{Impure, ImpurityKind, IR as impureIR}
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
-import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, RefByName, Relation, TNothing, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, RefByName, Relation, TNothing, Type, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
 
 private case class CompiledInterpreterTestUnit(mod: Module) extends CompiledUnit:
   setPipeline(Nil)
+  /*setPipeline(
+    List(
+      () => new set.Lowering {},
+      () => new map.Lowering {},
+      () => new bool.Lowering {},
+      () => new datamatch.Lowering {},
+      () => new block.Lowering {},
+      () => new impure.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      () => new demand.Lowering {},
+      () => new tuple.Lowering {},
+    ) // arith + string + data
+  )*/
 
   override def compilerOptions: CompilerOptions = CompilerOptions.default
   override def name: Name = mod.name
@@ -2048,3 +2064,87 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(res("main").size == 1)
     assert(res("main").entries.head == 2)
   }*/
+  
+  /* Impure */
+
+  object SimpleCounterImpurityKind extends ImpurityKind:
+    override val name: String = "MonoImpurity"
+    override val ty: Type = TInt
+
+  test("Impure: Single relation") {
+    val mod = Module("Test1", BaseIR.language + arithIR + impureIR, Seq(
+      Relation("main", Seq(
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          Impure.init(IntNum(0), SimpleCounterImpurityKind),
+          Impure.counter(Name("counter"), Eq(Var("out"), Var("counter")), SimpleCounterImpurityKind)
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 1)
+    assert(res("main").entries.head == 0)
+  }
+
+  test("Impure: Unbalanced counter") {
+    val mod = Module("Test1", BaseIR.language + arithIR + impureIR, Seq(
+      Relation("helper", Seq(
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          // out == 0
+          Impure.counter(Name("counter"), Eq(Var("out"), Var("counter")), SimpleCounterImpurityKind)
+        )),
+        Body(Seq(
+          // out == 1
+          Impure.counter(Name("_$"), Seq(), SimpleCounterImpurityKind), // inc the impurity counter by one
+          Impure.counter(Name("counter"), Eq(Var("out"), Var("counter")), SimpleCounterImpurityKind)
+        ))
+      )),
+      Relation("main", Seq(
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          Impure.init(IntNum(0), SimpleCounterImpurityKind),
+          Call("helper", Seq(Var("out"))),
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    assert(res("main").size == 2)
+    assert(res("main").entries.toSet == Set(0,1))
+  }
+
+  test("Impure: Recursion") {
+    val mod = Module("Test1", BaseIR.language + arithIR + impureIR, Seq(
+      Relation("helper", Seq(
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          // out == 0
+          Impure.counter(Name("counter"), Eq(Var("out"), Var("counter")), SimpleCounterImpurityKind)
+        )),
+        Body(Seq(
+          Call("helper", Seq(Var("out"))),
+          // Increase counter to cause an endless-loop
+          Impure.counter(Name("_$"), Seq(), SimpleCounterImpurityKind)
+        ))
+      )),
+      Relation("main", Seq(
+        Param("out", TInt)
+      ), Seq(
+        Body(Seq(
+          Impure.init(IntNum(0), SimpleCounterImpurityKind),
+          Call("helper", Seq(Var("out"))),
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    println(res("main").toSet)
+    assert(res("main").size == 2)
+    assert(res("main").entries.toSet == Set(0, 1))
+  }

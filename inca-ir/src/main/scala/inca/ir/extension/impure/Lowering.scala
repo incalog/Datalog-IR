@@ -26,7 +26,7 @@ import scala.collection.mutable
  *
  * 3. Only insert the equality constraint in the relation body
  * Although disjunctions contain bodies too, we must only insert the output / input constraint in the bodies of a
- * relation, not in the body of disjunctions. Otherwise we might end up with multiple such constraints in a single body.
+ * relation, not in bodies of disjunctions. Otherwise, we might end up with multiple such constraints in a single body.
  *
  * 4. Different counter variables in different bodies
  * You can generate code, such that one body of a relation introduces more impurities than the other.

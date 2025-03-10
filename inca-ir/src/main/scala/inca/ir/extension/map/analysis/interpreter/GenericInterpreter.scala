@@ -104,7 +104,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapFrom(ref) =>
       val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
       // 1. Everything that is demanded is a key, the rest is a value
-      val demanded = r.params.collect {
+      val demanded = relationParams(r).collect {
         case Param(name, TDemand(_)) => name.name
       }.toSet
 
@@ -113,12 +113,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val columnsBefore = relationOps.columns(sup)
         except.tryCatch {
           // 2. Evaluate the relation we want to convert to a map
-          val accCols = r.params.map(_ => gensym.fresh("arg"))
+          val accCols = relationParams(r).map(_ => gensym.fresh("arg"))
           val args = accCols.map(c => ir.TermArg(Var(c)))
-          evalCall(r, r.params, args, false)
+          evalCall(r, relationParams(r), args, false)
           val newSup = supplementaryTable.getTable
 
-          val argToParam = accCols.zip(r.params.map(_.name.name)).toMap
+          val argToParam = accCols.zip(relationParams(r).map(_.name.name)).toMap
 
             // Confusing behaviour, but in accordance to the lowering.
           relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {

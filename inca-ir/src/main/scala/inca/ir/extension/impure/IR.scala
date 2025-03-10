@@ -18,7 +18,9 @@ trait ImpurityKind:
 
 case class Impure(v: Ref[Var.Target], atoms: Seq[Atom], update: Term, kind: ImpurityKind) extends Atom with Var.Target:
   override def toString: String = s"Impure($v => ${atoms.mkString(", ")}, $update)"
-  override def vars: Seq[Var] = Var(v) +: (atoms.flatMap(_.vars) ++ update.vars)
+  override def vars: Seq[Var] =
+    // FIXME: Var(v) could also be bound! We just need some value here for our Generic Interpreter
+    Var(v).typed(kind.ty.binding) +: (atoms.flatMap(_.vars) ++ update.vars)
 
 object Impure:
   def apply(v: Name, atoms: Seq[Atom], update: Term, kind: ImpurityKind): Impure =
@@ -26,6 +28,10 @@ object Impure:
 
   def apply(v: Name, atom: Atom, update: Term, kind: ImpurityKind): Impure =
     new Impure(RefByName(v), Seq(atom), update, kind)
+
+  def counter(v: Name, atoms: Seq[Atom], kind: ImpurityKind): Impure =
+    import inca.ir.extension.arithmetic.*
+    new Impure(RefByName(v), atoms, Add(Var(v), IntNum(1)), kind)
 
   def counter(v: Name, atom: Atom, kind: ImpurityKind): Impure =
     import inca.ir.extension.arithmetic.*

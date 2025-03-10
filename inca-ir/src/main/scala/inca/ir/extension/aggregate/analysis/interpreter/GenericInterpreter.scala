@@ -28,7 +28,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     val rel = aggregate.rel.target match
       case Some(r) => r
       case _ => throw IllegalStateException(s"Unresolved reference to relation ${aggregate.rel}")
-    val params = rel.params
+    val params = relationParams(rel)
     val args = aggregate.args
     val aggColumns = aggregate.aggregationColumns
     if (aggregate.aggregationColumns.size != 1)
