@@ -39,19 +39,11 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
-      supplementaryTable.setTable(evalContext)
-      val relRes = r match
-        case rel: ir.Relation if interRelational =>
-          evalRelation(rel, adornment)
-        case _: ir.Relation =>
-          // assume top for all unbound arguments
-          adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
-            case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
-          }
+      val relRes = evalRelation(r, params, adornment, evalContext)
 
-      // Keep all variables that were bound before the aggregation. Important, do not bind new variables!
+      // keep all variables that were bound before the aggregation. Important, do not bind new variables!
       var subst = argMapping.flatMap(beforeAndAfter => beforeAndAfter.map((b, a) => a -> b)).toMap
-      // Also keep the column we aggregate over
+      // also keep the column we aggregate over
       val aggColumn = relationOps.columns(relRes)(aggColumnIndex)
       subst += aggColumn -> resultColumn
 

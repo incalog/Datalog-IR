@@ -120,7 +120,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     }
     counters.map(n => Var(n).arg).toSeq
 
-  override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, ArgMapping) =
+  override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, BoundArgMapping) =
     // Add the new impurity vars to the evaluation context
     super.evaluationContextForCall(r, params, args ++ additionalArgs(r))
 

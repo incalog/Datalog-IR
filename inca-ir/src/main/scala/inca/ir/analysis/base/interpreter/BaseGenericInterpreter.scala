@@ -350,25 +350,43 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.WildcardArg() => Some(ir.Name(gensym.fresh("_")))
 
   // eval(arg) -> param name
-  type ArgMapping = Seq[Option[(SupColumn, String)]]
+  type BoundArgMapping = Seq[Option[(SupColumn, String)]]
 
-  def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg])(using Fixed): (RV, ArgMapping) =
-    // Relation with no parameters... This should not happen, even though viatra supports it
+  def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg])(using Fixed): (RV, BoundArgMapping) =
+    // Relation with no parameters... This should not happen, even though some engines support it
     if (params.isEmpty)
       failure(NoParamRelation, s"Relation ${r.name} has no parameters!")
     // eval arguments in current scope
-    val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
+    val boundArgsMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
     // group all mappings by their name. if we pass the same variable twice to a function we get more than one mapping
-    val multiMapping = argMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
+    val multiMapping = boundArgsMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
     // filter / rename / duplicate the current arguments in the supplementary
     val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
-    (evalContext, argMapping)
+    (evalContext, boundArgsMapping)
 
-  protected final def calculateAdornment(argMapping: ArgMapping): Adornment =
+  protected final def calculateAdornment(argMapping: BoundArgMapping): Adornment =
     Adornment(argMapping.map {
       case Some(_) => Adorn.b
       case None => Adorn.f
     })
+
+  protected final def evalRelation[R <: ModuleEntry](r: R, params: Seq[ir.Param], adornment: Adornment, evalContext: RV)(using Fixed): RV =
+    supplementaryTable.setTable(evalContext)
+
+    r match
+      case rel: ir.Relation if interRelational =>
+        evalRelation(rel, adornment)
+      case extRel: ir.ExtensionalRelation =>
+        evalExtensionalRelation(extRel)
+      case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
+        // TODO: We could evaluate across module boundaries here. For now we just assume top.
+        // assume top for all unbound arguments
+        adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
+          case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
+        }
+      case _ =>
+        val relCls = r.getClass.getSimpleName
+        throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
 
   def mappingFromParamToLocalVariable[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg]): Map[String, String] =
     params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
@@ -379,22 +397,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
-      supplementaryTable.setTable(evalContext)
+      val relRes = evalRelation(r, params, adornment, evalContext)
 
-      // evaluate the call
-      val relRes = r match
-        case rel: ir.Relation if interRelational =>
-          evalRelation(rel, adornment)
-        case extRel: ir.ExtensionalRelation =>
-          evalExtensionalRelation(extRel)
-        case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
-          // TODO: We could evaluate across module boundaries here. For now we just assume top.
-          // assume top for all unbound arguments
-          adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
-            case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
-          }
-
-      // add all variables bound by the call to the context
+      // add all variables bound by the call to the beforeContext
       val paramNameToArgName = mappingFromParamToLocalVariable(r, params, args)
       val subst = argMapping.zip(params).map {
         case (Some(before, after), _) => after -> before
