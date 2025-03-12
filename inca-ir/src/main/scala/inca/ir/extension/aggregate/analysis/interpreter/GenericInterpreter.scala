@@ -39,7 +39,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
-      val relRes = evalRelation(r, params, adornment, evalContext)
+      val relRes = evalRelationLikeEntry(r, params, adornment, evalContext)
 
       // keep all variables that were bound before the aggregation. Important, do not bind new variables!
       var subst = argMapping.flatMap(beforeAndAfter => beforeAndAfter.map((b, a) => a -> b)).toMap

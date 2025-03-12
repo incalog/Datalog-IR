@@ -83,13 +83,18 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
   private var currentRel: Relation = uninitialized
   override def evalRelationOpen(r: Relation, adorn: Adornment)(using Fixed): RV = gensym.scoped {
+    val oldRelation = currentRel
     currentRel = r
+
     // add the additional impurity params
     val additionalImpurityVars = getImpurityVars(currentRel.name)
       .values
       .flatMap((inName, outName) => Seq(inName.name, outName.name))
     gensym.register(additionalImpurityVars)
-    super.evalRelationOpen(r, adorn)
+
+    val res = super.evalRelationOpen(r, adorn)
+    currentRel = oldRelation
+    res
   }
 
   override def evalBodyOpen(b: Body, paramNames: Seq[SupColumn])(using rec: Fixed): (RV, RV) = impurityScoped {
@@ -120,13 +125,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     }
     counters.map(n => Var(n).arg).toSeq
 
-  override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, BoundArgMapping) =
+  override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, ArgMapping) =
     // Add the new impurity vars to the evaluation context
     super.evaluationContextForCall(r, params, args ++ additionalArgs(r))
 
-  override def mappingFromParamToLocalVariable[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg]): Map[String, String] =
-    // Add the impurity variables to the mapping, to correctly bind the output counter after a call
-    super.mappingFromParamToLocalVariable(r, params, args ++ additionalArgs(r))
+  override def bindCallResultInSupplementary[R <: ModuleEntry](r: R, relRes: RV, params: Seq[ir.Param], args: Seq[ir.Arg], argMapping: ArgMapping): RV =
+    // Add the impurity variables to correctly bind the output counter after a call
+    super.bindCallResultInSupplementary(r, relRes, params, args ++ additionalArgs(r), argMapping)
 
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
     case Impure(v, Seq(), update, kind) if !update.vars.map(_.name).contains(v.name) =>
