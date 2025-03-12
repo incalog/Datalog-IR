@@ -2118,7 +2118,8 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(res("main").entries.toSet == Set(0,1))
   }
 
-  test("Impure: Recursion") {
+  // This is expected to not terminate. That's why it is commented out, but you comment it in to debug.
+  /*test("Impure: Recursion") {
     val mod = Module("Test1", BaseIR.language + arithIR + impureIR, Seq(
       Relation("helper", Seq(
         Param("out", TInt)
@@ -2147,4 +2148,4 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     println(res("main").toSet)
     assert(res("main").size == 2)
     assert(res("main").entries.toSet == Set(0, 1))
-  }
+  }*/

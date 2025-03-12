@@ -24,29 +24,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case AggregateColumnArg(t) => extractVarName(t)
     case _ => super.extractVarName(arg)
 
-  private final def evalAggregate(aggregate: Aggregate)(using Fixed): Unit =
-    val rel = aggregate.rel.target match
-      case Some(r) => r
-      case _ => throw IllegalStateException(s"Unresolved reference to relation ${aggregate.rel}")
-    val params = relationParams(rel)
-    val args = aggregate.args
-    val aggColumns = aggregate.aggregationColumns
-    if (aggregate.aggregationColumns.size != 1)
+  private final def evalAggregate[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], aggColumns: Seq[Int], op: AggregationOperator)(using Fixed): Unit =
+    if (aggColumns.size != 1)
       throw IllegalStateException("Aggregation is only supported on a single column.")
-    val Seq(aggColumnIndex) = aggregate.aggregationColumns
+    val Seq(aggColumnIndex) = aggColumns
 
-    if (params.isEmpty)
-      failure(NoParamRelation, s"Relation ${rel.name} has no Parameters!")
-
-    val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
-    val multiMapping = argMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
-
-    val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
-
-    val adornment = Adornment(argMapping.map {
-      case Some(_) => Adorn.b
-      case None => Adorn.f
-    })
+    val (evalContext, argMapping) = evaluationContextForCall(r, params, args)
+    val adornment = calculateAdornment(argMapping)
 
     // the expected
     val AggregateColumnArg(t) = args(aggColumnIndex): @unchecked
@@ -56,13 +40,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
       supplementaryTable.setTable(evalContext)
-      val relRes =
-        if (interRelational)
+      val relRes = r match
+        case rel: ir.Relation if interRelational =>
           evalRelation(rel, adornment)
-        else
+        case _: ir.Relation =>
           // assume top for all unbound arguments
-          val unboundArgIndices = argMapping.zipWithIndex.filter(_._1.isEmpty).map(_._2)
-          unboundArgIndices.map(params).foldLeft[RV](evalContext) {
+          adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
             case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
           }
 
@@ -78,15 +61,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       // Perform the aggregation. Note, the rows must already be grouped here! That is, they all look the same
       // except for the column that contains the value to be aggregated.
-      val op = aggregate.op
       val initialValue = aggregateOps.init(op)
       val aggRes = relationOps.fold(callRes, 0.until(subst.size).map(_ => initialValue)) { case (acc, row) =>
         val aggValue = aggregateOps.aggregate(acc(callAggColIndex), row(callAggColIndex), op)
         row.updated(callAggColIndex, aggValue)
       }
 
-      val afterCall = relationOps.naturalJoin(beforeCall, aggRes)
-      afterCall
+      relationOps.naturalJoin(beforeCall, aggRes)
     }
 
     // assert equalities in case we expected a certain result
@@ -96,5 +77,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       case None => // nothing
 
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
-    case agg@Aggregate(ref, args, op) => evalAggregate(agg)
+    case agg@Aggregate(ref, args, op) =>
+      val rel = ref.target match
+        case Some(r) => r
+        case _ => throw IllegalStateException(s"Unresolved reference to relation ${ref.name}")
+      evalAggregate(rel, relationParams(rel), agg.args, agg.aggregationColumns, agg.op)
     case _ => super.evalAtomOpen(at)

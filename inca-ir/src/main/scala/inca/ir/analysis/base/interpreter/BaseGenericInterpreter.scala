@@ -17,7 +17,6 @@ import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
 
-import scala.collection.immutable.ArraySeq
 
 // TODO:
 //  1. Concrete Interpreter (agg)
@@ -34,6 +33,7 @@ enum Adorn:
 
 case class Adornment(as: Seq[Adorn]):
   override def toString: String = as.mkString("")
+  lazy val unboundIndices: Seq[Int] = as.zipWithIndex.collect { case (Adorn.f, idx) => idx }
 
 enum FixIn:
   case Term(term: ir.Term)
@@ -115,15 +115,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   lazy val except: Except[BaseIRException, ExcV, J]
 
-  def additionalEffects: Seq[Effect] = Seq()
-  def additionalInputEffects: Seq[Effect] = Seq()
-  def additionalOutputEffects: Seq[Effect] = Seq()
-
-  val effects: EffectStack = //new EffectStack(EffectList(supplementaryTable, failure, except, idb))
-    new EffectStack(EffectList(ArraySeq(supplementaryTable, failure, except) ++ additionalEffects), {
-      case _: FixIn.EnterRelation => EffectList(ArraySeq(supplementaryTable) ++ additionalInputEffects)
+  val effects: EffectStack =
+    new EffectStack(EffectList(supplementaryTable, failure, except), {
+      case _: FixIn.EnterRelation => EffectList(supplementaryTable)
     }, {
-      case _: FixIn.EnterRelation => EffectList(ArraySeq(except, failure) ++ additionalOutputEffects)
+      case _: FixIn.EnterRelation => EffectList(except, failure)
     })
 
   given EffectStack = effects
@@ -197,7 +193,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def evalModule(m: ir.Module)(using Fixed): Map[String, RV] = {
     entryPoints(m).map { rel =>
-      val allFreeAdorn = Adornment(rel.params.map(_ => Adorn.f))
+
+      val allFreeAdorn = Adornment(relationParams(rel).map(_ => Adorn.f))
       rel.name.name -> evalRelation(rel, allFreeAdorn)
     }.toMap
   }
@@ -207,10 +204,14 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case FixOut.Relation(p) => p
       case _ => throw new IllegalStateException()
 
-  protected def relationParams(r: ir.Relation): Seq[ir.Param] = r.params
-  protected def relationParams(r: ir.RequireRelation): Seq[ir.Param] = r.params
-  protected def relationParams(r: ir.ExtensionalRelation): Seq[ir.Param] = r.params
-  protected def relationParams(r: ir.RequireExtensionalRelation): Seq[ir.Param] = r.params
+  protected def relationParams[R <: ModuleEntry](r: R): Seq[ir.Param] = r match
+    case rel: ir.Relation => rel.params
+    case rel: ir.RequireRelation => rel.params
+    case rel: ir.ExtensionalRelation => rel.params
+    case rel: ir.RequireExtensionalRelation => rel.params
+    case _ =>
+      val relCls = r.getClass.getSimpleName
+      throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
 
   def evalRelationOpen(r: ir.Relation, adorn: Adornment)(using Fixed): RV = supplementaryTable.scoped { gensym.scoped {
     gensym.register(r.bodies.flatMap(_.vars.map(_.name.name)))
@@ -348,26 +349,33 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.TermArg(t) => extractVarName(t)
     case ir.WildcardArg() => Some(ir.Name(gensym.fresh("_")))
 
-  protected final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
-    if (params.isEmpty) {
-      // Relation with no parameters... This should not happen, even though viatra supports it
-      failure(NoParamRelation, s"Relation ${r.name} has no Parameters!")
-    }
+  // eval(arg) -> param name
+  type ArgMapping = Seq[Option[(SupColumn, String)]]
 
+  def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg])(using Fixed): (RV, ArgMapping) =
+    // Relation with no parameters... This should not happen, even though viatra supports it
+    if (params.isEmpty)
+      failure(NoParamRelation, s"Relation ${r.name} has no parameters!")
     // eval arguments in current scope
     val argMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
     // group all mappings by their name. if we pass the same variable twice to a function we get more than one mapping
     val multiMapping = argMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
-    // println(s"Multi mapping: $multiMapping")
-    
-    // filter / rename / duplicate the current arguments in the supplementary 
+    // filter / rename / duplicate the current arguments in the supplementary
     val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
+    (evalContext, argMapping)
 
-    // calculate the adornment
-    val adornment = Adornment(argMapping.map {
+  protected final def calculateAdornment(argMapping: ArgMapping): Adornment =
+    Adornment(argMapping.map {
       case Some(_) => Adorn.b
       case None => Adorn.f
     })
+
+  def mappingFromParamToLocalVariable[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg]): Map[String, String] =
+    params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
+
+  protected final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
+    val (evalContext, argMapping) = evaluationContextForCall(r, params, args)
+    val adornment = calculateAdornment(argMapping)
 
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
@@ -382,13 +390,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
           // TODO: We could evaluate across module boundaries here. For now we just assume top.
           // assume top for all unbound arguments
-          val unboundArgIndices = argMapping.zipWithIndex.filter(_._1.isEmpty).map(_._2)
-          unboundArgIndices.map(params).foldLeft[RV](evalContext) {
+          adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
             case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
           }
 
-      // add all variables from the call to the context
-      val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
+      // add all variables bound by the call to the context
+      val paramNameToArgName = mappingFromParamToLocalVariable(r, params, args)
       val subst = argMapping.zip(params).map {
         case (Some(before, after), _) => after -> before
         case (_, p) => p.name.name -> paramNameToArgName(p.name.name)

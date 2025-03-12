@@ -38,9 +38,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       updateSupplementaryChecked { sup =>
         val columnsBefore = relationOps.columns(sup)
         except.tryCatch {
-          val accCols = relationParams(r).map(_ => gensym.fresh("arg"))
+          val params = relationParams(r)
+          val accCols = params.map(_ => gensym.fresh("arg"))
           val args = accCols.map(c => ir.TermArg(Var(c)))
-          evalCall(r, relationParams(r), args, false)
+          evalCall(r, params, args, false)
           val newSup = supplementaryTable.getTable
           relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
             case (groupedVals, elemVals) if accCols.size == 1 =>
