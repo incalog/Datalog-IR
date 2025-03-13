@@ -44,18 +44,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       )
     }.toSeq
 
-  // Extensional relations never need impurity
-  private def relationNeedsImpurity[R <: ModuleEntry](r: R): Boolean = r match
-    case _: Relation | _: RequireRelation => true
-    case _ => false
-
-  // Add impurity params to the relation definition
-  override def relationParams[R <: ModuleEntry](r: R): Seq[ir.Param] =
-    if (relationNeedsImpurity(r))
-      super.relationParams(r) ++ additionalParams(r.name)
-    else
-      super.relationParams(r)
-
   override def evalModule(m: Module)(using Fixed): Map[SupColumn, RV] =
     val affectedRelationsCollector = new CollectImpurityAffectedRelations
     affectedRelationsCollector.visitModule(m)
@@ -125,13 +113,25 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     }
     counters.map(n => Var(n).arg).toSeq
 
+  // Extensional relations never need impurity
+  private def relationNeedsImpurity[R <: ModuleEntry](r: R): Boolean = r match
+    case _: Relation | _: RequireRelation => true
+    case _ => false
+
+  // Add impurity params to the relation definition
+  override def relationParams[R <: ModuleEntry](r: R): Seq[ir.Param] =
+    if (relationNeedsImpurity(r))
+      super.relationParams(r) ++ additionalParams(r.name)
+    else
+      super.relationParams(r)
+
+  // Add the new impurity vars to the evaluation context
   override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, ArgMapping) =
-    // Add the new impurity vars to the evaluation context
     super.evaluationContextForCall(r, params, args ++ additionalArgs(r))
 
-  override def bindCallResultInSupplementary[R <: ModuleEntry](r: R, relRes: RV, params: Seq[ir.Param], args: Seq[ir.Arg], argMapping: ArgMapping): RV =
-    // Add the impurity variables to correctly bind the output counter after a call
-    super.bindCallResultInSupplementary(r, relRes, params, args ++ additionalArgs(r), argMapping)
+  // Add the impurity variables to correctly bind the output counter after a call
+  override def bindCallResultInSupplementary[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], relRes: RV, argMapping: ArgMapping): RV =
+    super.bindCallResultInSupplementary(r, params, args ++ additionalArgs(r), relRes, argMapping)
 
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
     case Impure(v, Seq(), update, kind) if !update.vars.map(_.name).contains(v.name) =>

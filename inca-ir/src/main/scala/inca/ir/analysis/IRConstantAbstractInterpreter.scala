@@ -19,6 +19,7 @@ import inca.ir.extension.not.analysis as irnot
 import inca.ir.extension.disjunction.analysis as irdisjcuntion
 import inca.ir.extension.block.analysis as irblock
 import inca.ir.extension.datamatch.analysis as irdatamatch
+import inca.ir.extension.set.analysis as irset
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.values.{Changed, Finite, Join, MaybeChanged, Powerset, Topped, Widen}
@@ -54,7 +55,8 @@ private class IRJoinV extends Join[Value] with BaseJoinV
   with irnot.interpreter.ConstantJoinV
   with irdisjcuntion.interpreter.ConstantJoinV
   with irblock.interpreter.ConstantJoinV
-  with irdatamatch.interpreter.ConstantJoinV:
+  with irdatamatch.interpreter.ConstantJoinV
+  with irset.interpreter.ConstantJoinV:
 
   override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
     MaybeChanged(join(v1, v2), v1)
@@ -70,6 +72,7 @@ private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseM
   with irdisjcuntion.interpreter.ConstantMeetV
   with irblock.interpreter.ConstantMeetV
   with irdatamatch.interpreter.ConstantMeetV
+  with irset.interpreter.ConstantMeetV
 
 private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
   with irarith.interpreter.ConstantEqOps
@@ -82,6 +85,7 @@ private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEq
   with irdisjcuntion.interpreter.ConstantEqOps
   with irblock.interpreter.ConstantEqOps
   with irdatamatch.interpreter.ConstantEqOps
+  with irset.interpreter.ConstantEqOps
 
 class IRConstantAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
@@ -101,6 +105,7 @@ class IRConstantAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantAbstractInterpreter
     with irblock.interpreter.ConstantAbstractInterpreter
     with irdatamatch.interpreter.ConstantAbstractInterpreter
+    with irset.interpreter.ConstantAbstractInterpreter
     with DatalogControlObservable:
 
   type RV = ConstantRelation
@@ -117,6 +122,7 @@ class IRConstantAbstractInterpreter(
     with irdisjcuntion.ordering.AtomOrderingOps
     with irblock.ordering.AtomOrderingOps
     with irdatamatch.ordering.AtomOrderingOps
+    with irset.ordering.AtomOrderingOps
   
   override val atomOrderingOps = new IRAtomOrderingOps
   
@@ -168,7 +174,8 @@ class IRConstantAbstractInterpreter(
       with irnot.logger.AnalysisAnnotator[Value, RV, Value]
       with irdisjcuntion.logger.AnalysisAnnotator[Value, RV, Value]
       with irblock.logger.AnalysisAnnotator[Value, RV, Value]
-      with irdatamatch.logger.AnalysisAnnotator[Value, RV, Value]:
+      with irdatamatch.logger.AnalysisAnnotator[Value, RV, Value]
+      with irset.logger.AnalysisAnnotator[Value, RV, Value]:
 
     override def extractColumns(rv: RV): Seq[String] =
       relationOps.columns(rv)

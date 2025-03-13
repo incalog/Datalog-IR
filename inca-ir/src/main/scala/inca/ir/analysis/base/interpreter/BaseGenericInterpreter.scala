@@ -388,7 +388,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         val relCls = r.getClass.getSimpleName
         throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
 
-  def bindCallResultInSupplementary[R <: ModuleEntry](r: R, relRes: RV, params: Seq[ir.Param], args: Seq[ir.Arg], argMapping: ArgMapping): RV =
+  def bindCallResultInSupplementary[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], relRes: RV, argMapping: ArgMapping): RV =
     val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
     val subst = argMapping.zip(params).map {
       case (Some(before, after), _) => after -> before
@@ -401,11 +401,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val (evalContext, argMapping) = evaluationContextForCall(r, params, args)
     val adornment = calculateAdornment(argMapping)
 
-    // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
       val relRes = evalRelationLikeEntry(r, params, adornment, evalContext)
-      val callRes = bindCallResultInSupplementary(r, relRes, params, args, argMapping)
-
+      val callRes = bindCallResultInSupplementary(r, params, args, relRes, argMapping)
       if (neg)
         relationOps.antiJoin(beforeCall, callRes)
       else
