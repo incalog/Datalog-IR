@@ -7,7 +7,9 @@ import inca.ir.analysis.base.interpreter.{Adornment, BaseGenericInterpreter, Sup
 import inca.ir.extension.impure.util.CollectImpurityAffectedRelations
 import inca.util.Gensym
 import sturdy.data.MayJoin
-import scala. compiletime. uninitialized
+
+import scala.collection.immutable.ListMap
+import scala.compiletime.uninitialized
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   type RelName = Name
@@ -30,8 +32,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     }
   }
 
-  // TODO: Make this sorted
-  private var impurityVars: Map[RelName, Map[ImpurityKind, (InName, OutName)]] = Map()
+  // Use a ListMap to make sure that the impurity params are always in the same order
+  private var impurityVars: Map[RelName, ListMap[ImpurityKind, (InName, OutName)]] = Map()
   def getImpurityVars(relName: RelName): Map[ImpurityKind, (InName, OutName)] =
     impurityVars.getOrElse(relName, Map())
 
@@ -61,8 +63,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           val inName = gensym.freshName(Name(impurity.name + "$in"))
           val outName = gensym.freshName(Name(impurity.name + "$out"))
           impurity -> (inName, outName)
-        }.toMap
-        Some(r.name -> impurityParamNames)
+        }
+        Some(r.name -> ListMap.from(impurityParamNames))
       else
         None
     }
