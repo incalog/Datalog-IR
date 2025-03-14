@@ -163,7 +163,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val keyIx = relationOps.columnIndex(sup, keyCol)
         relationOps.flatMap(sup) { row =>
           val vs = mapOps.lookup(row(mapIx), row(keyIx))
-          relationOps.make(columnsBefore :+ resName, vs.map(v => row :+ v))
+          mapJoin(vs, { v =>
+            relationOps.make(columnsBefore :+ resName, Seq(row :+ v))
+          })
         }
       }
       resName
@@ -187,7 +189,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
         relationOps.flatMap(sup) { row =>
           val keyValues = mapOps.keyIter(row(mapIdx)).toSeq
-          relationOps.make(columnsBefore :+ keyCol, keyValues.map(v => row :+ v))
+          mapJoin(keyValues, { v =>
+            relationOps.make(columnsBefore :+ keyCol, Seq(row :+ v))
+          })
         }
       }
     case _ => super.evalAtomOpen(at)

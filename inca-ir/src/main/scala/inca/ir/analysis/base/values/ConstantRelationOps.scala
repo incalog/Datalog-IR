@@ -64,9 +64,13 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def make(cols: Seq[String], vals: Seq[Row]): ConstantRelation =
     if (vals.isEmpty)
       ConstantRelation.Empty(cols)
+    else if (vals.size == 1)
+      ConstantRelation(cols, vals.head, Topped.Actual(vals.isEmpty))
     else
-      val joinedVals = vals.tail.foldLeft[Row](vals.head)((v1, v2) => v1.zip(v2).map((t1, t2) => meetV(t1, t2).get))
-      ConstantRelation(cols, joinedVals, Topped.Actual(vals.isEmpty))
+      // It is not obvious if the implicit behaviour should be a meet or a join. Therefore, we throw an exception.
+      throw IllegalStateException("Can not initialize constant relation with more than one row.")
+      //val joinedVals = vals.tail.foldLeft[Row](vals.head)((v1, v2) => v1.zip(v2).map((t1, t2) => meetV(t1, t2).get))
+      //ConstantRelation(cols, joinedVals, Topped.Actual(vals.isEmpty))
 
   override def rename(rv: ConstantRelation, subst: Map[String, String]): ConstantRelation =
     val newColumns = rv.cols.map(c => subst.getOrElse(c, c))

@@ -96,7 +96,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
         relationOps.flatMap(sup) { row =>
           val memValues = setOps.iter(row(setIx)).toSeq
-          relationOps.make(columnsBefore :+ memCol, memValues.map(v => row :+ v))
+
+          mapJoin(memValues, { v =>
+            relationOps.make(columnsBefore :+ memCol, Seq(row :+ v))
+          })
         }
       }
     case _ => super.evalAtomOpen(at)

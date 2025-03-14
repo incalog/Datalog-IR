@@ -8,12 +8,16 @@ import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.map.analysis.interpreter.ConstantMapV
+import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
+import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
 import inca.ir.extension.not.Not
+import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.extension.tuple.analysis.interpreter.ConstantTupleV
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.typing.IRTypechecker
-import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList, term2Arg}
+import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, TNothing, Var, WildcardArg, string2name, term2Arg, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
 
@@ -1280,3 +1284,170 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
+  /* Map */
+
+  test("Map - Empty") {
+    val mod = Module("Test1", BaseIR.language + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(
+          Param("m", TMap(TNothing, TNothing))
+        ),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapLit.empty)
+        )))
+      )
+    ))
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m"))
+    assert(mainRel.rows == Seq(ConstantMapV.empty))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Map - Literal") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapLit.from((StringLit("A"), IntNum(1)), (StringLit("B"), IntNum(2))))
+        )))
+      )
+    ))
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m"))
+    assert(mainRel.rows == Seq(ConstantMapV(
+      ConstantStringV("A") -> Set(ConstantIntV(1)),
+      ConstantStringV("B") -> Set(ConstantIntV(2))
+    )))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Map - Union") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+          Eq(Var("m2"), MapUnion(Var("m1"), MapLit.from((StringLit("B"), IntNum(2)))))
+        )))
+      )
+    ))
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m2"))
+    assert(mainRel.rows == Seq(ConstantMapV(
+      ConstantStringV("A") -> Set(ConstantIntV(1)),
+      ConstantStringV("B") -> Set(ConstantIntV(2))
+    )))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Map - Union (Collision)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit.from((StringLit("A"), IntNum(1)))),
+          Eq(Var("m2"), MapUnion(Var("m1"), MapLit.from((StringLit("A"), IntNum(2)))))
+        )))
+      )
+    ))
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m2"))
+    assert(mainRel.rows == Seq(ConstantMapV(
+      ConstantStringV("A") -> Set(ConstantIntV(1), ConstantIntV(2)),
+    )))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Map - From Relation") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m", TMap(TString, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapFrom("someCall"))
+        )))
+      ),
+      Relation(
+        "someCall",
+        Seq(
+          Param("k", TDemand(TString)),
+          Param("v", TInt)
+        ),
+        Seq(
+          Body(Seq(
+            Eq(Var("k"), StringLit("A")),
+            Eq(Var("v"), IntNum(1))
+          )),
+          Body(Seq(
+            Eq(Var("k"), StringLit("B")),
+            Eq(Var("v"), IntNum(2))
+          ))
+        )
+      )
+    ))
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m"))
+    // top, since we first evaluate the relation and then fill the map
+    assert(mainRel.rows == Seq(ConstantMapV.top))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Map - Comprehension") {
+    val mod = Module("Test1", BaseIR.language + arithIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TInt, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit(Seq(
+            IntNum(1) -> IntNum(2),
+          ))),
+          Eq(Var("m2"), MapComprehension(Var("k"), Add(Var("v"), IntNum(1)), Seq(
+            MapContains(Var("m1"), Var("k")),
+            Eq(Var("v"), MapLookUp(Var("m1"), Var("k")))
+          )))
+        )))
+      )
+    ))
+
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m2"))
+    assert(mainRel.rows == Seq(ConstantMapV(
+      ConstantIntV(1) -> Set(ConstantIntV(3)),
+    )))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Map - Comprehension (multiple key-value pairs)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(Param("m2", TMap(TInt, TInt))),
+        Seq(Body(Seq(
+          Eq(Var("m1"), MapLit(Seq(
+            IntNum(1) -> IntNum(2),
+            IntNum(2) -> IntNum(3)
+          ))),
+          Eq(Var("m2"), MapComprehension(Var("k"), Add(Var("v"), IntNum(1)), Seq(
+            MapContains(Var("m1"), Var("k")),
+            Eq(Var("v"), MapLookUp(Var("m1"), Var("k")))
+          )))
+        )))
+      )
+    ))
+
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m2"))
+    assert(mainRel.rows == Seq(ConstantMapV.top))
+    assertResult(Topped.Top)(mainRel.empty)
+  }

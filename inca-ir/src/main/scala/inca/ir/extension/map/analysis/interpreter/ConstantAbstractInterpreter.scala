@@ -5,6 +5,7 @@ import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
 import inca.ir.extension.map.analysis.interpreter.GenericInterpreter
 import sturdy.data.MayJoin.WithJoin
+import sturdy.values.Topped.Top
 import sturdy.values.{Powerset, Topped}
 
 trait ConstantMapVBase extends Value:
@@ -30,20 +31,22 @@ object ConstantMapV:
           else key -> vs
         })
 
+  def apply(kv: (Value, Set[Value])*): ConstantMapV = new ConstantMapV(kv.toMap)
+
 case class ConstantMapV private (var data: Map[Value, Set[Value]]) extends ConstantMapVBase:
   override def toString: String = s"Map${data.toSeq.mkString("(", ",", ")")}"
   // Since elements may be contained in a map, we can never know for sure that a map is constant
   override def isConstant: Boolean = false
 
   override def contains(key: Value): Topped[Boolean] =
-    // a top key subsumes all other keys
-    if (data.contains(Value.Top)) Topped.Top // Could contain anything
+    if (data.nonEmpty && key == Value.Top) Topped.Top
+    else if (data.contains(Value.Top)) Topped.Top // Could contain anything
     else if (data.contains(key)) Topped.Top // May be contained
     else Topped.Actual(false)  // definitely not contained
 
   override def lookup(k: Value): Seq[Value] =
-    // a top key subsumes all other keys
-    if (data.contains(Value.Top)) Seq(Value.Top)
+    if (data.nonEmpty && k == Value.Top) Seq(Value.Top)
+    else if (data.contains(Value.Top)) Seq(Value.Top) // a top key subsumes all other keys
     else data.getOrElse(k, Set()).toSeq
 
   override def keyIter: Iterable[Value] = data.keys

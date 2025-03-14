@@ -1978,7 +1978,10 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
         "main",
         Seq(Param("m2", TMap(TInt, TInt))),
         Seq(Body(Seq(
-          Eq(Var("m1"), MapLit(Seq((IntNum(1), IntNum(2))))),
+          Eq(Var("m1"), MapLit(Seq(
+            IntNum(1) -> IntNum(2),
+            IntNum(2) -> IntNum(3)
+          ))),
           Eq(Var("m2"), MapComprehension(Var("k"), Add(Var("v"), IntNum(1)), Seq(
             MapContains(Var("m1"), Var("k")),
             Eq(Var("v"), MapLookUp(Var("m1"), Var("k")))
@@ -1991,6 +1994,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(res("main").size == 1)
     assert(res("main").entries.head == Map(
       1 -> Set(3),
+      2 -> Set(4)
     ))
   }
 

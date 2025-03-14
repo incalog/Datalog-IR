@@ -15,7 +15,8 @@ case class ConstantSetV private (var values: Set[Value]) extends Value:
   override def isConstant: Boolean = false
 
   def contains(mem: Value): Topped[Boolean] =
-    if (values.contains(Value.Top)) Topped.Top // Could contain anything
+    if (values.nonEmpty && mem == Value.Top) Topped.Top
+    else if (values.contains(Value.Top)) Topped.Top // Could contain anything
     else if (values.contains(mem)) Topped.Top // May be contained
     else Topped.Actual(false) // definitely not contained
 
@@ -39,7 +40,7 @@ object ConstantSetV:
 // This Constant analysis approximates elements that may be contained in a set.
 private class ConstantSetVOps extends SetOps[Value, Topped[Boolean]]:
   override def setLit(vs: Seq[Value]): Value = ConstantSetV(vs.toSet)
-
+  
   override def contains(s: Value, mem: Value): Topped[Boolean] = s match
     case Value.Top => Topped.Top
     case s: ConstantSetV => s.contains(mem)
