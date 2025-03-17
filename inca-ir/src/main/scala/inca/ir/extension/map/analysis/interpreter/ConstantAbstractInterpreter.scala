@@ -18,8 +18,8 @@ trait ConstantMapVBase extends Value:
   def keyIter: Iterable[Value] = Seq(Value.Top)
 
 object ConstantMapV:
-  val empty: ConstantMapV = ConstantMapV(Map())
-  val top: ConstantMapV = ConstantMapV(Map(Value.Top -> Set(Value.Top)))
+  val empty: ConstantMapV = new ConstantMapV(Map())
+  val top: ConstantMapV = new ConstantMapV(Map(Value.Top -> Set(Value.Top)))
 
   // Normalise the map to correctly handle top values
   def apply(data: Map[Value, Set[Value]]): ConstantMapV =

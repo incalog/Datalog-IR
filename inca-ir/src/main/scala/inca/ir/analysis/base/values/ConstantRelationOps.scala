@@ -106,7 +106,7 @@ class ConstantRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
                       (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[Row]) => Row): ConstantRelation =
     rv match
       case ConstantRelation.Empty(cols) => ConstantRelation.Empty(newCols)
-      case ConstantRelation.NonEmpty(cols, rows, empty) => 
+      case ConstantRelation.NonEmpty(cols, rows, empty) =>
         val groupyByIndices = groupByCols.map(cols.indexOf) 
         val groupByValues = groupyByIndices.map(rows.apply)
         val accIndices = accumulatorCols.map(cols.indexOf)

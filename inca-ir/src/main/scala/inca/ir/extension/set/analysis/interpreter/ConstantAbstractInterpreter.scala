@@ -29,18 +29,21 @@ case class ConstantSetV private (var values: Set[Value]) extends Value:
     else ConstantSetV(values.intersect(other.values))
 
 object ConstantSetV:
-  val empty: ConstantSetV = ConstantSetV(Set())
-  val top: ConstantSetV = ConstantSetV(Set(Value.Top))
+  val empty: ConstantSetV = new ConstantSetV(Set())
+  // Note: ConstantSetV.top != Top, since ConstantSetV.top is definitely not the empty set
+  val top: ConstantSetV = new ConstantSetV(Set(Value.Top))
+
+  def apply(values: Value*): ConstantSetV = apply(values.toSet)
 
   // normalize the set
   def apply(values: Set[Value]): ConstantSetV =
-    if (values.contains(Value.Top)) top
+    if (values.contains(Value.Top)) ConstantSetV.top
     else new ConstantSetV(values)
 
 // This Constant analysis approximates elements that may be contained in a set.
 private class ConstantSetVOps extends SetOps[Value, Topped[Boolean]]:
   override def setLit(vs: Seq[Value]): Value = ConstantSetV(vs.toSet)
-  
+
   override def contains(s: Value, mem: Value): Topped[Boolean] = s match
     case Value.Top => Topped.Top
     case s: ConstantSetV => s.contains(mem)

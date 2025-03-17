@@ -17,6 +17,12 @@ import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps, ToppedCertainOrde
 import sturdy.data.{MakeJoined, WithJoin}
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
+import scala.annotation.targetName
+
+object ConstantTupleV:
+  @targetName("createConstantTupleV")
+  def apply(ts: Value*): ConstantTupleV = new ConstantTupleV(ts)
+
 case class ConstantTupleV(ts: Seq[Value]) extends Value:
   override def toString: String = ts.mkString("(", ",", ")")
   override def isConstant: Boolean = ts.forall(_.isConstant)

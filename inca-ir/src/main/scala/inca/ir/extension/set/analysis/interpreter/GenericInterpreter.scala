@@ -45,6 +45,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           val newSup = supplementaryTable.getTable
           relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
             case (groupedVals, elemVals) if accCols.size == 1 =>
+              println(s"Yes: $groupedVals :: ${elemVals.flatten} :: ${setOps.setLit(elemVals.flatten)}")
               groupedVals :+ setOps.setLit(elemVals.flatten)
             case (groupedVals, elemVals) =>
               val tups = elemVals.map(tupleOps.tupleLit)
