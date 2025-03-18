@@ -11,8 +11,8 @@ case class ConstantSetV private (var values: Set[Value]) extends Value:
   lazy val containsTop: Boolean = values.contains(Value.Top)
 
   override def toString: String = s"Set${values.mkString("(", ",", ")")}"
-  // Since elements may be contained in a set, we can never know for sure that a set is constant
-  override def isConstant: Boolean = false
+  // Since elements may be contained in a set, we can never know for sure that a set is constant, except when it's empty
+  override def isConstant: Boolean = values.isEmpty
 
   def contains(mem: Value): Topped[Boolean] =
     if (values.nonEmpty && mem == Value.Top) Topped.Top
