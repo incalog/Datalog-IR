@@ -70,7 +70,7 @@ object BooleanExpression:
   )
 
 
-  def createCompiled(mod: Module, optimizeSets: Boolean): CompiledUnit = new CompiledUnit:
+  def createCompiled(mod: Module, optimizeBools: Boolean): CompiledUnit = new CompiledUnit:
     override def name: Name = mod.name
 
     override def sourceLocation: SourceLocation = SourceLocation.NoSourceLocation
@@ -90,7 +90,7 @@ object BooleanExpression:
       opt
     }
 
-    val optim = if optimizeSets then
+    val optim = if optimizeBools then
       List(() => new bool.optimize.DnfOptimizer {})
     else
       List()
@@ -111,7 +111,7 @@ object BooleanExpression:
     engine.insert(execution.Relation2("input$main", Seq("x", "y"), Seq(Seq(1, 1))))
     engine.read(UnitRelation("main"))
 
-  @main def runBooleanExpression() =
+  @main def runBooleanExpression(): Unit =
     val viatraRes = runModInEngine(inca.viatra.backend.Executor(), createMod())
     println(viatraRes.asTable)
 
