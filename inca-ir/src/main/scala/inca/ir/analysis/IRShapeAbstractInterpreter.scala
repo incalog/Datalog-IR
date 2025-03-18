@@ -3,50 +3,48 @@ package inca.ir.analysis
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConcreteRelation, ConstantRelation, ConstantRelationOps, Meet, Value}
-import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
+import inca.ir.analysis.base.interpreter.*
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
-import inca.ir.extension.arithmetic.analysis as irarith
-import inca.ir.extension.data.analysis as irdata
-import inca.ir.extension.string.analysis as irstr
+import inca.ir.analysis.base.values.*
 import inca.ir.extension.aggregate.analysis as iragg
-import inca.ir.extension.tuple.analysis as irtuple
-import inca.ir.extension.bool.analysis as irbool
-import inca.ir.extension.demand.analysis as irdemand
-import inca.ir.extension.not.analysis as irnot
-import inca.ir.extension.disjunction.analysis as irdisjcuntion
+import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.block.analysis as irblock
+import inca.ir.extension.bool.analysis as irbool
+import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.datamatch.analysis as irdatamatch
-import inca.ir.extension.set.analysis as irset
-import inca.ir.extension.map.analysis as irmap
+import inca.ir.extension.demand.analysis as irdemand
+import inca.ir.extension.disjunction.analysis as irdisjcuntion
 import inca.ir.extension.impure.analysis as irimpure
+import inca.ir.extension.map.analysis as irmap
+import inca.ir.extension.not.analysis as irnot
+import inca.ir.extension.set.analysis as irset
+import inca.ir.extension.string.analysis as irstr
+import inca.ir.extension.tuple.analysis as irtuple
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.{MayJoin, WithJoin}
-import sturdy.values.{Changed, Finite, Join, MaybeChanged, Powerset, Topped, Widen}
-import sturdy.effect.{EffectStack, TrySturdy}
-import sturdy.effect.failure.{CollectedFailures, ObservableFailure}
-import sturdy.fix
 import sturdy.effect.except.{Except, JoinedExcept}
-import sturdy.fix.{HasFixpointCache, StackConfig}
+import sturdy.effect.failure.{CollectedFailures, ObservableFailure}
+import sturdy.effect.{EffectStack, TrySturdy}
+import sturdy.fix
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.fix.context.FiniteParameters
+import sturdy.fix.{HasFixpointCache, StackConfig}
 import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
+import sturdy.values.*
 
 // Implicits
-import sturdy.data.given 
-import inca.ir.analysis.base.effect.IRFailure
+import inca.ir.analysis.base.effect.{IRException, IRFailure}
+import inca.ir.analysis.base.interpreter.{CCombineFixOut, FiniteFixIn}
 import inca.ir.analysis.base.values.JoinRV
-import inca.ir.analysis.base.interpreter.FiniteFixIn
+import sturdy.data.given
 import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
-import inca.ir.analysis.base.effect.IRException
-import inca.ir.analysis.base.interpreter.CCombineFixOut
 
-class IRConstantAbstractInterpreter(
+class IRShapeAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
     val logControlEvents: Boolean = false,
     override val interRelational: Boolean = false
@@ -54,7 +52,7 @@ class IRConstantAbstractInterpreter(
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.ConstantAbstractInterpreter
     with irstr.interpreter.ConstantAbstractInterpreter
-    with irdata.interpreter.ConstantAbstractInterpreter
+    with irdata.interpreter.ShapeAbstractInterpreter
     with iragg.interpreter.ConstantAbstractInterpreter
     with irtuple.interpreter.ConstantAbstractInterpreter
     with irbool.interpreter.ConstantAbstractInterpreter
@@ -73,7 +71,7 @@ class IRConstantAbstractInterpreter(
   private class IRJoinV extends Join[Value] with BaseJoinV
     with irarith.interpreter.ConstantJoinV
     with irstr.interpreter.ConstantJoinV
-    with irdata.interpreter.ConstantJoinV
+    with irdata.interpreter.ShapeJoinV
     with irtuple.interpreter.ConstantJoinV
     with irbool.interpreter.ConstantJoinV
     with irdemand.interpreter.ConstantJoinV
@@ -91,7 +89,7 @@ class IRConstantAbstractInterpreter(
   private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseMeetV(using except)
     with irarith.interpreter.ConstantMeetV
     with irstr.interpreter.ConstantMeetV
-    with irdata.interpreter.ConstantMeetV
+    with irdata.interpreter.ShapeMeetV
     with irtuple.interpreter.ConstantMeetV
     with irbool.interpreter.ConstantMeetV
     with irdemand.interpreter.ConstantMeetV
@@ -106,7 +104,7 @@ class IRConstantAbstractInterpreter(
   private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
     with irarith.interpreter.ConstantEqOps
     with irstr.interpreter.ConstantEqOps
-    with irdata.interpreter.ConstantEqOps(using boolOps)
+    with irdata.interpreter.ShapeEqOps(using boolOps)
     with irtuple.interpreter.ConstantEqOps(using boolOps)
     with irbool.interpreter.ConstantEqOps(using boolOps)
     with irdemand.interpreter.ConstantEqOps
@@ -211,7 +209,6 @@ class IRConstantAbstractInterpreter(
 
   //fix.Fixpoint.DEBUG = true
 
-  //(new PrintingControlObserver()(println))
   val graphBuilder: ControlEventGraphBuilder[Long, Long, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
 
   private val stackConfig: StackConfig = if (logControlEvents)
@@ -232,26 +229,16 @@ class IRConstantAbstractInterpreter(
     }.toMap
     reduced
 
-//  type Ctx = fix.context.Parameters[String, ValueKind]
-//  private val parameters: fix.context.Sensitivity[FixIn, Ctx] = fix.context.parameters { _ =>
-//    Some(supplementaryTable.getTable match
-//      case ConstantRelation.Empty(_) => Map()
-//      case ConstantRelation.NonEmpty(_, _, Topped.Actual(true)) => Map()
-//      case ConstantRelation.NonEmpty(cs, rs, _) => cs.zip(rs.map(getValueKind)).toMap
-//    )
-//  }
   type Ctx = Unit
+
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     var fixPt =
         fix.log(analysisAnnotator,
           fix.filter({case _: FixIn.EnterRelation => true; case _ => false},
-//            fix.contextSensitive(
-//              parameters,
-          fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
-              setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
-              //setLooper(fix.iter.outermost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
+            fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
+                setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
+              )
             )
-          )
         )
 
     if (logControlEvents)

@@ -18,7 +18,12 @@ import sturdy.values.Topped.Top
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
 case class DataShapeV(caseDefs: Set[CaseDefinitionReference]) extends Value:
-  override def toString: String = caseDefs.mkString("{", ",", "}")
+  override def toString: String =
+    val caseStr = caseDefs.map { c =>
+      val argS = c.args.map(_ => "?").mkString("(", ",", ")")
+      s"${c.name}$argS"
+    }
+    caseStr.mkString("{", ",", "}")
   override def isConstant: Boolean = caseDefs.size == 1 && caseDefs.head.args.isEmpty
 
 trait ShapeEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
