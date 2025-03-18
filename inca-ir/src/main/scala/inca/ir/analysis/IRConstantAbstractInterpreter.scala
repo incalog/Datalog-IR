@@ -7,7 +7,6 @@ import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConcreteRelation, Con
 import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
-import inca.ir.analysis.constant.ConstantInterpreter
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
@@ -101,7 +100,6 @@ class IRConstantAbstractInterpreter(
     override val interRelational: Boolean = false
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
-    with ConstantInterpreter
     with irarith.interpreter.ConstantAbstractInterpreter
     with irstr.interpreter.ConstantAbstractInterpreter
     with irdata.interpreter.ConstantAbstractInterpreter
