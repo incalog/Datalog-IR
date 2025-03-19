@@ -14,7 +14,7 @@ trait SetOps[V, RV, B]:
   def intersect(ts: Seq[V]): V
   // Check if mem is contained in the set s
   def contains(s: V, mem: V): B
-  // Produce an iterable for all values of a set s
+  // iterate over the values of a set if any exists
   def iter(s: V)(values: Set[V] => RV)(empty: => RV): RV
 
 

@@ -19,7 +19,7 @@ trait MapOps[V, RV, B]:
   def lookup(m: V, k: V)(foundValues: Set[V] => RV)(noValuesOrKeyNotFound: => RV): RV
   // Check if key is contained in the map m
   def contains(m: V, key: V): B
-  // Produce an iterable for all keys in map m
+  // iterate over the values of the keys of a map if any exists
   def keyIter(m: V)(keySet: Set[V] => RV)(noKeys: => RV): RV
 
 
