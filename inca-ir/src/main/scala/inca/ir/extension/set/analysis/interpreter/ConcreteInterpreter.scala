@@ -8,7 +8,7 @@ case class CSetV(ts: Set[Value]) extends Value:
   override def toString: String = s"Set${ts.mkString("(", ",", ")")}"
   override def isConstant: Boolean = ts.forall(_.isConstant)
 
-private class CSetVOps extends SetOps[Value, Boolean]:
+private class CSetVOps extends SetOps[Value, ConcreteRelation[Value], Boolean]:
   override def setLit(vs: Seq[Value]): Value = CSetV(vs.toSet)
 
   override def contains(s: Value, mem: Value): Boolean = s match
@@ -30,13 +30,10 @@ private class CSetVOps extends SetOps[Value, Boolean]:
     }
     CSetV(newVs)
 
-  override def isEmpty(s: Value): Boolean = s match
-    case CSetV(ts) => ts.isEmpty
-    case _ => throw IllegalArgumentException(s"Expected set but got $s")
-  
-  override def iter(s: Value): Iterable[Value] = s match
-    case CSetV(ts) => ts
+  override def iter(s: Value)(values: Set[Value] => ConcreteRelation[Value])(empty: => ConcreteRelation[Value]): ConcreteRelation[Value] = s match
+    case CSetV(ts) if ts.isEmpty => empty
+    case CSetV(ts) => values(ts)
     case _ => throw IllegalArgumentException(s"Expected set but got $s")
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
-  override val setOps: SetOps[Value, Boolean] = CSetVOps()
+  override val setOps: SetOps[Value, ConcreteRelation[Value], Boolean] = CSetVOps()

@@ -4,8 +4,9 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
+import sturdy.effect.EffectStack
 import sturdy.values.ordering.EqOps
-import sturdy.values.{Powerset, Topped}
+import sturdy.values.{Join, Powerset, Topped}
 
 
 case class ConstantSetV private(var values: Set[Value]) extends Value:
@@ -34,7 +35,7 @@ object ConstantSetV:
     else
       new ConstantSetV(values)
 
-private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extends SetOps[Value, Topped[Boolean]]:
+private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, joinRV: Join[ConstantRelation]) extends SetOps[Value, ConstantRelation, Topped[Boolean]]:
   override def setLit(vs: Seq[Value]): Value = ConstantSetV(vs.toSet)
 
   override def contains(s: Value, mem: Value): Topped[Boolean] = s match
@@ -50,10 +51,6 @@ private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extend
         Topped.Top
     case _ => throw IllegalArgumentException(s"Expected set but got $s")
 
-  override def isEmpty(s: Value): Topped[Boolean] = s match
-    case Value.Top => Topped.Top
-    case ConstantSetV(vs) => Topped.Actual(vs.isEmpty)
-
   override def union(sets: Seq[Value]): Value =
     sets.foldLeft[Value](ConstantSetV.empty) {
       case (Value.Top, _) | (_, Value.Top) => Value.Top
@@ -68,9 +65,17 @@ private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extend
         case (_, s) => throw IllegalStateException(s"Expected set but got $s")
       }
 
-  override def iter(s: Value): Iterable[Value] = s match
-    case Value.Top => Seq(Value.Top)
-    case s: ConstantSetV => s.values
+  override def iter(s: Value)(values: Set[Value] => ConstantRelation)(empty: => ConstantRelation): ConstantRelation = s match
+    case Value.Top =>
+      effects.joinComputations {
+        values(Set(Value.Top))
+      } {
+        empty
+      }(using joinRV)
+    case ConstantSetV(vs) if vs.isEmpty =>
+      empty
+    case ConstantSetV(vs) =>
+      values(vs)
     case _ => throw IllegalArgumentException(s"Expected set but got $s")
 
 trait ConstantEqOps extends BaseEqOps:
@@ -119,4 +124,4 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
     case _ => super.meet(lhs, rhs)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  override val setOps: SetOps[Value, Topped[Boolean]] = ConstantSetVOps(using eqOps)
+  override val setOps: SetOps[Value, ConstantRelation, Topped[Boolean]] = ConstantSetVOps(using eqOps, effects, joinRV)
