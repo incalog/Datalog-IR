@@ -170,14 +170,14 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             except.throws(EmptySupplementary)
           } {
             val k = row(keyIx)
-            val vs = mapOps.lookup(m, k)
 
-            // No value for this key is found
             branchOps.boolBranch(mapOps.hasValue(m, k)) {
+              val vs = mapOps.lookup(m, k)
               mapJoin(vs, { v =>
                 relationOps.make(columnsBefore :+ resName, Seq(row :+ v))
               })
             } {
+              // No value for this key is found, that is, the body fails
               except.throws(EmptySupplementary)
             }
           }

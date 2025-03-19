@@ -34,7 +34,6 @@ object ConstantSetV:
     else
       new ConstantSetV(values)
 
-// This Constant analysis keeps tracks of elements that must be contained in a set
 private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extends SetOps[Value, Topped[Boolean]]:
   override def setLit(vs: Seq[Value]): Value = ConstantSetV(vs.toSet)
 
@@ -76,8 +75,8 @@ private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extend
 
 trait ConstantEqOps extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (s1: ConstantMaySetV, s2: ConstantMaySetV) =>
-      val allElementsAreEqual = s1.values.forall(v => s2.values.exists(equ(v, _) == Topped.Actual(true)))
+    case (s1: ConstantSetV, s2: ConstantSetV) =>
+      val allElementsAreEqual = (s1.values.size == s2.values.size) && s1.values.forall(v => s2.values.exists(equ(v, _) == Topped.Actual(true)))
       val atLeastOneDisjointElement = s1.values.exists(v => s2.values.forall(equ(v, _) == Topped.Actual(false)))
       if (allElementsAreEqual)
         Topped.Actual(true)
@@ -88,8 +87,8 @@ trait ConstantEqOps extends BaseEqOps:
     case _ => super.equ(v1, v2)
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (s1: ConstantMaySetV, s2: ConstantMaySetV) =>
-      val allElementsAreEqual = s1.values.forall(v => s2.values.exists(neq(v, _) == Topped.Actual(false)))
+    case (s1: ConstantSetV, s2: ConstantSetV) =>
+      val allElementsAreEqual = (s1.values.size == s2.values.size) && s1.values.forall(v => s2.values.exists(neq(v, _) == Topped.Actual(false)))
       val atLeastOneDisjointElement = s1.values.exists(v => s2.values.forall(neq(v, _) == Topped.Actual(true)))
       if (allElementsAreEqual)
         Topped.Actual(false)
@@ -99,14 +98,24 @@ trait ConstantEqOps extends BaseEqOps:
         Topped.Top
     case _ => super.neq(v1, v2)
 
-trait ConstantJoinV extends BaseJoinV:
+trait ConstantJoinV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (s1: ConstantSetV, s2: ConstantSetV) => s1.union(s2)
+    case (s1: ConstantSetV, s2: ConstantSetV) =>
+      val sameSet = eqOps.equ(s1, s2)
+      if (sameSet.isActual && sameSet.get)
+        s1
+      else
+        Value.Top
     case _ => super.join(lhs, rhs)
 
-trait ConstantMeetV extends BaseMeetV:
+trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (s1: ConstantSetV, s2: ConstantSetV) => s1.intersect(s2)
+    case (s1: ConstantSetV, s2: ConstantSetV) =>
+      val sameSet = eqOps.equ(s1, s2)
+      if (sameSet.isActual && sameSet.get)
+        s1
+      else
+        Value.Top
     case _ => super.meet(lhs, rhs)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:

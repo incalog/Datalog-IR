@@ -141,9 +141,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   private lazy val fixed: Fixed = fixpoint(using effects) {
     case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
     case FixIn.Atom(atom) =>
-      //(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
+      //println(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
       evalAtomOpen(atom);
-      //println("  ## Success")
+      //println(s"  ## Success :: ${supplementaryTable.getTable}")
       FixOut.Atom()
     case FixIn.Assign(to, from) =>
       val (toSup, fromSup) = evalAssignOpen(to, from)

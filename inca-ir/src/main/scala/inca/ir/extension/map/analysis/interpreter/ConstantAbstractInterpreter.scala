@@ -4,39 +4,40 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
 import sturdy.data.MayJoin.WithJoin
+import sturdy.values.Topped.Top
 import sturdy.values.ordering.EqOps
 import sturdy.values.{Powerset, Topped}
 
-private trait ConstantMayMapVBase extends Value:
-  def union(other: ConstantMayMapVBase): ConstantMayMapVBase = ConstantMayMapV.top
-  def intersect(other: ConstantMayMapVBase): ConstantMayMapVBase = ConstantMayMapV.top
-  def concat(other: ConstantMayMapVBase): ConstantMayMapVBase = ConstantMayMapV.top
+private trait ConstantMapVBase extends Value:
+  def union(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
+  def intersect(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
+  def concat(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
   def contains(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] = Topped.Top
   def lookup(k: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Seq[Value] = Seq(Value.Top)
-  def plus(k: Value, v: Value): ConstantMayMapVBase = ConstantMayMapV.top
+  def plus(k: Value, v: Value): ConstantMapVBase = ConstantMapV.top
   def isEmpty: Topped[Boolean] = Topped.Top
   def hasValue(k: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] = Topped.Top
   def keyIter: Iterable[Value] = Seq(Value.Top)
 
-object ConstantMayMapV:
-  val empty: ConstantMayMapV = new ConstantMayMapV(Map())
-  val top: ConstantMayMapV = new ConstantMayMapV(Map(Value.Top -> Set(Value.Top)))
+object ConstantMapV:
+  val empty: ConstantMapV = new ConstantMapV(Map())
+  val top: ConstantMapV = new ConstantMapV(Map(Value.Top -> Set(Value.Top)))
 
   // Normalise the map to correctly handle top values
-  def apply(data: Map[Value, Set[Value]]): ConstantMayMapV =
+  def apply(data: Map[Value, Set[Value]]): ConstantMapV =
       if (data.contains(Value.Top))
-        ConstantMayMapV.top
+        ConstantMapV.top
       else
-        new ConstantMayMapV(data.map { (key, vs) =>
+        new ConstantMapV(data.map { (key, vs) =>
           if (vs.contains(Value.Top))
             key -> Set(Value.Top)
           else
             key -> vs
         })
 
-  def apply(kv: (Value, Set[Value])*): ConstantMayMapV = new ConstantMayMapV(kv.toMap)
+  def apply(kv: (Value, Set[Value])*): ConstantMapV = new ConstantMapV(kv.toMap)
 
-case class ConstantMayMapV private(var data: Map[Value, Set[Value]]) extends ConstantMayMapVBase:
+case class ConstantMapV private(var data: Map[Value, Set[Value]]) extends ConstantMapVBase:
   override def toString: String = s"Map${data.toSeq.mkString("(", ",", ")")}"
   // Since elements may be contained in a map, we can never know for sure that a map is constant
   override def isConstant: Boolean = data.isEmpty
@@ -44,123 +45,140 @@ case class ConstantMayMapV private(var data: Map[Value, Set[Value]]) extends Con
   override def isEmpty: Topped[Boolean] = Topped.Actual(data.isEmpty)
 
   override def contains(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] =
-    val notContained = data.keys.forall(k => eqOps.equ(k, key) == Topped.Actual(false))
-    if (notContained)
-      Topped.Actual(false)  // definitely not contained
+    val contained = data.keys.exists(eqOps.equ(_, key) == Topped.Actual(true))
+    val notContained = data.keys.forall(eqOps.equ(_, key) == Topped.Actual(false))
+    if (contained)
+      Topped.Actual(true)
+    else if (notContained)
+      Topped.Actual(false)
     else
       Topped.Top
 
   override def lookup(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Seq[Value] =
-    val notContained = data.keys.forall(k => eqOps.equ(k, key) == Topped.Actual(false))
-    if (notContained)
-      Seq() // definitely not contained
-    else if (key == Value.Top)
+    val contained = data.keys.exists(eqOps.equ(_, key) == Topped.Actual(true))
+    val containsTop = data.keys.exists(_ == Value.Top)
+    if (contained)
+      data(key).toSeq
+    else if (data.nonEmpty && (key == Value.Top))
+      // We have no explicit top key
       Seq(Value.Top)
+    else if (containsTop)
+      // We request a key not explicitly contained in the map, but we have a top key in the map
+      data(Value.Top).toSeq
     else
-      // Might be contained
-      data.getOrElse(key, Set()).toSeq
+      // We don't find the key at all
+      Seq()
 
   override def keyIter: Iterable[Value] = data.keys
 
   override def hasValue(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] =
-    val notContained = data.keys.forall(k => eqOps.equ(k, key) == Topped.Actual(false))
-    if (notContained)
-      Topped.Actual(false)
-    else if (key == Value.Top)
+    val contained = data.keys.exists(eqOps.equ(_, key) == Topped.Actual(true))
+    val containsTop = data.keys.exists(_ == Value.Top)
+    if (contained)
+      Topped.Actual(data(key).nonEmpty)
+    else if (data.nonEmpty && (key == Value.Top))
       Topped.Top
+    else if (containsTop)
+      Topped.Actual(data(Value.Top).nonEmpty)
     else
-      Topped.Actual(data.getOrElse(key, Set()).nonEmpty)
+      Topped.Actual(false)
 
-  override def plus(k: Value, v: Value): ConstantMayMapVBase = ConstantMayMapV(data + (k -> Set(v)))
 
-  override def union(other: ConstantMayMapVBase): ConstantMayMapVBase = other match
-    case ConstantMayMapV(data2) =>
+  override def plus(k: Value, v: Value): ConstantMapVBase = ConstantMapV(data + (k -> Set(v)))
+
+  override def union(other: ConstantMapVBase): ConstantMapVBase = other match
+    case ConstantMapV(data2) =>
       val relevantKeys = data.keys ++ data2.keys
       val newMap = relevantKeys.map { key =>
         (data.get(key), data2.get(key)) match
-          case (Some(v1), Some(v2)) => key -> (v1 ++ v2)
+          case (Some(v1), Some(v2)) => key -> (v1.union(v2))
           case (None, Some(v)) => key -> v
           case (Some(v), None) => key -> v
           case _ => throw IllegalStateException()
       }.toMap
-      ConstantMayMapV(newMap)
-    case _: ConstantMayMapFunV =>
-      ConstantMayMapV.top
+      ConstantMapV(newMap)
+    case _: ConstantMapFunV =>
+      ConstantMapV.top
 
-  override def concat(other: ConstantMayMapVBase): ConstantMayMapVBase = other match
-    case ConstantMayMapV(data2) => ConstantMayMapV(data ++ data2)
-    case _: ConstantMayMapFunV => ConstantMayMapV.top
+  override def concat(other: ConstantMapVBase): ConstantMapVBase = other match
+    case ConstantMapV(data2) => ConstantMapV(data ++ data2)
+    case _: ConstantMapFunV => ConstantMapV.top
 
-  override def intersect(other: ConstantMayMapVBase): ConstantMayMapVBase = other match
-    case ConstantMayMapV(data2) =>
-        val relevantKeys = data.keySet.intersect(data2.keySet)
-        val newMap = relevantKeys.map { key =>
-          (data(key), data2(key)) match
-            case (v1, v2) => key -> v1.intersect(v2)
-        }.toMap
-        ConstantMayMapV(newMap)
-    case _: ConstantMayMapFunV =>
-      ConstantMayMapV.top
+  override def intersect(other: ConstantMapVBase): ConstantMapVBase = (this, other) match
+    case (ConstantMapV.top, _) => other
+    case (_, ConstantMapV.top) => this
+    case (ConstantMapV(data), ConstantMapV(data2)) =>
+      // We know that we don't have a Top key here
+      val relevantKeys = data.keySet.intersect(data2.keySet)
+      val newMap = relevantKeys.map { key =>
+        (data(key), data2(key)) match
+          case (s1, s2) if s1.contains(Value.Top) => key -> s2
+          case (s1, s2) if s2.contains(Value.Top) => key -> s1
+          case (s1, s2) => key -> s1.intersect(s2)
+      }.toMap
+      ConstantMapV(newMap)
+    case (_, _: ConstantMapFunV) =>
+      ConstantMapV.top
 
 
 // We don't analyse map funs for now
-case class ConstantMayMapFunV(f: Value => Set[Value]) extends ConstantMayMapVBase:
+case class ConstantMapFunV(f: Value => Set[Value]) extends ConstantMapVBase:
   override def toString: String = s"MapFun()"
   override def isConstant: Boolean = false
 
 
 // This Constant analysis approximates elements that may be contained in a map.
-private class ConstantMayMapVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extends MapOps[Value, Topped[Boolean]]:
+private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extends MapOps[Value, Topped[Boolean]]:
 
   override def mapLit(vs: Seq[(Value, Value)]): Value =
     val values = vs.groupBy(_._1).map { (k, kv) => k -> kv.map(_._2).toSet }
-    ConstantMayMapV(values)
+    ConstantMapV(values)
 
-  override def mapFun(f: Value => Set[Value]): Value = ConstantMayMapFunV(f)
+  override def mapFun(f: Value => Set[Value]): Value = ConstantMapFunV(f)
 
   override def isEmpty(m: Value): Topped[Boolean] = m match
     case Value.Top => Topped.Top
-    case map: ConstantMayMapVBase => map.isEmpty
+    case map: ConstantMapVBase => map.isEmpty
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
   override def contains(m: Value, key: Value): Topped[Boolean] = m match
-    case map: ConstantMayMapVBase => map.contains(key)
+    case map: ConstantMapVBase => map.contains(key)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
   override def union(maps: Seq[Value]): Value =
-    maps.foldLeft[Value](ConstantMayMapV.empty) {
+    maps.foldLeft[Value](ConstantMapV.empty) {
       case (Value.Top, _) | (_, Value.Top) => Value.Top
-      case (acc: ConstantMayMapVBase, m: ConstantMayMapVBase) => acc.union(m)
+      case (acc: ConstantMapVBase, m: ConstantMapVBase) => acc.union(m)
       case (_, v) => throw IllegalArgumentException(s"Expected map but got $v")
     }
 
   override def concat(m1: Value, m2: Value): Value = (m1, m2) match
     // only retain m1(k) = v if k not in m2
     case (Value.Top, _) | (_, Value.Top) => Value.Top
-    case (map1: ConstantMayMapVBase, map2: ConstantMayMapVBase) => map1.concat(map2)
+    case (map1: ConstantMapVBase, map2: ConstantMapVBase) => map1.concat(map2)
     case _ => throw IllegalArgumentException(s"Expected maps but got $m1 and $m2")
 
   override def plus(m: Value, k: Value, v: Value): Value = m match
     case Value.Top => Value.Top
-    case map: ConstantMayMapVBase => map.plus(k, v)
+    case map: ConstantMapVBase => map.plus(k, v)
     case _ => throw IllegalArgumentException(s"Expected maps but got $m")
 
   override def lookup(m: Value, k: Value): Seq[Value] = m match
     case Value.Top => Seq(Value.Top)
-    case map: ConstantMayMapVBase => map.lookup(k)
+    case map: ConstantMapVBase => map.lookup(k)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
   override def keyIter(m: Value): Iterable[Value] = m match
     case Value.Top => Seq(Value.Top)
-    case map: ConstantMayMapVBase => map.keyIter
+    case map: ConstantMapVBase => map.keyIter
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
   override def hasValue(m: Value, k: Value): Topped[Boolean] = m match
     case Value.Top => Topped.Top
-    case map: ConstantMayMapVBase => map.hasValue(k)(using eqOps)
+    case map: ConstantMapVBase => map.hasValue(k)(using eqOps)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
-trait ConstantMayEqOps extends BaseEqOps:
+trait ConstantEqOps extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] =
     def iterablesAreEqual(i1: Iterable[Value], i2: Iterable[Value]): Boolean =
       (i1.size == i2.size) && i1.forall(v => i2.exists(equ(v, _) == Topped.Actual(true)))
@@ -169,7 +187,7 @@ trait ConstantMayEqOps extends BaseEqOps:
       i1.exists(v => i2.forall(equ(v, _) == Topped.Actual(false)))
 
     (v1, v2) match
-      case (m1: ConstantMayMapV, m2: ConstantMayMapV) =>
+      case (m1: ConstantMapV, m2: ConstantMapV) =>
         val allKeysAreEqual = iterablesAreEqual(m1.data.keys, m2.data.keys)
         val atLeastOneDisjointKey = iterablesAreNotEqual(m1.data.keys, m2.data.keys)
         if (allKeysAreEqual)
@@ -185,11 +203,11 @@ trait ConstantMayEqOps extends BaseEqOps:
           Topped.Actual(false)
         else
           Topped.Top
-      case (_: ConstantMayMapFunV, _) | (_, _: ConstantMayMapFunV) => Topped.Top
+      case (_: ConstantMapFunV, _) | (_, _: ConstantMapFunV) => Topped.Top
       case _ => super.equ(v1, v2)
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (m1: ConstantMayMapV, m2: ConstantMayMapV) =>
+    case (m1: ConstantMapV, m2: ConstantMapV) =>
       def iterablesAreEqual(i1: Iterable[Value], i2: Iterable[Value]): Boolean =
         (i1.size == i2.size) && i1.forall(v => i2.exists(neq(v, _) == Topped.Actual(false)))
 
@@ -197,7 +215,7 @@ trait ConstantMayEqOps extends BaseEqOps:
         i1.exists(v => i2.forall(neq(v, _) == Topped.Actual(true)))
 
       (v1, v2) match
-        case (m1: ConstantMayMapV, m2: ConstantMayMapV) =>
+        case (m1: ConstantMapV, m2: ConstantMapV) =>
           val allKeysAreEqual = iterablesAreEqual(m1.data.keys, m2.data.keys)
           val atLeastOneDisjointKey = iterablesAreNotEqual(m1.data.keys, m2.data.keys)
           if (allKeysAreEqual)
@@ -213,18 +231,28 @@ trait ConstantMayEqOps extends BaseEqOps:
             Topped.Actual(true)
           else
             Topped.Top
-    case (_: ConstantMayMapFunV, _) | (_, _: ConstantMayMapFunV) => Topped.Top
+    case (_: ConstantMapFunV, _) | (_, _: ConstantMapFunV) => Topped.Top
     case _ => super.neq(v1, v2)
 
-trait ConstantMayJoinV extends BaseJoinV:
+trait ConstantJoinV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (m1: ConstantMayMapVBase, m2: ConstantMayMapVBase) => m1.union(m2)
+    case (m1: ConstantMapVBase, m2: ConstantMapVBase) =>
+      val sameMap = eqOps.equ(m1, m2)
+      if (sameMap.isActual && sameMap.get)
+        m1
+      else
+        Value.Top
     case _ => super.join(lhs, rhs)
 
-trait ConstantMayMeetV extends BaseMeetV:
+trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (m1: ConstantMayMapVBase, m2: ConstantMayMapVBase) => m1.intersect(m2)
+    case (m1: ConstantMapVBase, m2: ConstantMapVBase) =>
+      val sameMap = eqOps.equ(m1, m2)
+      if (sameMap.isActual && sameMap.get)
+        m1
+      else
+        Value.Top
     case _ => super.meet(lhs, rhs)
 
-trait ConstantMayAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  override val mapOps: MapOps[Value, Topped[Boolean]] = ConstantMayMapVOps(using eqOps)
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+  override val mapOps: MapOps[Value, Topped[Boolean]] = ConstantMapVOps(using eqOps)

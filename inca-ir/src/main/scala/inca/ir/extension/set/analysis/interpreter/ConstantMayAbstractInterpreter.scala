@@ -76,7 +76,7 @@ private class ConstantMaySetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) ext
 trait ConstantMayEqOps extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
     case (s1: ConstantMaySetV, s2: ConstantMaySetV) =>
-      val allElementsAreEqual = s1.values.forall(v => s2.values.exists(equ(v, _) == Topped.Actual(true)))
+      val allElementsAreEqual = (s1.values.size == s2.values.size) && s1.values.forall(v => s2.values.exists(equ(v, _) == Topped.Actual(true)))
       val atLeastOneDisjointElement = s1.values.exists(v => s2.values.forall(equ(v, _) == Topped.Actual(false)))
       if (allElementsAreEqual)
         Topped.Actual(true)
@@ -88,7 +88,7 @@ trait ConstantMayEqOps extends BaseEqOps:
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
     case (s1: ConstantMaySetV, s2: ConstantMaySetV) =>
-      val allElementsAreEqual = s1.values.forall(v => s2.values.exists(neq(v, _) == Topped.Actual(false)))
+      val allElementsAreEqual = (s1.values.size == s2.values.size) && s1.values.forall(v => s2.values.exists(neq(v, _) == Topped.Actual(false)))
       val atLeastOneDisjointElement = s1.values.exists(v => s2.values.forall(neq(v, _) == Topped.Actual(true)))
       if (allElementsAreEqual)
         Topped.Actual(false)

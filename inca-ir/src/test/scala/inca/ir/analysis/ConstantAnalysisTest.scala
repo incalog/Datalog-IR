@@ -5,14 +5,13 @@ import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.arithmetic.{Add, IntNum, LT, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as boolIR}
-import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.map.analysis.interpreter.ConstantMayMapV
+import inca.ir.extension.map.analysis.interpreter.ConstantMapV
 import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
 import inca.ir.extension.not.Not
-import inca.ir.extension.set.analysis.interpreter.ConstantMaySetV
+import inca.ir.extension.set.analysis.interpreter.ConstantSetV
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.extension.tuple.analysis.interpreter.ConstantTupleV
@@ -1302,7 +1301,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("out"))
-    assert(mainRel.rows.head == ConstantMaySetV(ConstantIntV(1), ConstantIntV(2)))
+    assert(mainRel.rows.head == ConstantSetV(ConstantIntV(1), ConstantIntV(2)))
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1322,7 +1321,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("out"))
-    assert(mainRel.rows.head == ConstantMaySetV(ConstantIntV(1), ConstantIntV(2), ConstantIntV(3)))
+    assert(mainRel.rows.head == ConstantSetV(ConstantIntV(1), ConstantIntV(2), ConstantIntV(3)))
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1342,7 +1341,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("out"))
-    assert(mainRel.rows.head == ConstantMaySetV(ConstantIntV(2)))
+    assert(mainRel.rows.head == ConstantSetV(ConstantIntV(2)))
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1372,7 +1371,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
       ), Seq(
         Body(Seq(
           Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2), IntNum(3), IntNum(4), IntNum(5)))),
-          SetMember(IntNum(1), Var("x")), // we can not decide this here, since this is a `may-set`
+          SetMember(IntNum(1), Var("x")),
           Eq(BoolTrue, Var("out"))
         ))
       )).addHint(MainHint)
@@ -1383,7 +1382,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assert(mainRel.cols == Seq("out"))
     assert(mainRel.rows.head == ConstantBoolV(true))
     // top, since the containment check could succeed or fail
-    assertResult(Topped.Top)(mainRel.empty)
+    assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
   test("Set - Comprehension") {
@@ -1394,8 +1393,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
         Body(Seq(
           Eq(Var("x"), SetLit(Seq(IntNum(1), IntNum(2), IntNum(3), IntNum(4), IntNum(5)))),
           Eq(Var("out"), SetComprehension(Var("x$i"), Seq(
-            SetMember(Var("x$i"), Var("x")),
-            LT(Var("x$i"), IntNum(3))
+            SetMember(Var("x$i"), Var("x")), // x$i == Top
+            LT(Var("x$i"), IntNum(3)) // Top < 3 is undecidable, that is the comprehension might be empty
           )))
         ))
       )).addHint(MainHint)
@@ -1404,7 +1403,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("out"))
-    assert(mainRel.rows.head == ConstantMaySetV.top)
+    assert(mainRel.rows.head == Value.Top) // Since the Set could also be empty
     assertResult(Topped.Top)(mainRel.empty)
   }
 
@@ -1444,7 +1443,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("out"))
-    assert(mainRel.rows.head == ConstantMaySetV.top)
+    assert(mainRel.rows.head == Value.Top)
     assertResult(Topped.Top)(mainRel.empty)
   }
 
@@ -1472,7 +1471,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("x"))
-    assert(mainRel.rows.head == ConstantMaySetV.top)
+    assert(mainRel.rows.head == ConstantSetV.top)
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1503,7 +1502,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("x"))
-    assert(mainRel.rows.head == ConstantMaySetV(ConstantTupleV(Value.Top, Value.Top)))
+    assert(mainRel.rows.head == ConstantSetV(ConstantTupleV(Value.Top, Value.Top)))
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1524,7 +1523,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m"))
-    assert(mainRel.rows == Seq(ConstantMayMapV.empty))
+    assert(mainRel.rows == Seq(ConstantMapV.empty))
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1541,7 +1540,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m"))
-    assert(mainRel.rows == Seq(ConstantMayMapV(
+    assert(mainRel.rows == Seq(ConstantMapV(
       ConstantStringV("A") -> Set(ConstantIntV(1)),
       ConstantStringV("B") -> Set(ConstantIntV(2))
     )))
@@ -1562,7 +1561,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m2"))
-    assert(mainRel.rows == Seq(ConstantMayMapV(
+    assert(mainRel.rows == Seq(ConstantMapV(
       ConstantStringV("A") -> Set(ConstantIntV(1)),
       ConstantStringV("B") -> Set(ConstantIntV(2))
     )))
@@ -1583,7 +1582,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m2"))
-    assert(mainRel.rows == Seq(ConstantMayMapV(
+    assert(mainRel.rows == Seq(ConstantMapV(
       ConstantStringV("A") -> Set(ConstantIntV(1), ConstantIntV(2)),
     )))
     assertResult(Topped.Actual(false))(mainRel.empty)
@@ -1620,7 +1619,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m"))
     // top, since we first evaluate the relation and then fill the map
-    assert(mainRel.rows == Seq(ConstantMayMapV.top))
+    assert(mainRel.rows == Seq(ConstantMapV.top))
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1644,7 +1643,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m2"))
-    assert(mainRel.rows == Seq(ConstantMayMapV(
+    assert(mainRel.rows == Seq(ConstantMapV(
       ConstantIntV(1) -> Set(ConstantIntV(3)),
     )))
     assertResult(Topped.Actual(false))(mainRel.empty)
@@ -1671,6 +1670,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m2"))
-    assert(mainRel.rows == Seq(ConstantMayMapV.top))
+    assert(mainRel.rows == Seq(Value.Top))
     assertResult(Topped.Top)(mainRel.empty)
   }
