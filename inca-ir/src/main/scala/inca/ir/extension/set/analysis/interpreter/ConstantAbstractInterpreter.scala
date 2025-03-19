@@ -4,47 +4,48 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
-import sturdy.values.Topped.Actual
 import sturdy.values.ordering.EqOps
 import sturdy.values.{Powerset, Topped}
 
 
-case class ConstantMaySetV private(var values: Set[Value]) extends Value:
+case class ConstantSetV private(var values: Set[Value]) extends Value:
   override def toString: String = s"Set${values.mkString("(", ",", ")")}"
-  // Since elements may be contained in a set, we can never know for sure that a set is constant, except when it's empty
-  override def isConstant: Boolean = values.isEmpty
+  override def isConstant: Boolean = values.forall(_.isConstant)
 
-  def union(other: ConstantMaySetV): ConstantMaySetV =
-    ConstantMaySetV(values.union(other.values))
+  def union(other: ConstantSetV): ConstantSetV =
+    ConstantSetV(values.union(other.values))
 
-  def intersect(other: ConstantMaySetV): ConstantMaySetV = (this, other) match
-    case (ConstantMaySetV.top, _) => other
-    case (_, ConstantMaySetV.top) => this
-    case _ => ConstantMaySetV(values.intersect(other.values))
+  def intersect(other: ConstantSetV): ConstantSetV = (this, other) match
+    case (ConstantSetV.top, _) => other
+    case (_, ConstantSetV.top) => this
+    case _ => ConstantSetV(values.intersect(other.values))
 
-object ConstantMaySetV:
-  val empty: ConstantMaySetV = new ConstantMaySetV(Set())
-  // Note: ConstantMaySetV.top != Top, since ConstantMaySetV.top is definitely not the empty set
-  val top: ConstantMaySetV = new ConstantMaySetV(Set(Value.Top))
+object ConstantSetV:
+  val empty: ConstantSetV = new ConstantSetV(Set())
+  // Note: ConstantSetV.top != Top, since ConstantSetV.top is definitely not the empty set
+  val top: ConstantSetV = new ConstantSetV(Set(Value.Top))
 
-  def apply(values: Value*): ConstantMaySetV = apply(values.toSet)
+  def apply(values: Value*): ConstantSetV = apply(values.toSet)
 
   // normalize the set
-  def apply(values: Set[Value]): ConstantMaySetV =
+  def apply(values: Set[Value]): ConstantSetV =
     if (values.contains(Value.Top))
-      ConstantMaySetV.top
+      ConstantSetV.top
     else
-      new ConstantMaySetV(values)
+      new ConstantSetV(values)
 
-// This Constant analysis approximates elements that may be contained in a set.
-private class ConstantMaySetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extends SetOps[Value, Topped[Boolean]]:
-  override def setLit(vs: Seq[Value]): Value = ConstantMaySetV(vs.toSet)
+// This Constant analysis keeps tracks of elements that must be contained in a set
+private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extends SetOps[Value, Topped[Boolean]]:
+  override def setLit(vs: Seq[Value]): Value = ConstantSetV(vs.toSet)
 
   override def contains(s: Value, mem: Value): Topped[Boolean] = s match
     case Value.Top => Topped.Top
-    case ConstantMaySetV(values) =>
+    case ConstantSetV(values) =>
+      val contained = values.exists(eqOps.equ(_, mem) == Topped.Actual(true))
       val notContained = values.forall(eqOps.equ(_, mem) == Topped.Actual(false))
-      if (notContained)
+      if (contained)
+        Topped.Actual(true)
+      else if (notContained)
         Topped.Actual(false)
       else
         Topped.Top
@@ -52,28 +53,28 @@ private class ConstantMaySetVOps(using eqOps: EqOps[Value, Topped[Boolean]]) ext
 
   override def isEmpty(s: Value): Topped[Boolean] = s match
     case Value.Top => Topped.Top
-    case ConstantMaySetV(vs) => Topped.Actual(vs.isEmpty)
+    case ConstantSetV(vs) => Topped.Actual(vs.isEmpty)
 
   override def union(sets: Seq[Value]): Value =
-    sets.foldLeft[Value](ConstantMaySetV.empty) {
+    sets.foldLeft[Value](ConstantSetV.empty) {
       case (Value.Top, _) | (_, Value.Top) => Value.Top
-      case (acc: ConstantMaySetV, s: ConstantMaySetV) => acc.union(s)
+      case (acc: ConstantSetV, s: ConstantSetV) => acc.union(s)
       case (_, s) => throw IllegalStateException(s"Expected set but got $s")
     }
 
   override def intersect(sets: Seq[Value]): Value =
-      sets.foldLeft[Value](ConstantMaySetV.top) {
+      sets.foldLeft[Value](ConstantSetV.top) {
         case (Value.Top, _) | (_, Value.Top) => Value.Top
-        case (acc: ConstantMaySetV, s: ConstantMaySetV) => acc.intersect(s)
+        case (acc: ConstantSetV, s: ConstantSetV) => acc.intersect(s)
         case (_, s) => throw IllegalStateException(s"Expected set but got $s")
       }
 
   override def iter(s: Value): Iterable[Value] = s match
     case Value.Top => Seq(Value.Top)
-    case s: ConstantMaySetV => s.values
+    case s: ConstantSetV => s.values
     case _ => throw IllegalArgumentException(s"Expected set but got $s")
 
-trait ConstantMayEqOps extends BaseEqOps:
+trait ConstantEqOps extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
     case (s1: ConstantMaySetV, s2: ConstantMaySetV) =>
       val allElementsAreEqual = s1.values.forall(v => s2.values.exists(equ(v, _) == Topped.Actual(true)))
@@ -98,15 +99,15 @@ trait ConstantMayEqOps extends BaseEqOps:
         Topped.Top
     case _ => super.neq(v1, v2)
 
-trait ConstantMayJoinV extends BaseJoinV:
+trait ConstantJoinV extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (s1: ConstantMaySetV, s2: ConstantMaySetV) => s1.union(s2)
+    case (s1: ConstantSetV, s2: ConstantSetV) => s1.union(s2)
     case _ => super.join(lhs, rhs)
 
-trait ConstantMayMeetV extends BaseMeetV:
+trait ConstantMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (s1: ConstantMaySetV, s2: ConstantMaySetV) => s1.intersect(s2)
+    case (s1: ConstantSetV, s2: ConstantSetV) => s1.intersect(s2)
     case _ => super.meet(lhs, rhs)
 
-trait ConstantMayAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  override val setOps: SetOps[Value, Topped[Boolean]] = ConstantMaySetVOps(using eqOps)
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+  override val setOps: SetOps[Value, Topped[Boolean]] = ConstantSetVOps(using eqOps)

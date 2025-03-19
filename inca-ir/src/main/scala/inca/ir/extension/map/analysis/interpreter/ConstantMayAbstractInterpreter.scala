@@ -161,13 +161,58 @@ private class ConstantMayMapVOps(using eqOps: EqOps[Value, Topped[Boolean]]) ext
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
 trait ConstantEqOps extends BaseEqOps:
-  override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (m1: ConstantMayMapV, m2: ConstantMayMapV) => Topped.Actual(m1.data == m2.data)
-    case (_: ConstantMayMapFunV, _) | (_, _: ConstantMayMapFunV) => Topped.Top
-    case _ => super.equ(v1, v2)
+  override def equ(v1: Value, v2: Value): Topped[Boolean] =
+    def iterablesAreEqual(i1: Iterable[Value], i2: Iterable[Value]): Boolean =
+      (i1.size == i2.size) && i1.forall(v => i2.exists(equ(v, _) == Topped.Actual(true)))
+
+    def iterablesAreNotEqual(i1: Iterable[Value], i2: Iterable[Value]) =
+      i1.exists(v => i2.forall(equ(v, _) == Topped.Actual(false)))
+
+    (v1, v2) match
+      case (m1: ConstantMayMapV, m2: ConstantMayMapV) =>
+        val allKeysAreEqual = iterablesAreEqual(m1.data.keys, m2.data.keys)
+        val atLeastOneDisjointKey = iterablesAreNotEqual(m1.data.keys, m2.data.keys)
+        if (allKeysAreEqual)
+          val allValuesAreEqual = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
+          val atLeastOneDisjointValue = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
+          if (allValuesAreEqual)
+            Topped.Actual(true)
+          else if (atLeastOneDisjointValue)
+            Topped.Actual(false)
+          else
+            Topped.Top
+        else if (atLeastOneDisjointKey)
+          Topped.Actual(false)
+        else
+          Topped.Top
+      case (_: ConstantMayMapFunV, _) | (_, _: ConstantMayMapFunV) => Topped.Top
+      case _ => super.equ(v1, v2)
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (m1: ConstantMayMapV, m2: ConstantMayMapV) => Topped.Actual(m1.data != m2.data)
+    case (m1: ConstantMayMapV, m2: ConstantMayMapV) =>
+      def iterablesAreEqual(i1: Iterable[Value], i2: Iterable[Value]): Boolean =
+        (i1.size == i2.size) && i1.forall(v => i2.exists(neq(v, _) == Topped.Actual(false)))
+
+      def iterablesAreNotEqual(i1: Iterable[Value], i2: Iterable[Value]) =
+        i1.exists(v => i2.forall(neq(v, _) == Topped.Actual(true)))
+
+      (v1, v2) match
+        case (m1: ConstantMayMapV, m2: ConstantMayMapV) =>
+          val allKeysAreEqual = iterablesAreEqual(m1.data.keys, m2.data.keys)
+          val atLeastOneDisjointKey = iterablesAreNotEqual(m1.data.keys, m2.data.keys)
+          if (allKeysAreEqual)
+            val allValuesAreEqual = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
+            val atLeastOneDisjointValue = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
+            if (allValuesAreEqual)
+              Topped.Actual(false)
+            else if (atLeastOneDisjointValue)
+              Topped.Actual(true)
+            else
+              Topped.Top
+          else if (atLeastOneDisjointKey)
+            Topped.Actual(true)
+          else
+            Topped.Top
     case (_: ConstantMayMapFunV, _) | (_, _: ConstantMayMapFunV) => Topped.Top
     case _ => super.neq(v1, v2)
 
