@@ -19,7 +19,7 @@ case class CMapFunV(f: Value => Set[Value]) extends CMapVBase:
   override def isConstant: Boolean = false
 
 
-private class CMapVOps extends MapOps[Value, Boolean]:
+private class CMapVOps extends MapOps[Value, ConcreteRelation[Value], Boolean]:
   // TODO: We could keep track of all keys that are demanded for a MapFunV here
   //  That way, we could fill the map at the end and also implement iter
 
@@ -28,14 +28,6 @@ private class CMapVOps extends MapOps[Value, Boolean]:
     CMapV(values)
 
   override def mapFun(f: Value => Set[Value]): Value = CMapFunV(f)
-
-  override def isEmpty(m: Value): Boolean = m match
-    case CMapV(ts) => ts.isEmpty
-    case CMapFunV(f) => false
-
-  override def hasValue(m: Value, k: Value): Boolean = m match
-    case CMapV(ts) => ts.getOrElse(k, Set()).nonEmpty
-    case CMapFunV(f) => true
 
   override def contains(m: Value, key: Value): Boolean = m match
     case fun@CMapFunV(f) => f(key).nonEmpty
@@ -104,16 +96,22 @@ private class CMapVOps extends MapOps[Value, Boolean]:
     case CMapFunV(f) => CMapFunV { key => if (key == k) Set(v) else f(key) }
     case CMapV(ts) => CMapV(ts + (k -> Set(v)))
 
-  override def lookup(m: Value, k: Value): Seq[Value] = m match
-    case fun@CMapFunV(f) => f(k).toSeq
-    case CMapV(ts) => ts.getOrElse(k, Set()).toSeq
+  override def lookup(m: Value, k: Value)(foundValues: Set[Value] => ConcreteRelation[Value])(noValuesOrKeyNotFound: => ConcreteRelation[Value]): ConcreteRelation[Value] = m match
+    case fun@CMapFunV(f) => f(k) match
+      case s if s.isEmpty => noValuesOrKeyNotFound // no values
+      case s => foundValues(s)
+    case CMapV(ts) => ts.get(k) match
+      case Some(vs) if vs.isEmpty => noValuesOrKeyNotFound // no values
+      case Some(vs) => foundValues(vs)
+      case None => noValuesOrKeyNotFound // key not found
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
-  override def keyIter(m: Value): Iterable[Value] = m match
+  override def keyIter(m: Value)(keySet: Set[Value] => ConcreteRelation[Value])(noKeys: => ConcreteRelation[Value]): ConcreteRelation[Value] = m match
     case CMapFunV(_) => throw UnsupportedOperationException("Can not iterate keys of MapFun")
-    case CMapV(ts) => ts.keys
+    case CMapV(ts) if ts.isEmpty => noKeys
+    case CMapV(ts) => keySet(ts.keySet)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
-  override val mapOps: MapOps[Value, Boolean] = CMapVOps()
+  override val mapOps: MapOps[Value, ConcreteRelation[Value], Boolean] = CMapVOps()

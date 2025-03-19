@@ -4,20 +4,20 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
 import sturdy.data.MayJoin.WithJoin
+import sturdy.effect.EffectStack
 import sturdy.values.Topped.Top
 import sturdy.values.ordering.EqOps
-import sturdy.values.{Powerset, Topped}
+import sturdy.values.{Join, Powerset, Topped}
 
 private trait ConstantMapVBase extends Value:
   def union(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
   def intersect(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
   def concat(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
   def contains(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] = Topped.Top
-  def lookup(k: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Seq[Value] = Seq(Value.Top)
+  def lookup(k: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Set[Value] = Set(Value.Top)
   def plus(k: Value, v: Value): ConstantMapVBase = ConstantMapV.top
   def isEmpty: Topped[Boolean] = Topped.Top
-  def hasValue(k: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] = Topped.Top
-  def keyIter: Iterable[Value] = Seq(Value.Top)
+  def keySet: Set[Value] = Set(Value.Top)
 
 object ConstantMapV:
   val empty: ConstantMapV = new ConstantMapV(Map())
@@ -39,7 +39,7 @@ object ConstantMapV:
 
 case class ConstantMapV private(var data: Map[Value, Set[Value]]) extends ConstantMapVBase:
   override def toString: String = s"Map${data.toSeq.mkString("(", ",", ")")}"
-  // Since elements may be contained in a map, we can never know for sure that a map is constant
+
   override def isConstant: Boolean = data.isEmpty
 
   override def isEmpty: Topped[Boolean] = Topped.Actual(data.isEmpty)
@@ -54,35 +54,22 @@ case class ConstantMapV private(var data: Map[Value, Set[Value]]) extends Consta
     else
       Topped.Top
 
-  override def lookup(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Seq[Value] =
+  override def lookup(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Set[Value] =
     val contained = data.keys.exists(eqOps.equ(_, key) == Topped.Actual(true))
     val containsTop = data.keys.exists(_ == Value.Top)
     if (contained)
-      data(key).toSeq
+      data(key)
     else if (data.nonEmpty && (key == Value.Top))
       // We have no explicit top key
-      Seq(Value.Top)
+      Set(Value.Top)
     else if (containsTop)
       // We request a key not explicitly contained in the map, but we have a top key in the map
-      data(Value.Top).toSeq
+      data(Value.Top)
     else
       // We don't find the key at all
-      Seq()
+      Set[Value]()
 
-  override def keyIter: Iterable[Value] = data.keys
-
-  override def hasValue(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] =
-    val contained = data.keys.exists(eqOps.equ(_, key) == Topped.Actual(true))
-    val containsTop = data.keys.exists(_ == Value.Top)
-    if (contained)
-      Topped.Actual(data(key).nonEmpty)
-    else if (data.nonEmpty && (key == Value.Top))
-      Topped.Top
-    else if (containsTop)
-      Topped.Actual(data(Value.Top).nonEmpty)
-    else
-      Topped.Actual(false)
-
+  override def keySet: Set[Value] = data.keySet
 
   override def plus(k: Value, v: Value): ConstantMapVBase = ConstantMapV(data + (k -> Set(v)))
 
@@ -128,18 +115,13 @@ case class ConstantMapFunV(f: Value => Set[Value]) extends ConstantMapVBase:
 
 
 // This Constant analysis approximates elements that may be contained in a map.
-private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extends MapOps[Value, Topped[Boolean]]:
+private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, joinRV: Join[ConstantRelation]) extends MapOps[Value, ConstantRelation, Topped[Boolean]]:
 
   override def mapLit(vs: Seq[(Value, Value)]): Value =
     val values = vs.groupBy(_._1).map { (k, kv) => k -> kv.map(_._2).toSet }
     ConstantMapV(values)
 
   override def mapFun(f: Value => Set[Value]): Value = ConstantMapFunV(f)
-
-  override def isEmpty(m: Value): Topped[Boolean] = m match
-    case Value.Top => Topped.Top
-    case map: ConstantMapVBase => map.isEmpty
-    case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
   override def contains(m: Value, key: Value): Topped[Boolean] = m match
     case map: ConstantMapVBase => map.contains(key)
@@ -163,19 +145,49 @@ private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]]) extend
     case map: ConstantMapVBase => map.plus(k, v)
     case _ => throw IllegalArgumentException(s"Expected maps but got $m")
 
-  override def lookup(m: Value, k: Value): Seq[Value] = m match
-    case Value.Top => Seq(Value.Top)
-    case map: ConstantMapVBase => map.lookup(k)
+  override def lookup(m: Value, k: Value)(foundValues: Set[Value] => ConstantRelation)(noValuesOrKeyNotFound: => ConstantRelation): ConstantRelation = m match
+    case Value.Top =>
+      effects.joinComputations {
+        foundValues(Set(Value.Top))
+      } {
+        noValuesOrKeyNotFound
+      }(using joinRV)
+    case map: ConstantMapVBase =>
+      map.contains(k) match
+        case Topped.Actual(false) => noValuesOrKeyNotFound
+        case Topped.Actual(true) =>
+          val vs = map.lookup(k)
+          if (vs.isEmpty)
+            noValuesOrKeyNotFound
+          else
+            foundValues(vs)
+        case Topped.Top =>
+          effects.joinComputations {
+            val vs = map.lookup(k)
+            assert(vs.nonEmpty)
+            foundValues(vs)
+          } {
+            noValuesOrKeyNotFound
+          }(using joinRV)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
-  override def keyIter(m: Value): Iterable[Value] = m match
-    case Value.Top => Seq(Value.Top)
-    case map: ConstantMapVBase => map.keyIter
-    case _ => throw IllegalArgumentException(s"Expected map but got $m")
-
-  override def hasValue(m: Value, k: Value): Topped[Boolean] = m match
-    case Value.Top => Topped.Top
-    case map: ConstantMapVBase => map.hasValue(k)(using eqOps)
+  override def keyIter(m: Value)(keySet: Set[Value] => ConstantRelation)(noKeys: => ConstantRelation): ConstantRelation = m match
+    case Value.Top =>
+      effects.joinComputations {
+        keySet(Set(Value.Top))
+      } {
+        noKeys
+      }(using joinRV)
+    case map: ConstantMapVBase =>
+      map.isEmpty match
+        case Topped.Actual(true) => noKeys
+        case Topped.Actual(false) => keySet(map.keySet)
+        case Topped.Top =>
+          effects.joinComputations {
+            keySet(map.keySet)
+          } {
+            noKeys
+          }(using joinRV)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
 trait ConstantEqOps extends BaseEqOps:
@@ -255,4 +267,4 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
     case _ => super.meet(lhs, rhs)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  override val mapOps: MapOps[Value, Topped[Boolean]] = ConstantMapVOps(using eqOps)
+  override val mapOps: MapOps[Value, ConstantRelation, Topped[Boolean]] = ConstantMapVOps(using eqOps, effects, joinRV)

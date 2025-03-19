@@ -10,19 +10,17 @@ import inca.ir.extension.set.analysis.interpreter.SetOps
 import inca.ir.extension.tuple.analysis.interpreter.TupleOps
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
-trait MapOps[V, B]:
+trait MapOps[V, RV, B]:
   def mapLit(vs: Seq[(V, V)]): V
   def mapFun(f: V => Set[V]): V
   def concat(m1: V, m2: V): V
   def union(ts: Seq[V]): V
   def plus(m: V, k: V, v: V): V
-  def lookup(m: V, k: V): Seq[V]
+  def lookup(m: V, k: V)(foundValues: Set[V] => RV)(noValuesOrKeyNotFound: => RV): RV
   // Check if key is contained in the map m
   def contains(m: V, key: V): B
-  def isEmpty(m: V): B
-  def hasValue(m: V, k: V): B
   // Produce an iterable for all keys in map m
-  def keyIter(m: V): Iterable[V]
+  def keyIter(m: V)(keySet: Set[V] => RV)(noKeys: => RV): RV
 
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
@@ -30,7 +28,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val tupleOps: TupleOps[V]
   val setOps: SetOps[V, RV, B]
 
-  val mapOps: MapOps[V, B]
+  val mapOps: MapOps[V, RV, B]
 
   private def naryTupleOp(rs: Seq[(SupColumn, SupColumn)])(f: Seq[(V, V)] => V): SupColumn =
     val resName = gensym.fresh("result")
@@ -165,21 +163,15 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val keyIx = relationOps.columnIndex(sup, keyCol)
         relationOps.flatMap(sup) { row =>
           val m = row(mapIx)
-          branchOps.boolBranch(mapOps.isEmpty(m)) {
-            // No member is bound, that is, the body fails
-            except.throws(EmptySupplementary)
-          } {
-            val k = row(keyIx)
+          val k = row(keyIx)
 
-            branchOps.boolBranch(mapOps.hasValue(m, k)) {
-              val vs = mapOps.lookup(m, k)
-              mapJoin(vs, { v =>
-                relationOps.make(columnsBefore :+ resName, Seq(row :+ v))
-              })
-            } {
-              // No value for this key is found, that is, the body fails
-              except.throws(EmptySupplementary)
-            }
+          mapOps.lookup(m, k) { vs =>
+            mapJoin(vs, { v =>
+              relationOps.make(columnsBefore :+ resName, Seq(row :+ v))
+            })
+          } {
+            // No values for this key or the key was not found
+            except.throws(EmptySupplementary)
           }
         }
       }
@@ -204,14 +196,14 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
         relationOps.flatMap(sup) { row =>
           val m = row(mapIdx)
-          branchOps.boolBranch(mapOps.isEmpty(m)) {
-            // No member is bound, that is, the body fails
-            except.throws(EmptySupplementary)
-          } {
-            val keyValues = mapOps.keyIter(m).toSeq
+
+          mapOps.keyIter(m) { keyValues =>
             mapJoin(keyValues, { v =>
               relationOps.make(columnsBefore :+ keyCol, Seq(row :+ v))
             })
+          } {
+            // No member is bound, that is, the body fails
+            except.throws(EmptySupplementary)
           }
         }
       }
