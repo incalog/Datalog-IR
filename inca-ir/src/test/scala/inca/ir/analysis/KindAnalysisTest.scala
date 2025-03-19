@@ -8,10 +8,10 @@ import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as 
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.map.analysis.interpreter.ConstantMapV
+import inca.ir.extension.map.analysis.interpreter.ConstantMayMapV
 import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.not.Not
-import inca.ir.extension.set.analysis.interpreter.ConstantSetV
+import inca.ir.extension.set.analysis.interpreter.ConstantMaySetV
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
@@ -23,13 +23,13 @@ import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Ma
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
 
-class ShapeAnalysisTest extends AnyFunSuiteLike:
+class KindAnalysisTest extends AnyFunSuiteLike:
 
   def interp(mod: Module, edb: Map[String, ConstantRelation] = Map()): Map[String, ConstantRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    val abstractInterp = IRShapeAbstractInterpreter(interRelational = true)
+    val abstractInterp = IRKindAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
     val res = abstractInterp.getIDB

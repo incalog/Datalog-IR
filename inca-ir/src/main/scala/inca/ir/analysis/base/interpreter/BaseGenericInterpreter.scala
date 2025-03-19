@@ -17,12 +17,6 @@ import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
 
-
-// TODO:
-//  1. Concrete Interpreter (agg)
-//  2. Interval Analysis
-//  3. Functional Dependency analysis?
-
 enum Adorn:
   case b
   case f

@@ -19,6 +19,8 @@ trait MapOps[V, B]:
   def lookup(m: V, k: V): Seq[V]
   // Check if key is contained in the map m
   def contains(m: V, key: V): B
+  def isEmpty(m: V): B
+  def hasValue(m: V, k: V): B
   // Produce an iterable for all keys in map m
   def keyIter(m: V): Iterable[V]
 
@@ -162,10 +164,23 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val mapIx = relationOps.columnIndex(sup, mapCol)
         val keyIx = relationOps.columnIndex(sup, keyCol)
         relationOps.flatMap(sup) { row =>
-          val vs = mapOps.lookup(row(mapIx), row(keyIx))
-          mapJoin(vs, { v =>
-            relationOps.make(columnsBefore :+ resName, Seq(row :+ v))
-          })
+          val m = row(mapIx)
+          branchOps.boolBranch(mapOps.isEmpty(m)) {
+            // No member is bound, that is, the body fails
+            except.throws(EmptySupplementary)
+          } {
+            val k = row(keyIx)
+            val vs = mapOps.lookup(m, k)
+
+            // No value for this key is found
+            branchOps.boolBranch(mapOps.hasValue(m, k)) {
+              mapJoin(vs, { v =>
+                relationOps.make(columnsBefore :+ resName, Seq(row :+ v))
+              })
+            } {
+              except.throws(EmptySupplementary)
+            }
+          }
         }
       }
       resName
@@ -188,10 +203,16 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val mapIdx = relationOps.columnIndex(sup, mapCol)
 
         relationOps.flatMap(sup) { row =>
-          val keyValues = mapOps.keyIter(row(mapIdx)).toSeq
-          mapJoin(keyValues, { v =>
-            relationOps.make(columnsBefore :+ keyCol, Seq(row :+ v))
-          })
+          val m = row(mapIdx)
+          branchOps.boolBranch(mapOps.isEmpty(m)) {
+            // No member is bound, that is, the body fails
+            except.throws(EmptySupplementary)
+          } {
+            val keyValues = mapOps.keyIter(m).toSeq
+            mapJoin(keyValues, { v =>
+              relationOps.make(columnsBefore :+ keyCol, Seq(row :+ v))
+            })
+          }
         }
       }
     case _ => super.evalAtomOpen(at)

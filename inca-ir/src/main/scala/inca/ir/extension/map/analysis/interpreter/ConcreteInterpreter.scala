@@ -12,7 +12,7 @@ case class CMapV(ts: Map[Value, Set[Value]]) extends CMapVBase:
   override def toString: String = s"Map${ts.toSeq.mkString("(", ",", ")")}"
   override def isConstant: Boolean = ts.forall((k, v) => k.isConstant && v.forall(_.isConstant))
 
-// We only ever allow keys that are where inputs at some point.
+// We only ever allow keys that where inputs at some point.
 // That is due to the demand transformation.
 case class CMapFunV(f: Value => Set[Value]) extends CMapVBase:
   override def toString: String = s"MapFun()"
@@ -28,6 +28,14 @@ private class CMapVOps extends MapOps[Value, Boolean]:
     CMapV(values)
 
   override def mapFun(f: Value => Set[Value]): Value = CMapFunV(f)
+
+  override def isEmpty(m: Value): Boolean = m match
+    case CMapV(ts) => ts.isEmpty
+    case CMapFunV(f) => false
+
+  override def hasValue(m: Value, k: Value): Boolean = m match
+    case CMapV(ts) => ts.getOrElse(k, Set()).nonEmpty
+    case CMapFunV(f) => true
 
   override def contains(m: Value, key: Value): Boolean = m match
     case fun@CMapFunV(f) => f(key).nonEmpty

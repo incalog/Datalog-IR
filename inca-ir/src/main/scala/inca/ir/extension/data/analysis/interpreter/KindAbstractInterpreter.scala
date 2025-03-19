@@ -57,7 +57,7 @@ trait ShapeMeetV extends BaseMeetV:
       DataShapeV(caseDefs1.intersect(caseDefs2))
     case _ => super.meet(lhs, rhs)
 
-trait ShapeAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+trait KindAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
 
   val dataOps: DataOps[Value, ConstantRelation] = new DataOps[Value, ConstantRelation]:
     override def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): Value =

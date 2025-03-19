@@ -30,6 +30,10 @@ private class CSetVOps extends SetOps[Value, Boolean]:
     }
     CSetV(newVs)
 
+  override def isEmpty(s: Value): Boolean = s match
+    case CSetV(ts) => ts.isEmpty
+    case _ => throw IllegalArgumentException(s"Expected set but got $s")
+  
   override def iter(s: Value): Iterable[Value] = s match
     case CSetV(ts) => ts
     case _ => throw IllegalArgumentException(s"Expected set but got $s")

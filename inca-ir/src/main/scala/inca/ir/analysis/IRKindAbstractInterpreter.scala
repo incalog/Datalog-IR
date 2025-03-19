@@ -44,7 +44,7 @@ import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
-class IRShapeAbstractInterpreter(
+class IRKindAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
     val logControlEvents: Boolean = false,
     override val interRelational: Boolean = false
@@ -52,7 +52,7 @@ class IRShapeAbstractInterpreter(
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.ConstantAbstractInterpreter
     with irstr.interpreter.ConstantAbstractInterpreter
-    with irdata.interpreter.ShapeAbstractInterpreter
+    with irdata.interpreter.KindAbstractInterpreter
     with iragg.interpreter.ConstantAbstractInterpreter
     with irtuple.interpreter.ConstantAbstractInterpreter
     with irbool.interpreter.ConstantAbstractInterpreter
@@ -61,8 +61,8 @@ class IRShapeAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantAbstractInterpreter
     with irblock.interpreter.ConstantAbstractInterpreter
     with irdatamatch.interpreter.ConstantAbstractInterpreter
-    with irset.interpreter.ConstantAbstractInterpreter
-    with irmap.interpreter.ConstantAbstractInterpreter
+    with irset.interpreter.ConstantMayAbstractInterpreter
+    with irmap.interpreter.ConstantMayAbstractInterpreter
     with irimpure.interpreter.ConstantAbstractInterpreter
     with DatalogControlObservable:
 
@@ -79,8 +79,8 @@ class IRShapeAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantJoinV
     with irblock.interpreter.ConstantJoinV
     with irdatamatch.interpreter.ConstantJoinV
-    with irset.interpreter.ConstantJoinV
-    with irmap.interpreter.ConstantJoinV
+    with irset.interpreter.ConstantMayJoinV
+    with irmap.interpreter.ConstantMayJoinV
     with irimpure.interpreter.ConstantJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
@@ -97,8 +97,8 @@ class IRShapeAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantMeetV
     with irblock.interpreter.ConstantMeetV
     with irdatamatch.interpreter.ConstantMeetV
-    with irset.interpreter.ConstantMeetV
-    with irmap.interpreter.ConstantMeetV
+    with irset.interpreter.ConstantMayMeetV
+    with irmap.interpreter.ConstantMayMeetV
     with irimpure.interpreter.ConstantMeetV
 
   private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
@@ -112,7 +112,7 @@ class IRShapeAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantEqOps
     with irblock.interpreter.ConstantEqOps
     with irdatamatch.interpreter.ConstantEqOps
-    with irset.interpreter.ConstantEqOps
+    with irset.interpreter.ConstantMayEqOps
     with irmap.interpreter.ConstantEqOps
     with irimpure.interpreter.ConstantEqOps
 

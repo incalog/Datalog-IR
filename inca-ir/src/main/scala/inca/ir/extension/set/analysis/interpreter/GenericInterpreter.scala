@@ -14,6 +14,7 @@ trait SetOps[V, B]:
   def intersect(ts: Seq[V]): V
   // Check if mem is contained in the set s
   def contains(s: V, mem: V): B
+  def isEmpty(s: V): B
   // Produce an iterable for all values of a set s
   def iter(s: V): Iterable[V]
 
@@ -96,11 +97,17 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val setIx = relationOps.columnIndex(sup, setCol)
 
         relationOps.flatMap(sup) { row =>
-          val memValues = setOps.iter(row(setIx)).toSeq
+          val s = row(setIx)
 
-          mapJoin(memValues, { v =>
-            relationOps.make(columnsBefore :+ memCol, Seq(row :+ v))
-          })
+          branchOps.boolBranch(setOps.isEmpty(s)) {
+            // No member is bound, that is, the body fails
+            except.throws(EmptySupplementary)
+          } {
+            val memValues = setOps.iter(s).toSeq
+            mapJoin(memValues, { v =>
+              relationOps.make(columnsBefore :+ memCol, Seq(row :+ v))
+            })
+          }
         }
       }
     case _ => super.evalAtomOpen(at)
