@@ -5,13 +5,12 @@ import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.arithmetic.{Add, IntNum, LT, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as boolIR}
-import inca.ir.extension.data.analysis.interpreter.ConstantDataV
+import inca.ir.extension.data.analysis.interpreter.DataKindV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.map.analysis.interpreter.ConstantMayMapV
 import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.not.Not
-import inca.ir.extension.set.analysis.interpreter.ConstantMaySetV
+import inca.ir.extension.set.analysis.interpreter.BoundedSetV
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, TSet, IR as setIR}
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
@@ -23,13 +22,23 @@ import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Ma
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
 
-class KindAnalysisTest extends AnyFunSuiteLike:
+import scala.annotation.tailrec
+
+class DataKindAnalysisTest extends AnyFunSuiteLike:
+
+  @tailrec
+  private def verifyResult(result: Value, expectedDataKinds: Set[String]): Unit =
+    result match
+      case BoundedSetV.Empty => assertResult(expectedDataKinds)(Set())
+      case BoundedSetV.NonEmpty(bound) => verifyResult(bound, expectedDataKinds)
+      case DataKindV(caseDefs) => assertResult(expectedDataKinds)(caseDefs.map(_.name.name))
+      case _ => assert(false)
 
   def interp(mod: Module, edb: Map[String, ConstantRelation] = Map()): Map[String, ConstantRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
-    val abstractInterp = IRKindAbstractInterpreter(interRelational = true)
+    val abstractInterp = IRDataKindAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
     val res = abstractInterp.getIDB
@@ -125,4 +134,115 @@ class KindAnalysisTest extends AnyFunSuiteLike:
     assert(mainEdgeRelType.rows.head == Value.Top)
     assert(mainEdgeRelType.rows.last.toString == "{TNil(),TCons(?,?)}")
     assertResult(Topped.Top)(mainEdgeRelType.empty)
+  }
+
+  /* Set */
+
+  test("Set - Literal") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR + setIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("main", Seq(
+        Param("out", TSet(TData("TList")))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out"), SetLit(Seq(
+            Construct("TNil", Seq()),
+            Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))
+          )))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("out"))
+    verifyResult(mainRel.rows.head, Set("TNil", "TCons"))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Set - Union") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR + setIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("main", Seq(
+        Param("out", TSet(TData("TList")))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(
+            Construct("TNil", Seq()),
+          ))),
+          Eq(Var("y"), SetLit(Seq(
+            Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))
+          ))),
+          Eq(Var("out"), SetUnion(Var("x"), Var("y")))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("out"))
+    verifyResult(mainRel.rows.head, Set("TNil", "TCons"))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Set - Intersect") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR + setIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("main", Seq(
+        Param("out", TSet(TData("TList")))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(
+            Construct("TNil", Seq()),
+          ))),
+          Eq(Var("y"), SetLit(Seq(
+            Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))
+          ))),
+          Eq(Var("out"), SetIntersection(Var("x"), Var("y")))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    // We expect the empty set, since there is no valid Data kind in the intersection
+
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("out"))
+    verifyResult(mainRel.rows.head, Set())
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Set - Member (binding)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR + setIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation("main", Seq(
+        Param("out", TData("TList"))
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), SetLit(Seq(
+            Construct("TNil", Seq()),
+            Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))
+          ))),
+          SetMember(Var("out"), Var("x"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("out"))
+    verifyResult(mainRel.rows.head, Set("TNil", "TCons"))
+    assertResult(Topped.Top)(mainRel.empty)
   }

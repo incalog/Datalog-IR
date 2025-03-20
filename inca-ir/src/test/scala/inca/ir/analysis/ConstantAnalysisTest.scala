@@ -16,7 +16,6 @@ import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.extension.tuple.analysis.interpreter.ConstantTupleV
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
-import inca.ir.printer.IRDebugPrinter
 import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, RefByName, Relation, TNothing, Var, WildcardArg, string2name, term2Arg, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike

@@ -3,21 +3,14 @@ package inca.ir.extension.data.analysis.interpreter
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
-import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
-import sturdy.effect.{Effect, EffectStack}
-import sturdy.effect.failure.Failure
-import sturdy.values.{Powerset, Topped}
-import sturdy.values.floating.{FloatOps, LiftedFloatOps, ToppedFloatOps, given}
+import inca.ir.extension.data.CaseDefinitionReference
+import sturdy.values.Powerset
 import sturdy.data.MayJoin
 import sturdy.values.Topped
 import sturdy.values.booleans.BooleanOps
-import sturdy.values.integer.{ConcreteIntegerOps, IntegerOps, LiftedIntegerOps, ToppedIntegerOps}
-import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps, ToppedCertainOrderingOps}
-import sturdy.data.{MakeJoined, WithJoin}
-import sturdy.values.Topped.Top
-import sturdy.values.integer.given_OrderingOps_Int_Boolean
+import sturdy.data.WithJoin
 
-case class DataShapeV(caseDefs: Set[CaseDefinitionReference]) extends Value:
+case class DataKindV(caseDefs: Set[CaseDefinitionReference]) extends Value:
   override def toString: String =
     val caseStr = caseDefs.map { c =>
       val argS = c.args.map(_ => "?").mkString("(", ",", ")")
@@ -26,9 +19,9 @@ case class DataShapeV(caseDefs: Set[CaseDefinitionReference]) extends Value:
     caseStr.mkString("{", ",", "}")
   override def isConstant: Boolean = caseDefs.size == 1 && caseDefs.head.args.isEmpty
 
-trait ShapeEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
+trait DataKindEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (DataShapeV(caseDefs1), DataShapeV(caseDefs2)) =>
+    case (DataKindV(caseDefs1), DataKindV(caseDefs2)) =>
       val intersection = caseDefs1.intersect(caseDefs2)
       if (intersection.isEmpty)
         Topped.Actual(false)
@@ -37,7 +30,7 @@ trait ShapeEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
     case _ => super.equ(v1, v2)
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (DataShapeV(caseDefs1), DataShapeV(caseDefs2)) =>
+    case (DataKindV(caseDefs1), DataKindV(caseDefs2)) =>
       val intersection = caseDefs1.intersect(caseDefs2)
       if (intersection.isEmpty)
         Topped.Actual(true)
@@ -45,26 +38,30 @@ trait ShapeEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
         Topped.Top
     case _ => super.neq(v1, v2)
 
-trait ShapeJoinV extends BaseJoinV:
+trait DataKindJoinV extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (DataShapeV(caseDefs1), DataShapeV(caseDefs2)) =>
-      DataShapeV(caseDefs1.union(caseDefs2))
+    case (DataKindV(caseDefs1), DataKindV(caseDefs2)) =>
+      DataKindV(caseDefs1.union(caseDefs2))
     case _ => super.join(lhs, rhs)
 
-trait ShapeMeetV extends BaseMeetV:
+trait DataKindMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (DataShapeV(caseDefs1), DataShapeV(caseDefs2)) =>
-      DataShapeV(caseDefs1.intersect(caseDefs2))
+    case (DataKindV(caseDefs1), DataKindV(caseDefs2)) =>
+      val intersect = caseDefs1.intersect(caseDefs2)
+      if (intersect.isEmpty)
+        throwBotException()
+      else
+        DataKindV(intersect)
     case _ => super.meet(lhs, rhs)
 
-trait KindAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+trait DataKindAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
 
   val dataOps: DataOps[Value, ConstantRelation] = new DataOps[Value, ConstantRelation]:
     override def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): Value =
-      DataShapeV(Set(caseDef))
+      DataKindV(Set(caseDef))
 
     override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => ConstantRelation)(notMatching: => ConstantRelation): ConstantRelation = v match
-      case DataShapeV(caseDefs) =>
+      case DataKindV(caseDefs) =>
         if (caseDefs.contains(caseDef))
           effects.joinComputations {
             matching(caseDef.args.map(_ => Value.Top))

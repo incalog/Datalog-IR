@@ -44,7 +44,7 @@ import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
-class IRKindAbstractInterpreter(
+class IRDataKindAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
     val logControlEvents: Boolean = false,
     override val interRelational: Boolean = false
@@ -52,7 +52,7 @@ class IRKindAbstractInterpreter(
   extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.ConstantAbstractInterpreter
     with irstr.interpreter.ConstantAbstractInterpreter
-    with irdata.interpreter.KindAbstractInterpreter
+    with irdata.interpreter.DataKindAbstractInterpreter
     with iragg.interpreter.ConstantAbstractInterpreter
     with irtuple.interpreter.ConstantAbstractInterpreter
     with irbool.interpreter.ConstantAbstractInterpreter
@@ -61,17 +61,19 @@ class IRKindAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantAbstractInterpreter
     with irblock.interpreter.ConstantAbstractInterpreter
     with irdatamatch.interpreter.ConstantAbstractInterpreter
-    with irset.interpreter.ConstantMayAbstractInterpreter
-    with irmap.interpreter.ConstantMayAbstractInterpreter
+    with irset.interpreter.BoundedAbstractInterpreter
+    with irmap.interpreter.ConstantAbstractInterpreter
     with irimpure.interpreter.ConstantAbstractInterpreter
-    with DatalogControlObservable:
+    with DatalogControlObservable
+    with RequireMeet[Value]
+    with RequireJoin[Value]:
 
   type RV = ConstantRelation
 
   private class IRJoinV extends Join[Value] with BaseJoinV
     with irarith.interpreter.ConstantJoinV
     with irstr.interpreter.ConstantJoinV
-    with irdata.interpreter.ShapeJoinV
+    with irdata.interpreter.DataKindJoinV
     with irtuple.interpreter.ConstantJoinV
     with irbool.interpreter.ConstantJoinV
     with irdemand.interpreter.ConstantJoinV
@@ -79,17 +81,17 @@ class IRKindAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantJoinV
     with irblock.interpreter.ConstantJoinV
     with irdatamatch.interpreter.ConstantJoinV
-    with irset.interpreter.ConstantMayJoinV
-    with irmap.interpreter.ConstantMayJoinV
+    with irset.interpreter.BoundedJoinV
+    with irmap.interpreter.ConstantJoinV
     with irimpure.interpreter.ConstantJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
       MaybeChanged(join(v1, v2), v1)
 
-  private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseMeetV(using except)
+  private class IRMeetV(using except: Except[BaseIRException, Powerset[BaseIRException], WithJoin]) extends BaseMeetV(using except)
     with irarith.interpreter.ConstantMeetV
     with irstr.interpreter.ConstantMeetV
-    with irdata.interpreter.ShapeMeetV
+    with irdata.interpreter.DataKindMeetV
     with irtuple.interpreter.ConstantMeetV
     with irbool.interpreter.ConstantMeetV
     with irdemand.interpreter.ConstantMeetV
@@ -97,14 +99,14 @@ class IRKindAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantMeetV
     with irblock.interpreter.ConstantMeetV
     with irdatamatch.interpreter.ConstantMeetV
-    with irset.interpreter.ConstantMayMeetV
-    with irmap.interpreter.ConstantMayMeetV
+    with irset.interpreter.BoundedMeetV[WithJoin]
+    with irmap.interpreter.ConstantMeetV
     with irimpure.interpreter.ConstantMeetV
 
   private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
     with irarith.interpreter.ConstantEqOps
     with irstr.interpreter.ConstantEqOps
-    with irdata.interpreter.ShapeEqOps(using boolOps)
+    with irdata.interpreter.DataKindEqOps(using boolOps)
     with irtuple.interpreter.ConstantEqOps(using boolOps)
     with irbool.interpreter.ConstantEqOps(using boolOps)
     with irdemand.interpreter.ConstantEqOps
@@ -112,7 +114,7 @@ class IRKindAbstractInterpreter(
     with irdisjcuntion.interpreter.ConstantEqOps
     with irblock.interpreter.ConstantEqOps
     with irdatamatch.interpreter.ConstantEqOps
-    with irset.interpreter.ConstantMayEqOps
+    with irset.interpreter.BoundedEqOps
     with irmap.interpreter.ConstantEqOps
     with irimpure.interpreter.ConstantEqOps
 
@@ -150,7 +152,10 @@ class IRKindAbstractInterpreter(
 
   given EqOps[Value, Topped[Boolean]] = eqOps
 
-  given Join[Value] = new IRJoinV
+  override val meetV: Meet[Value] = IRMeetV(using except)
+  override val joinV: Join[Value] = IRJoinV()
+
+  given Join[Value] = joinV
 
   override val mayJoinV: WithJoin[Value] = implicitly
   override val joinRV: Join[RV] = implicitly
@@ -166,7 +171,8 @@ class IRKindAbstractInterpreter(
     override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
   }
 
-  given Meet[Value] = IRMeetV(using except)
+  given Meet[Value] = meetV
+
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps(using except)
 
 

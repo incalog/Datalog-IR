@@ -22,7 +22,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   // SetFrom can produce a Set with tuple values from a relation.
   // That means, we need at least a way to create a TupleLit.
   val tupleOps: TupleOps[V]
-  val setOps: SetOps[V, RV, B]
+  lazy val setOps: SetOps[V, RV, B]
 
   override protected def canDetermineValue(t: Term): Boolean = t match
     case _: SetComprehension => true

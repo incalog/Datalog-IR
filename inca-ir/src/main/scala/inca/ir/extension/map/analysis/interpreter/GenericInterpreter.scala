@@ -26,7 +26,7 @@ trait MapOps[V, RV, B]:
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   // We need both of these for MapFrom
   val tupleOps: TupleOps[V]
-  val setOps: SetOps[V, RV, B]
+  lazy val setOps: SetOps[V, RV, B]
 
   val mapOps: MapOps[V, RV, B]
 

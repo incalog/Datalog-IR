@@ -124,4 +124,4 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
     case _ => super.meet(lhs, rhs)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  override val setOps: SetOps[Value, ConstantRelation, Topped[Boolean]] = ConstantSetVOps(using eqOps, effects, joinRV)
+  lazy val setOps: SetOps[Value, ConstantRelation, Topped[Boolean]] = ConstantSetVOps(using eqOps, effects, joinRV)

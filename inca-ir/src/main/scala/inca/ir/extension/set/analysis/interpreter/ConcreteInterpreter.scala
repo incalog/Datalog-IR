@@ -36,4 +36,4 @@ private class CSetVOps extends SetOps[Value, ConcreteRelation[Value], Boolean]:
     case _ => throw IllegalArgumentException(s"Expected set but got $s")
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
-  override val setOps: SetOps[Value, ConcreteRelation[Value], Boolean] = CSetVOps()
+  lazy val setOps: SetOps[Value, ConcreteRelation[Value], Boolean] = CSetVOps()
