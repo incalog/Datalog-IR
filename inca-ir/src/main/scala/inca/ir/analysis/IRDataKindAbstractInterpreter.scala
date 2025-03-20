@@ -44,6 +44,26 @@ import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
+/**
+ * Analyse the branches of an algebraic data type a term can refer to. E.g
+ *  type List = Nil | Cons(Int, List)
+ *  R(x) :- x == Nil()
+ *  R(x) :- x == Cons(1, Nil())
+ *  Q(x) :- R(x) // x can refer to `Nil` or `Cons`
+ *
+ * This analysis mixes constant analysis for arithmetic, string etc. and a
+ * bounded abstraction for sets and maps.
+ * The primary relevant lattice for ADTs looks like this:
+ *
+ *        ⊤        // <- Value.Top
+ *        |
+ *   {Nil, Cons}   // <- DataAlternative(Set(Nil, Cons))
+ *      /  \
+ *  {Nil}  {Cons}  // <- DataAlternative(Set(Nil)) and  DataAlternative(Set(Cons))
+ *      \  /
+ *       ⊥         // except.throws
+ *
+ */
 class IRDataKindAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
     val logControlEvents: Boolean = false,

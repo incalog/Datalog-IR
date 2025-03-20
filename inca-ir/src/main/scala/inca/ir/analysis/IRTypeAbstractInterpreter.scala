@@ -33,10 +33,27 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
 
+/**
+ * The lattice used for this analysis looks like this:
+ *
+ *        ⊤        // <- Value.Top
+ *      / | \
+ *     /  |  \
+ * TInt TBool ...  // <- TypeValue
+ *     \  |  /
+ *      \ | /
+ *        ⊥         // except.throws
+ *
+ * - ⊤ (Top): Represents an unknown type. This is encoded with: Value.Top.
+ * - TypeVale(ty: Type) represent a distinct type value. It exists only for this analysis.
+ * - ⊥ (Bottom): Represents an error or uninitialized value. This is encoded as sturdy exception.
+ */
 case class TypeValue(ty: Type) extends Value:
   override def isConstant: Boolean = true
 
-
+/**
+ * Analyse the types of relations in a Datalog program.
+ */
 class IRTypeAbstractInterpreter(
      val enableLogging: Boolean = false,
      override val interRelational: Boolean = false
@@ -49,7 +66,7 @@ class IRTypeAbstractInterpreter(
 
   type TRV = AbstractRelation
 
-  // Define a join for TypeValues
+  // Define a join for TypeValues according to the lattice given above.
   given JoinTV: Join[Value] with {
     private def join(v1: Value, v2: Value): Value = (v2, v2) match
       case (TypeValue(ty1), TypeValue(ty2)) if ty1 == ty2 => v1
@@ -159,6 +176,3 @@ class IRTypeAbstractInterpreter(
       fix.log(new PrintLogger, analysisFixPt).fixpoint
     else
       analysisFixPt.fixpoint
-
-
-

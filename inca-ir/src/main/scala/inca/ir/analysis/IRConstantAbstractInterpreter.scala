@@ -46,6 +46,9 @@ import sturdy.values.given
 import inca.ir.analysis.base.effect.IRException
 import inca.ir.analysis.base.interpreter.CCombineFixOut
 
+/**
+ * An extensible constant analysis.
+ */
 class IRConstantAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
     val logControlEvents: Boolean = false,

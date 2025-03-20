@@ -44,6 +44,9 @@ import sturdy.values.exceptions.ConcreteExceptional
 case class ExecutionFailed(msg: String) extends Throwable:
   override def toString: String = msg
 
+/**
+ * A concrete top-down Datalog interpreter.
+ */
 class IRConcreteInterpreter(val enableLogging: Boolean = false)
   extends BaseGenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]
   with irarith.interpreter.ConcreteInterpreter
