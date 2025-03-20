@@ -10,23 +10,23 @@ import sturdy.values.ordering.EqOps
 import sturdy.values.{Join, Powerset, Topped}
 
 private trait ConstantMapVBase extends Value:
-  def union(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
-  def intersect(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
-  def concat(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.top
+  def union(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.Top
+  def intersect(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.Top
+  def concat(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.Top
   def contains(key: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Topped[Boolean] = Topped.Top
   def lookup(k: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Set[Value] = Set(Value.Top)
-  def plus(k: Value, v: Value): ConstantMapVBase = ConstantMapV.top
+  def plus(k: Value, v: Value): ConstantMapVBase = ConstantMapV.Top
   def isEmpty: Topped[Boolean] = Topped.Top
   def keySet: Set[Value] = Set(Value.Top)
 
 object ConstantMapV:
   val empty: ConstantMapV = new ConstantMapV(Map())
-  val top: ConstantMapV = new ConstantMapV(Map(Value.Top -> Set(Value.Top)))
+  val Top: ConstantMapV = new ConstantMapV(Map(Value.Top -> Set(Value.Top)))
 
-  // Normalise the map to correctly handle top values
+  // Normalise the map to correctly handle Top values
   def apply(data: Map[Value, Set[Value]]): ConstantMapV =
       if (data.contains(Value.Top))
-        ConstantMapV.top
+        ConstantMapV.Top
       else
         new ConstantMapV(data.map { (key, vs) =>
           if (vs.contains(Value.Top))
@@ -60,10 +60,10 @@ case class ConstantMapV private(var data: Map[Value, Set[Value]]) extends Consta
     if (contained)
       data(key)
     else if (data.nonEmpty && (key == Value.Top))
-      // We have no explicit top key
+      // We have no explicit Top key
       Set(Value.Top)
     else if (containsTop)
-      // We request a key not explicitly contained in the map, but we have a top key in the map
+      // We request a key not explicitly contained in the map, but we have a Top key in the map
       data(Value.Top)
     else
       // We don't find the key at all
@@ -85,15 +85,15 @@ case class ConstantMapV private(var data: Map[Value, Set[Value]]) extends Consta
       }.toMap
       ConstantMapV(newMap)
     case _: ConstantMapFunV =>
-      ConstantMapV.top
+      ConstantMapV.Top
 
   override def concat(other: ConstantMapVBase): ConstantMapVBase = other match
     case ConstantMapV(data2) => ConstantMapV(data ++ data2)
-    case _: ConstantMapFunV => ConstantMapV.top
+    case _: ConstantMapFunV => ConstantMapV.Top
 
   override def intersect(other: ConstantMapVBase): ConstantMapVBase = (this, other) match
-    case (ConstantMapV.top, _) => other
-    case (_, ConstantMapV.top) => this
+    case (ConstantMapV.Top, _) => other
+    case (_, ConstantMapV.Top) => this
     case (ConstantMapV(data), ConstantMapV(data2)) =>
       // We know that we don't have a Top key here
       val relevantKeys = data.keySet.intersect(data2.keySet)
@@ -105,7 +105,7 @@ case class ConstantMapV private(var data: Map[Value, Set[Value]]) extends Consta
       }.toMap
       ConstantMapV(newMap)
     case (_, _: ConstantMapFunV) =>
-      ConstantMapV.top
+      ConstantMapV.Top
 
 
 // We don't analyse map funs for now
@@ -267,4 +267,4 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
     case _ => super.meet(lhs, rhs)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  override val mapOps: MapOps[Value, ConstantRelation, Topped[Boolean]] = ConstantMapVOps(using eqOps, effects, joinRV)
+  override lazy val mapOps: MapOps[Value, ConstantRelation, Topped[Boolean]] = ConstantMapVOps(using eqOps, effects, joinRV)

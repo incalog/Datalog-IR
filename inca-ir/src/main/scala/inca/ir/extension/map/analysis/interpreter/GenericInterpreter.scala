@@ -28,7 +28,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val tupleOps: TupleOps[V]
   lazy val setOps: SetOps[V, RV, B]
 
-  val mapOps: MapOps[V, RV, B]
+  lazy val mapOps: MapOps[V, RV, B]
 
   private def naryTupleOp(rs: Seq[(SupColumn, SupColumn)])(f: Seq[(V, V)] => V): SupColumn =
     val resName = gensym.fresh("result")

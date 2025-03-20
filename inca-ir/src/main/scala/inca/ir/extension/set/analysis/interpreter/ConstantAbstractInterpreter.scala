@@ -17,21 +17,21 @@ case class ConstantSetV private(var values: Set[Value]) extends Value:
     ConstantSetV(values.union(other.values))
 
   def intersect(other: ConstantSetV): ConstantSetV = (this, other) match
-    case (ConstantSetV.top, _) => other
-    case (_, ConstantSetV.top) => this
+    case (ConstantSetV.Top, _) => other
+    case (_, ConstantSetV.Top) => this
     case _ => ConstantSetV(values.intersect(other.values))
 
 object ConstantSetV:
   val empty: ConstantSetV = new ConstantSetV(Set())
-  // Note: ConstantSetV.top != Top, since ConstantSetV.top is definitely not the empty set
-  val top: ConstantSetV = new ConstantSetV(Set(Value.Top))
+  // Note: ConstantSetV.Top != Top, since ConstantSetV.Top is definitely not the empty set
+  val Top: ConstantSetV = new ConstantSetV(Set(Value.Top))
 
   def apply(values: Value*): ConstantSetV = apply(values.toSet)
 
   // normalize the set
   def apply(values: Set[Value]): ConstantSetV =
     if (values.contains(Value.Top))
-      ConstantSetV.top
+      ConstantSetV.Top
     else
       new ConstantSetV(values)
 
@@ -59,7 +59,7 @@ private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]], effect
     }
 
   override def intersect(sets: Seq[Value]): Value =
-      sets.foldLeft[Value](ConstantSetV.top) {
+      sets.foldLeft[Value](ConstantSetV.Top) {
         case (Value.Top, _) | (_, Value.Top) => Value.Top
         case (acc: ConstantSetV, s: ConstantSetV) => acc.intersect(s)
         case (_, s) => throw IllegalStateException(s"Expected set but got $s")

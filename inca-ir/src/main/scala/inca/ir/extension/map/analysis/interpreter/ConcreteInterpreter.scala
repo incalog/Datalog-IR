@@ -114,4 +114,4 @@ private class CMapVOps extends MapOps[Value, ConcreteRelation[Value], Boolean]:
 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
-  override val mapOps: MapOps[Value, ConcreteRelation[Value], Boolean] = CMapVOps()
+  override lazy val mapOps: MapOps[Value, ConcreteRelation[Value], Boolean] = CMapVOps()

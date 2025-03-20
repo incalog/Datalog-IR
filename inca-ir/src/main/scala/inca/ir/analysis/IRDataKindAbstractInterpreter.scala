@@ -62,7 +62,7 @@ class IRDataKindAbstractInterpreter(
     with irblock.interpreter.ConstantAbstractInterpreter
     with irdatamatch.interpreter.ConstantAbstractInterpreter
     with irset.interpreter.BoundedAbstractInterpreter
-    with irmap.interpreter.ConstantAbstractInterpreter
+    with irmap.interpreter.BoundedAbstractInterpreter
     with irimpure.interpreter.ConstantAbstractInterpreter
     with DatalogControlObservable
     with RequireMeet[Value]
@@ -82,7 +82,7 @@ class IRDataKindAbstractInterpreter(
     with irblock.interpreter.ConstantJoinV
     with irdatamatch.interpreter.ConstantJoinV
     with irset.interpreter.BoundedJoinV
-    with irmap.interpreter.ConstantJoinV
+    with irmap.interpreter.BoundedJoinV
     with irimpure.interpreter.ConstantJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
@@ -100,7 +100,7 @@ class IRDataKindAbstractInterpreter(
     with irblock.interpreter.ConstantMeetV
     with irdatamatch.interpreter.ConstantMeetV
     with irset.interpreter.BoundedMeetV[WithJoin]
-    with irmap.interpreter.ConstantMeetV
+    with irmap.interpreter.BoundedMeetV[WithJoin]
     with irimpure.interpreter.ConstantMeetV
 
   private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
@@ -115,7 +115,7 @@ class IRDataKindAbstractInterpreter(
     with irblock.interpreter.ConstantEqOps
     with irdatamatch.interpreter.ConstantEqOps
     with irset.interpreter.BoundedEqOps
-    with irmap.interpreter.ConstantEqOps
+    with irmap.interpreter.BoundedEqOps
     with irimpure.interpreter.ConstantEqOps
 
   private class IRAtomOrderingOps extends BaseAtomOrderingOps

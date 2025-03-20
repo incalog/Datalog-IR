@@ -49,7 +49,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val constRes = interp(mod)
-
     val mainRelType = constRes("main")
     assert(mainRelType.cols == Seq("out"))
     assert(mainRelType.rows == Seq(ConstantIntV(14)))
@@ -1380,7 +1379,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("out"))
     assert(mainRel.rows.head == ConstantBoolV(true))
-    // top, since the containment check could succeed or fail
+    // Top, since the containment check could succeed or fail
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1470,7 +1469,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("x"))
-    assert(mainRel.rows.head == ConstantSetV.top)
+    assert(mainRel.rows.head == ConstantSetV.Top)
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
@@ -1617,8 +1616,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m"))
-    // top, since we first evaluate the relation and then fill the map
-    assert(mainRel.rows == Seq(ConstantMapV.top))
+    // Top, since we first evaluate the relation and then fill the map
+    assert(mainRel.rows == Seq(ConstantMapV.Top))
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 

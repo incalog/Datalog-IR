@@ -8,6 +8,7 @@ import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as 
 import inca.ir.extension.data.analysis.interpreter.DataKindV
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
+import inca.ir.extension.map.analysis.interpreter.BoundedMapV
 import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.not.Not
 import inca.ir.extension.set.analysis.interpreter.BoundedSetV
@@ -245,4 +246,51 @@ class DataKindAnalysisTest extends AnyFunSuiteLike:
     assert(mainRel.cols == Seq("out"))
     verifyResult(mainRel.rows.head, Set("TNil", "TCons"))
     assertResult(Topped.Top)(mainRel.empty)
+  }
+
+  /* Map */
+
+  test("Map - Empty") {
+    val mod = Module("Test1", BaseIR.language + mapIR, Seq(
+      Relation(
+        "main",
+        Seq(
+          Param("m", TMap(TNothing, TNothing))
+        ),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapLit.empty)
+        )))
+      )
+    ))
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m"))
+    assert(mainRel.rows == Seq(BoundedMapV.empty))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Map - Literal") {
+    val mod = Module("Test1", BaseIR.language + arithIR + stringIR + mapIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TData("TList")),
+      CaseDefinition("TCons", Seq(TInt, TData("TList")), TData("TList")),
+
+      Relation(
+        "main",
+        Seq(Param("m", TMap(TString, TData("TList")))),
+        Seq(Body(Seq(
+          Eq(Var("m"), MapLit.from(
+            (StringLit("A"), Construct("TNil", Seq())),
+            (StringLit("B"), Construct("TCons", Seq(IntNum(1), Construct("TNil", Seq())))))
+          )
+        )))
+      )
+    ))
+    val constRes = interp(mod)
+    val mainRel = constRes("main")
+    assert(mainRel.cols == Seq("m"))
+    val map = mainRel.rows.head.asInstanceOf[BoundedMapV]
+    assert(map.key == Value.Top)
+    verifyResult(map.value, Set("TNil", "TCons"))
+    assertResult(Topped.Actual(false))(mainRel.empty)
   }

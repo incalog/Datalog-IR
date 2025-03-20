@@ -16,7 +16,7 @@ enum BoundedSetV extends Value:
   case NonEmpty(bound: Value)
 
   override def toString: String = this match
-    case Empty => s"⌈⌉"
+    case Empty => s"⌈ε⌉"
     case NonEmpty(bound) => s"⌈$bound⌉"
 
   override def isConstant: Boolean = false
@@ -25,7 +25,13 @@ object BoundedSetV:
   val Top: BoundedSetV = BoundedSetV.NonEmpty(Value.Top)
   def apply(v: Value): BoundedSetV.NonEmpty = BoundedSetV.NonEmpty(v)
 
-private class BoundedSetVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, except: Except[BaseIRException, Powerset[BaseIRException], WithJoin], joinV: Join[Value], meetV: Meet[Value], withJoinV: WithJoin[Value], joinRV: Join[ConstantRelation]) extends SetOps[Value, ConstantRelation, Topped[Boolean]]:
+private class BoundedSetVOps(using eqOps: EqOps[Value, Topped[Boolean]],
+                             effects: EffectStack,
+                             except: Except[BaseIRException, Powerset[BaseIRException], WithJoin],
+                             joinV: Join[Value], meetV: Meet[Value],
+                             withJoinV: WithJoin[Value],
+                             joinRV: Join[ConstantRelation])
+  extends SetOps[Value, ConstantRelation, Topped[Boolean]]:
 
   override def setLit(vs: Seq[Value]): Value =
     if (vs.isEmpty)
