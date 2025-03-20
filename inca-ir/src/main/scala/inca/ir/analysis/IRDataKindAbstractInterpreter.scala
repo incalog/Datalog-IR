@@ -45,7 +45,7 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
 /**
- * Analyse the branches of an algebraic data type a term can refer to. E.g
+ * Analyse the branches of an algebraic data type a term can refer to. E.g.
  *  type List = Nil | Cons(Int, List)
  *  R(x) :- x == Nil()
  *  R(x) :- x == Cons(1, Nil())

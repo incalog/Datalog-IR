@@ -48,7 +48,7 @@ trait ExecutorEngine:
    * This will match all tuples, for which either y = 2 or (x = 1 and y = 3).
    * Some important things to note:
    *     1. `null` behaves like a wildcard
-   *        2. the parameter names in the input must match the parameters names of the relation definition in the IR-Module
+   *     2. the parameter names in the input must match the parameters names of the relation definition in the IR-Module
    */
   def read(rel: Relation): Relation
 

@@ -11,6 +11,11 @@ import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import inca.ir.extension.aggregate as iragg
+import inca.ir.extension.bool as irbool
+import inca.ir.extension.block as irblock
+import inca.ir.extension.tuple as irtuple
+import inca.ir.extension.set as irset
+import inca.ir.extension.map as irmap
 import sturdy.values.Topped
 
 extension [T](topped: Topped[T])
@@ -268,6 +273,11 @@ class IRConstantOptimizer(
     with irstr.optimize.ConstantOptimizer
     with irdata.optimize.ConstantOptimizer
     with iragg.optimize.ConstantOptimizer
+    with irbool.optimize.ConstantOptimizer
+    with irtuple.optimize.ConstantOptimizer
+    with irblock.optimize.ConstantOptimizer
+    with irset.optimize.ConstantOptimizer
+    with irmap.optimize.ConstantOptimizer
 
 
 
