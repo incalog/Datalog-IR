@@ -3,8 +3,8 @@ package inca.ir.analysis
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConcreteRelation, ConstantRelation, ConstantRelationOps, Meet, Value}
-import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConcreteRelation, AbstractRelation, AbstractRelationOps, Meet, Value}
+import inca.ir.analysis.base.interpreter.{AbstractSupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
 import inca.ir.extension.arithmetic.analysis as irarith
@@ -51,7 +51,7 @@ class IRConstantAbstractInterpreter(
     val logControlEvents: Boolean = false,
     override val interRelational: Boolean = false
   )
-  extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
+  extends BaseGenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.ConstantAbstractInterpreter
     with irstr.interpreter.ConstantAbstractInterpreter
     with irdata.interpreter.ConstantAbstractInterpreter
@@ -68,7 +68,7 @@ class IRConstantAbstractInterpreter(
     with irimpure.interpreter.ConstantAbstractInterpreter
     with DatalogControlObservable:
 
-  type RV = ConstantRelation
+  type RV = AbstractRelation
 
   private class IRJoinV extends Join[Value] with BaseJoinV
     with irarith.interpreter.ConstantJoinV
@@ -157,19 +157,19 @@ class IRConstantAbstractInterpreter(
   override val mayJoinV: WithJoin[Value] = implicitly
   override val joinRV: Join[RV] = implicitly
   override val mayJoinUnit: WithJoin[Unit] = implicitly
-  override lazy val mayJoinRV: MayJoin.WithJoin[ConstantRelation] = MakeJoined(using joinRV, effects)
+  override lazy val mayJoinRV: MayJoin.WithJoin[AbstractRelation] = MakeJoined(using joinRV, effects)
 
   // I don't think we need to widen tables for a constant analysis
   given Widen[RV] with {
     override def apply(v1: RV, v2: RV): MaybeChanged[RV] = joinRV(v1, v2)
   }
   
-  override lazy val supplementaryTable: SupplementaryTable[ConstantRelation] = new ASupplementaryTable[RV]() {
-    override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
+  override lazy val supplementaryTable: SupplementaryTable[AbstractRelation] = new AbstractSupplementaryTable[RV]() {
+    override def initialTable: RV = AbstractRelation(Seq(), Seq(), Topped.Actual(false))
   }
 
   given Meet[Value] = IRMeetV(using except)
-  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps(using except)
+  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new AbstractRelationOps(using except)
 
 
   class AnalysisAnnotator
@@ -196,8 +196,8 @@ class IRConstantAbstractInterpreter(
       if (relationOps.hasColumn(rv, supName))
         val termTRV = relationOps.project(rv, Seq(supName))
         termTRV match
-          case ConstantRelation.Empty(cs) => None
-          case ConstantRelation.NonEmpty(cs, rows, emp) =>
+          case AbstractRelation.Empty(cs) => None
+          case AbstractRelation.NonEmpty(cs, rows, emp) =>
             assert(rows.size == 1)
             Some(rows.head)
       else
@@ -235,9 +235,9 @@ class IRConstantAbstractInterpreter(
 //  type Ctx = fix.context.Parameters[String, ValueKind]
 //  private val parameters: fix.context.Sensitivity[FixIn, Ctx] = fix.context.parameters { _ =>
 //    Some(supplementaryTable.getTable match
-//      case ConstantRelation.Empty(_) => Map()
-//      case ConstantRelation.NonEmpty(_, _, Topped.Actual(true)) => Map()
-//      case ConstantRelation.NonEmpty(cs, rs, _) => cs.zip(rs.map(getValueKind)).toMap
+//      case AbstractRelation.Empty(_) => Map()
+//      case AbstractRelation.NonEmpty(_, _, Topped.Actual(true)) => Map()
+//      case AbstractRelation.NonEmpty(cs, rs, _) => cs.zip(rs.map(getValueKind)).toMap
 //    )
 //  }
   type Ctx = Unit

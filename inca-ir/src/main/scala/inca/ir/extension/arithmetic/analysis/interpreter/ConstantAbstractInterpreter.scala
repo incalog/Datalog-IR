@@ -2,7 +2,7 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -81,7 +81,7 @@ trait ConstantMeetV extends BaseMeetV:
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) if d1 == d2 => lhs
     case _ => super.meet(lhs, rhs)
 
-trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects, except)
   val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects, except)
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantIntVOrderingOps(using except)

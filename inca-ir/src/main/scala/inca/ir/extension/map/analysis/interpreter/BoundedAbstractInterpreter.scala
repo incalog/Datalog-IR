@@ -2,7 +2,7 @@ package inca.ir.extension.map.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Meet, RequireJoin, RequireMeet, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Meet, RequireJoin, RequireMeet, Value}
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.EffectStack
@@ -41,8 +41,8 @@ private class BoundedMapVOps(using eqOps: EqOps[Value, Topped[Boolean]],
                              effects: EffectStack,
                              except: Except[BaseIRException, Powerset[BaseIRException], WithJoin],
                              joinV: Join[Value], meetV: Meet[Value],
-                             withJoinV: WithJoin[Value], joinRV: Join[ConstantRelation])
-  extends MapOps[Value, ConstantRelation, Topped[Boolean]]:
+                             withJoinV: WithJoin[Value], joinRV: Join[AbstractRelation])
+  extends MapOps[Value, AbstractRelation, Topped[Boolean]]:
 
   override def mapLit(vs: Seq[(Value, Value)]): Value =
     if (vs.isEmpty)
@@ -90,7 +90,7 @@ private class BoundedMapVOps(using eqOps: EqOps[Value, Topped[Boolean]],
       BoundedMapV(keyBound -> valueBound)
     case (m1, m2) => throw IllegalStateException(s"Expected maps but got $m1 and $m2")
 
-  override def lookup(m: Value, key: Value)(foundValues: Set[Value] => ConstantRelation)(noValuesOrKeyNotFound: => ConstantRelation): ConstantRelation = m match
+  override def lookup(m: Value, key: Value)(foundValues: Set[Value] => AbstractRelation)(noValuesOrKeyNotFound: => AbstractRelation): AbstractRelation = m match
     case Value.Top =>
       effects.joinComputations {
         foundValues(Set(Value.Top))
@@ -111,7 +111,7 @@ private class BoundedMapVOps(using eqOps: EqOps[Value, Topped[Boolean]],
         noValuesOrKeyNotFound
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
-  override def keyIter(m: Value)(keySet: Set[Value] => ConstantRelation)(noKeys: => ConstantRelation): ConstantRelation = m match
+  override def keyIter(m: Value)(keySet: Set[Value] => AbstractRelation)(noKeys: => AbstractRelation): AbstractRelation = m match
     case Value.Top =>
       effects.joinComputations {
         keySet(Set(Value.Top))
@@ -170,8 +170,8 @@ trait BoundedMeetV[J[_] <: MayJoin[?]](using eqOps: EqOps[Value, Topped[Boolean]
       }(using mayJoinV)
     case _ => super.meet(lhs, rhs)
 
-trait BoundedAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
+trait BoundedAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
   with RequireMeet[Value]
   with RequireJoin[Value]:
 
-  override lazy val mapOps: MapOps[Value, ConstantRelation, Topped[Boolean]] = BoundedMapVOps(using eqOps, effects, except, joinV, meetV, mayJoinV, joinRV)
+  override lazy val mapOps: MapOps[Value, AbstractRelation, Topped[Boolean]] = BoundedMapVOps(using eqOps, effects, except, joinV, meetV, mayJoinV, joinRV)

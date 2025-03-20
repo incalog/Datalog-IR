@@ -1,7 +1,5 @@
 package inca.ir.analysis
 
-import inca.ir.analysis.base.effect.EmptySupplementary
-import sturdy.data.MayJoin
 import sturdy.effect.Effect
 
 trait SupplementaryTable[RV] extends Effect:

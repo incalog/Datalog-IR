@@ -1,6 +1,6 @@
 package inca.ir.analysis
 
-import inca.ir.analysis.base.values.{ConstantRelation, Value}
+import inca.ir.analysis.base.values.{AbstractRelation, Value}
 import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.arithmetic.{Add, IntNum, LT, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
@@ -35,7 +35,7 @@ class DataKindAnalysisTest extends AnyFunSuiteLike:
       case DataKindV(caseDefs) => assertResult(expectedDataKinds)(caseDefs.map(_.name.name))
       case _ => assert(false)
 
-  def interp(mod: Module, edb: Map[String, ConstantRelation] = Map()): Map[String, ConstantRelation] =
+  def interp(mod: Module, edb: Map[String, AbstractRelation] = Map()): Map[String, AbstractRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 

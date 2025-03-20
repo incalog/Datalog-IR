@@ -5,7 +5,7 @@ import inca.util.{Memoize, memoize}
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{ConstantRelation, Value}
+import inca.ir.analysis.base.values.{AbstractRelation, Value}
 import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Name, Param, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
@@ -17,7 +17,7 @@ extension [T](topped: Topped[T])
   def isTrue: Boolean = topped.isActual && topped.get == true
   def isFalse: Boolean = topped.isActual && topped.get == false
 
-trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimizer[Value, ConstantRelation, Value]:
+trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimizer[Value, AbstractRelation, Value]:
   override def name: String =
     if (interRelational)
       "Constant optimizer (inter)"
@@ -43,10 +43,10 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   override def getTermResult(term: Term): Set[Value] =
     term.getAnalysisResult(TermKey).map(_.value)
 
-  override def getBodyResult(body: Body): Set[ConstantRelation] =
+  override def getBodyResult(body: Body): Set[AbstractRelation] =
     body.getAnalysisResult(BodyKey).map(_.res)
 
-  override def getRelationResult(relation: Relation): Set[ConstantRelation] =
+  override def getRelationResult(relation: Relation): Set[AbstractRelation] =
     relation.getAnalysisResult(RelationKey).map(_.res)
 
   protected def relationAlwaysFails(relation: Relation): Boolean =
@@ -70,7 +70,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
         case (_, ExtensionalRelation(n, params)) =>
           val (paramNames, args) = params.map(p => (p.name.name, Value.Top)).unzip
           val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
-          abstractInterpreter.insertEDB(n.name, ConstantRelation(paramNames, args, empty))
+          abstractInterpreter.insertEDB(n.name, AbstractRelation(paramNames, args, empty))
         case _ => // nothing
       }
     }

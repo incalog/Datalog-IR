@@ -2,7 +2,7 @@ package inca.ir.extension.data.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
 import inca.ir.extension.data.CaseDefinitionReference
 import sturdy.values.Powerset
 import sturdy.data.MayJoin
@@ -54,13 +54,13 @@ trait DataKindMeetV extends BaseMeetV:
         DataKindV(intersect)
     case _ => super.meet(lhs, rhs)
 
-trait DataKindAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+trait DataKindAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
 
-  val dataOps: DataOps[Value, ConstantRelation] = new DataOps[Value, ConstantRelation]:
+  val dataOps: DataOps[Value, AbstractRelation] = new DataOps[Value, AbstractRelation]:
     override def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): Value =
       DataKindV(Set(caseDef))
 
-    override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => ConstantRelation)(notMatching: => ConstantRelation): ConstantRelation = v match
+    override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => AbstractRelation)(notMatching: => AbstractRelation): AbstractRelation = v match
       case DataKindV(caseDefs) =>
         if (caseDefs.contains(caseDef))
           effects.joinComputations {

@@ -2,7 +2,7 @@ package inca.ir.extension.tuple.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
 import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
@@ -44,7 +44,7 @@ trait ConstantMeetV extends BaseMeetV:
     case (ConstantTupleV(ts1), ConstantTupleV(ts2)) => ConstantTupleV(ts1.zip(ts2).map(meet(_, _)))
     case _ => super.meet(lhs, rhs)
 
-trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
 
   val tupleOps: TupleOps[Value] = new TupleOps[Value]:
     override def tupleLit(ts: Seq[Value]): Value = ConstantTupleV(ts)

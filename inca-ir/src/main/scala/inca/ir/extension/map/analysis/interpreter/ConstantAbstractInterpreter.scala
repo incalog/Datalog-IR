@@ -2,7 +2,7 @@ package inca.ir.extension.map.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
 import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.EffectStack
 import sturdy.values.Topped.Top
@@ -115,7 +115,7 @@ case class ConstantMapFunV(f: Value => Set[Value]) extends ConstantMapVBase:
 
 
 // This Constant analysis approximates elements that may be contained in a map.
-private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, joinRV: Join[ConstantRelation]) extends MapOps[Value, ConstantRelation, Topped[Boolean]]:
+private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, joinRV: Join[AbstractRelation]) extends MapOps[Value, AbstractRelation, Topped[Boolean]]:
 
   override def mapLit(vs: Seq[(Value, Value)]): Value =
     val values = vs.groupBy(_._1).map { (k, kv) => k -> kv.map(_._2).toSet }
@@ -145,7 +145,7 @@ private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]], effect
     case map: ConstantMapVBase => map.plus(k, v)
     case _ => throw IllegalArgumentException(s"Expected maps but got $m")
 
-  override def lookup(m: Value, k: Value)(foundValues: Set[Value] => ConstantRelation)(noValuesOrKeyNotFound: => ConstantRelation): ConstantRelation = m match
+  override def lookup(m: Value, k: Value)(foundValues: Set[Value] => AbstractRelation)(noValuesOrKeyNotFound: => AbstractRelation): AbstractRelation = m match
     case Value.Top =>
       effects.joinComputations {
         foundValues(Set(Value.Top))
@@ -171,7 +171,7 @@ private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]], effect
           }(using joinRV)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
-  override def keyIter(m: Value)(keySet: Set[Value] => ConstantRelation)(noKeys: => ConstantRelation): ConstantRelation = m match
+  override def keyIter(m: Value)(keySet: Set[Value] => AbstractRelation)(noKeys: => AbstractRelation): AbstractRelation = m match
     case Value.Top =>
       effects.joinComputations {
         keySet(Set(Value.Top))
@@ -266,5 +266,5 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
         Value.Top
     case _ => super.meet(lhs, rhs)
 
-trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  override lazy val mapOps: MapOps[Value, ConstantRelation, Topped[Boolean]] = ConstantMapVOps(using eqOps, effects, joinRV)
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
+  override lazy val mapOps: MapOps[Value, AbstractRelation, Topped[Boolean]] = ConstantMapVOps(using eqOps, effects, joinRV)

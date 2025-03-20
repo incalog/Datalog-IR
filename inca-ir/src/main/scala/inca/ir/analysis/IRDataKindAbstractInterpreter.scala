@@ -49,7 +49,7 @@ class IRDataKindAbstractInterpreter(
     val logControlEvents: Boolean = false,
     override val interRelational: Boolean = false
   )
-  extends BaseGenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
+  extends BaseGenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.ConstantAbstractInterpreter
     with irstr.interpreter.ConstantAbstractInterpreter
     with irdata.interpreter.DataKindAbstractInterpreter
@@ -68,7 +68,7 @@ class IRDataKindAbstractInterpreter(
     with RequireMeet[Value]
     with RequireJoin[Value]:
 
-  type RV = ConstantRelation
+  type RV = AbstractRelation
 
   private class IRJoinV extends Join[Value] with BaseJoinV
     with irarith.interpreter.ConstantJoinV
@@ -160,20 +160,20 @@ class IRDataKindAbstractInterpreter(
   override val mayJoinV: WithJoin[Value] = implicitly
   override val joinRV: Join[RV] = implicitly
   override val mayJoinUnit: WithJoin[Unit] = implicitly
-  override lazy val mayJoinRV: MayJoin.WithJoin[ConstantRelation] = MakeJoined(using joinRV, effects)
+  override lazy val mayJoinRV: MayJoin.WithJoin[AbstractRelation] = MakeJoined(using joinRV, effects)
 
   // I don't think we need to widen tables for a constant analysis
   given Widen[RV] with {
     override def apply(v1: RV, v2: RV): MaybeChanged[RV] = joinRV(v1, v2)
   }
   
-  override lazy val supplementaryTable: SupplementaryTable[ConstantRelation] = new ASupplementaryTable[RV]() {
-    override def initialTable: RV = ConstantRelation(Seq(), Seq(), Topped.Actual(false))
+  override lazy val supplementaryTable: SupplementaryTable[AbstractRelation] = new AbstractSupplementaryTable[RV]() {
+    override def initialTable: RV = AbstractRelation(Seq(), Seq(), Topped.Actual(false))
   }
 
   given Meet[Value] = meetV
 
-  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new ConstantRelationOps(using except)
+  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new AbstractRelationOps(using except)
 
 
   class AnalysisAnnotator
@@ -200,8 +200,8 @@ class IRDataKindAbstractInterpreter(
       if (relationOps.hasColumn(rv, supName))
         val termTRV = relationOps.project(rv, Seq(supName))
         termTRV match
-          case ConstantRelation.Empty(cs) => None
-          case ConstantRelation.NonEmpty(cs, rows, emp) =>
+          case AbstractRelation.Empty(cs) => None
+          case AbstractRelation.NonEmpty(cs, rows, emp) =>
             assert(rows.size == 1)
             Some(rows.head)
       else

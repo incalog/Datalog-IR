@@ -7,7 +7,7 @@ import sturdy.values.{Join, MaybeChanged, Widen}
 
 type CRV = ConcreteRelation[Value]
 
-class CSupplementaryTable(using failure: Failure, joinRV: Join[CRV])
+class ConcreteSupplementaryTable(using failure: Failure, joinRV: Join[CRV])
   extends SupplementaryTable[CRV]://, Concrete:
 
   protected var supTable: CRV = ConcreteRelation(Seq(), Set(Seq()))

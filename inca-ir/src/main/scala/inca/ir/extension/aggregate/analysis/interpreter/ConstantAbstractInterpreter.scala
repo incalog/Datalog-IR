@@ -2,7 +2,7 @@ package inca.ir.extension.aggregate.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, ConstantRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, AbstractRelation, Value}
 import inca.ir.extension.aggregate.{AggregationOperator, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
@@ -18,7 +18,7 @@ import sturdy.effect.except.Except
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
 
-trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   override val aggregateOps: AggregateOps[Value] = new AggregateOps[Value]:
     override def init(op: AggregationOperator): Value =
       // we could make this more precise, but there is really no point. Once we aggregate more than the initial value

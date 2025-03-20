@@ -2,7 +2,7 @@ package inca.ir.extension.set.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Meet, RequireJoin, RequireMeet, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Meet, RequireJoin, RequireMeet, Value}
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.EffectStack
@@ -30,8 +30,8 @@ private class BoundedSetVOps(using eqOps: EqOps[Value, Topped[Boolean]],
                              except: Except[BaseIRException, Powerset[BaseIRException], WithJoin],
                              joinV: Join[Value], meetV: Meet[Value],
                              withJoinV: WithJoin[Value],
-                             joinRV: Join[ConstantRelation])
-  extends SetOps[Value, ConstantRelation, Topped[Boolean]]:
+                             joinRV: Join[AbstractRelation])
+  extends SetOps[Value, AbstractRelation, Topped[Boolean]]:
 
   override def setLit(vs: Seq[Value]): Value =
     if (vs.isEmpty)
@@ -74,7 +74,7 @@ private class BoundedSetVOps(using eqOps: EqOps[Value, Topped[Boolean]],
       case (_, s) => throw IllegalStateException(s"Expected set but got $s")
     }
 
-  override def iter(s: Value)(values: Set[Value] => ConstantRelation)(empty: => ConstantRelation): ConstantRelation =
+  override def iter(s: Value)(values: Set[Value] => AbstractRelation)(empty: => AbstractRelation): AbstractRelation =
     s match
       case Value.Top =>
         effects.joinComputations {
@@ -124,8 +124,8 @@ trait BoundedMeetV[J[_] <: MayJoin[?]](using eqOps: EqOps[Value, Topped[Boolean]
 
     case _ => super.meet(lhs, rhs)
 
-trait BoundedAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]
+trait BoundedAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
   with RequireMeet[Value]
   with RequireJoin[Value]:
 
-  lazy val setOps: SetOps[Value, ConstantRelation, Topped[Boolean]] = BoundedSetVOps(using eqOps, effects, except, joinV, meetV, mayJoinV, joinRV)
+  lazy val setOps: SetOps[Value, AbstractRelation, Topped[Boolean]] = BoundedSetVOps(using eqOps, effects, except, joinV, meetV, mayJoinV, joinRV)

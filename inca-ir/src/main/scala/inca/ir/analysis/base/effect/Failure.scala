@@ -20,7 +20,6 @@ case object NoParamRelation extends BaseIRFailure
 case object UnknownArg extends BaseIRFailure
 
 // Atoms
-//case FailedComparison
 case object UnknownAtom extends BaseIRFailure
 
 case object InvalidBindings extends BaseIRFailure

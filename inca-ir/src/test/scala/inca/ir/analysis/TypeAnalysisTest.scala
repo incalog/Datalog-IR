@@ -1,6 +1,6 @@
 package inca.ir.analysis
 
-import inca.ir.analysis.base.values.{AType, TypeRelation}
+import inca.ir.analysis.base.values.AbstractRelation
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.printer.IRDebugPrinter
@@ -13,7 +13,7 @@ import sturdy.values.Topped.Top
 
 class TypeAnalysisTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module, edb: Map[String, TypeRelation] = Map()): Map[String, TypeRelation] =
+  def interp(mod: Module, edb: Map[String, AbstractRelation] = Map()): Map[String, AbstractRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
@@ -42,7 +42,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("out"))
-    assert(mainRelType.rows == Seq(AType(TInt)))
+    assert(mainRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(mainRelType.empty)
   }
 
@@ -72,12 +72,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val numRelType = relTypes("nums")
     assert(numRelType.cols == Seq("x"))
-    assert(numRelType.rows == Seq(AType(TInt)))
+    assert(numRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(numRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("x"))
-    assert(mainRelType.rows == Seq(AType(TInt)))
+    assert(mainRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -112,17 +112,17 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val xsRelType = relTypes("xs")
     assert(xsRelType.cols == Seq("x"))
-    assert(xsRelType.rows == Seq(AType(TInt)))
+    assert(xsRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(xsRelType.empty)
 
     val ysRelType = relTypes("ys")
     assert(ysRelType.cols == Seq("y"))
-    assert(ysRelType.rows == Seq(AType(TInt)))
-    assertResult(Topped.Top)(ysRelType.empty) // Top, since we are dataflow driven
+    assert(ysRelType.rows == Seq(TypeValue(TInt)))
+    assertResult(Topped.Actual(false))(ysRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("x", "y"))
-    assert(mainRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(mainRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -165,17 +165,17 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val xsRelType = relTypes("xs")
     assert(xsRelType.cols == Seq("x"))
-    assert(xsRelType.rows == Seq(AType(TInt)))
+    assert(xsRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(xsRelType.empty)
 
     val ysRelType = relTypes("ys")
     assert(ysRelType.cols == Seq("y"))
-    assert(ysRelType.rows == Seq(AType(TInt)))
+    assert(ysRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(ysRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("x", "y"))
-    assert(mainRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(mainRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -201,13 +201,13 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val calcRelType = relTypes("calc")
     assert(calcRelType.cols == Seq("out"))
-    assert(calcRelType.rows == Seq(AType(TInt)))
+    assert(calcRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(calcRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("res"))
-    assert(mainRelType.rows == Seq(AType(TInt)))
-    assertResult(Topped.Top)(mainRelType.empty)
+    assert(mainRelType.rows == Seq(TypeValue(TInt)))
+    assertResult(Topped.Actual(false))(mainRelType.empty)
   }
 
   test("Right Recursion") {
@@ -243,12 +243,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(pathRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -285,12 +285,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(pathRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -327,12 +327,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(pathRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(pathRelType.empty)
   }
 
@@ -376,17 +376,17 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val pathRelType = relTypes("path")
     assert(pathRelType.cols == Seq("x", "y"))
-    assert(pathRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(pathRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(pathRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("y"))
-    assert(mainRelType.rows == Seq(AType(TInt)))
+    assert(mainRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -426,12 +426,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(AType(TInt)))
+    assert(inputRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(inputRelType.empty)
 
     val facRelType = relTypes("fac")
     assert(facRelType.cols == Seq("n", "r"))
-    assert(facRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(facRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(facRelType.empty)
   }
 
@@ -466,12 +466,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(AType(TInt)))
+    assert(inputRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(inputRelType.empty)
 
     val sumRelType = relTypes("prefixSum")
     assert(sumRelType.cols == Seq("t", "n"))
-    assert(sumRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(sumRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(sumRelType.empty)
   }
 
@@ -506,12 +506,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val inputRelType = relTypes("input")
     assert(inputRelType.cols == Seq("n"))
-    assert(inputRelType.rows == Seq(AType(TInt)))
+    assert(inputRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(inputRelType.empty)
 
     val mainRelType = relTypes("main")
     assert(mainRelType.cols == Seq("t", "n"))
-    assert(mainRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(mainRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(mainRelType.empty)
   }
 
@@ -542,7 +542,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -569,7 +569,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -590,12 +590,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val relTypes = interp(mod, Map(
-      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(AType(TInt), AType(TInt)), Topped.Top)
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(TypeValue(TInt), TypeValue(TInt)), Topped.Top)
     ))
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -617,12 +617,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val relTypes = interp(mod, Map(
-      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(AType(TInt), AType(TInt)), Topped.Top)
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(TypeValue(TInt), TypeValue(TInt)), Topped.Top)
     ))
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -668,12 +668,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     // 11	12
 
     val relTypes = interp(mod, Map(
-      "input_edge" -> TypeRelation(Seq("a", "b"), Seq(AType(TInt), AType(TInt)), Topped.Top)
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(TypeValue(TInt), TypeValue(TInt)), Topped.Top)
     ))
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -708,12 +708,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val edgeRelType = relTypes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
-    assert(edgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(edgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(edgeRelType.empty)
 
     val filterEdgeRelType = relTypes("filterEdge")
     assert(filterEdgeRelType.cols == Seq("x", "y"))
-    assert(filterEdgeRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(filterEdgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(filterEdgeRelType.empty)
   }
 
@@ -748,13 +748,13 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(AType(TInt)))
+    assert(helperRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(AType(TData("TList"))))
-    assertResult(Topped.Top)(mainEdgeRelType.empty)
+    assert(mainEdgeRelType.rows == Seq(TypeValue(TData("TList"))))
+    assertResult(Topped.Actual(false))(mainEdgeRelType.empty)
   }
 
   test("ADT - Deconstruct") {
@@ -789,12 +789,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(AType(TInt)))
+    assert(helperRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(AType(TInt)))
+    assert(mainEdgeRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -830,12 +830,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(AType(TInt)))
+    assert(helperRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(AType(TData("TList"))))
+    assert(mainEdgeRelType.rows == Seq(TypeValue(TData("TList"))))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -879,12 +879,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(AType(TData("TList"))))
+    assert(helperRelType.rows == Seq(TypeValue(TData("TList"))))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
-    assert(mainEdgeRelType.rows == Seq(AType(TInt), AType(TData("TList"))))
+    assert(mainEdgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TData("TList"))))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -928,12 +928,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(AType(TData("TList"))))
+    assert(helperRelType.rows == Seq(TypeValue(TData("TList"))))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x", "y"))
-    assert(mainEdgeRelType.rows == Seq(AType(TInt), AType(TData("TList"))))
+    assert(mainEdgeRelType.rows == Seq(TypeValue(TInt), TypeValue(TData("TList"))))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -969,12 +969,12 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val helperRelType = relTypes("helper")
     assert(helperRelType.cols == Seq("x"))
-    assert(helperRelType.rows == Seq(AType(TInt)))
+    assert(helperRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Actual(false))(helperRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(AType(TData("TList"))))
+    assert(mainEdgeRelType.rows == Seq(TypeValue(TData("TList"))))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 
@@ -1020,17 +1020,17 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
 
     val inputCalcEdgeRelType = relTypes("input_calc")
     assert(inputCalcEdgeRelType.cols == Seq("x"))
-    assert(inputCalcEdgeRelType.rows == Seq(AType(TInt)))
+    assert(inputCalcEdgeRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(inputCalcEdgeRelType.empty)
 
     val calcRelType = relTypes("calc")
     assert(calcRelType.cols == Seq("x", "elem"))
-    assert(calcRelType.rows == Seq(AType(TInt), AType(TInt)))
+    assert(calcRelType.rows == Seq(TypeValue(TInt), TypeValue(TInt)))
     assertResult(Topped.Top)(calcRelType.empty)
 
     val mainEdgeRelType = relTypes("main")
     assert(mainEdgeRelType.cols == Seq("x"))
-    assert(mainEdgeRelType.rows == Seq(AType(TInt)))
+    assert(mainEdgeRelType.rows == Seq(TypeValue(TInt)))
     assertResult(Topped.Top)(mainEdgeRelType.empty)
   }
 

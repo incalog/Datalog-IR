@@ -6,7 +6,7 @@ import sturdy.effect.failure.Failure
 import sturdy.values.{Join, Widen}
 
 
-trait ASupplementaryTable[RV](using j: Join[RV], w: Widen[RV], failure: Failure)
+trait AbstractSupplementaryTable[RV](using j: Join[RV], w: Widen[RV], failure: Failure)
   extends SupplementaryTable[RV]:
 
   protected var supTable: RV = initialTable

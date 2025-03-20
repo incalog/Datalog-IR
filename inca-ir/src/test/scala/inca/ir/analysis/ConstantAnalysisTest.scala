@@ -1,6 +1,6 @@
 package inca.ir.analysis
 
-import inca.ir.analysis.base.values.{ConstantRelation, Value}
+import inca.ir.analysis.base.values.{AbstractRelation, Value}
 import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.arithmetic.{Add, IntNum, LT, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
@@ -23,7 +23,7 @@ import sturdy.values.Topped
 
 class ConstantAnalysisTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module, edb: Map[String, ConstantRelation] = Map()): Map[String, ConstantRelation] =
+  def interp(mod: Module, edb: Map[String, AbstractRelation] = Map()): Map[String, AbstractRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
@@ -629,7 +629,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     ))
 
     var constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
     var edgeRelType = constRes("edge")
@@ -638,7 +638,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = constRes("edge")
@@ -665,7 +665,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     ))
 
     var constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
     var edgeRelType = constRes("edge")
@@ -674,7 +674,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = constRes("edge")
@@ -725,7 +725,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     // 11	12
 
     var constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
     var edgeRelType = constRes("edge")
@@ -734,7 +734,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = constRes("edge")
@@ -1264,7 +1264,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     // 11	12
 
     var constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(ConstantIntV(1), ConstantIntV(2)), Topped.Actual(false))
     ))
 
     var edgeRelType = constRes("edge")
@@ -1273,7 +1273,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(edgeRelType.empty)
 
     constRes = interp(mod, Map(
-      "input_edge" -> ConstantRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
+      "input_edge" -> AbstractRelation(Seq("a", "b"), Seq(Value.Top, ConstantIntV(2)), Topped.Actual(false))
     ))
 
     edgeRelType = constRes("edge")

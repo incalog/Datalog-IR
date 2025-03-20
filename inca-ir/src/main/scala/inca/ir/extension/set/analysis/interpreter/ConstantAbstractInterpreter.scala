@@ -2,7 +2,7 @@ package inca.ir.extension.set.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConstantRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
 import sturdy.data.MayJoin.{NoJoin, WithJoin}
 import sturdy.effect.EffectStack
 import sturdy.values.ordering.EqOps
@@ -35,7 +35,7 @@ object ConstantSetV:
     else
       new ConstantSetV(values)
 
-private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, joinRV: Join[ConstantRelation]) extends SetOps[Value, ConstantRelation, Topped[Boolean]]:
+private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, joinRV: Join[AbstractRelation]) extends SetOps[Value, AbstractRelation, Topped[Boolean]]:
   override def setLit(vs: Seq[Value]): Value = ConstantSetV(vs.toSet)
 
   override def contains(s: Value, mem: Value): Topped[Boolean] = s match
@@ -65,7 +65,7 @@ private class ConstantSetVOps(using eqOps: EqOps[Value, Topped[Boolean]], effect
         case (_, s) => throw IllegalStateException(s"Expected set but got $s")
       }
 
-  override def iter(s: Value)(values: Set[Value] => ConstantRelation)(empty: => ConstantRelation): ConstantRelation = s match
+  override def iter(s: Value)(values: Set[Value] => AbstractRelation)(empty: => AbstractRelation): AbstractRelation = s match
     case Value.Top =>
       effects.joinComputations {
         values(Set(Value.Top))
@@ -123,5 +123,5 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
         Value.Top
     case _ => super.meet(lhs, rhs)
 
-trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], ConstantRelation, Powerset[BaseIRException], WithJoin]:
-  lazy val setOps: SetOps[Value, ConstantRelation, Topped[Boolean]] = ConstantSetVOps(using eqOps, effects, joinRV)
+trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
+  lazy val setOps: SetOps[Value, AbstractRelation, Topped[Boolean]] = ConstantSetVOps(using eqOps, effects, joinRV)

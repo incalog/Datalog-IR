@@ -1,10 +1,10 @@
 package inca.ir.analysis
 
 import inca.ir
-import inca.ir.ExtensionalRelation
+import inca.ir.Type
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.interpreter.{ASupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
+import inca.ir.analysis.base.interpreter.{AbstractSupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseAtomOrderingOps
 import inca.ir.analysis.base.values.*
@@ -17,36 +17,47 @@ import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.effect.except.{Except, JoinedExcept}
 import sturdy.effect.failure.CollectedFailures
-import sturdy.effect.store.AStoreThreaded
 import sturdy.fix
 import sturdy.fix.HasFixpointCache
 import sturdy.fix.StackConfig.StackedStates
 import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ConcreteBooleanBranching, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
-import sturdy.values.references.{AllocationSiteAddr, given_Finite_AllocationSiteAddr}
 
 // Implicits
-import sturdy.values.booleans.ConcreteBooleanOps
 import inca.ir.analysis.base.effect.{IRException, IRFailure}
 import inca.ir.analysis.base.interpreter.FiniteFixIn
-import inca.ir.analysis.base.values.{ JoinTV, JoinTRV }
+import inca.ir.analysis.base.values.JoinRV
 import sturdy.data.{MakeJoined, given}
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
+
+
+case class TypeValue(ty: Type) extends Value:
+  override def isConstant: Boolean = true
 
 
 class IRTypeAbstractInterpreter(
      val enableLogging: Boolean = false,
      override val interRelational: Boolean = false
   )
-  extends BaseGenericInterpreter[Value, Topped[Boolean], TypeRelation, Powerset[BaseIRException], WithJoin]
+  extends BaseGenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.TypeAbstractInterpreter
   with irstr.interpreter.TypeAbstractInterpreter
   with irdata.interpreter.TypeAbstractInterpreter
   with iragg.interpreter.TypeAbstractInterpreter:
 
-  type TRV = TypeRelation
+  type TRV = AbstractRelation
+
+  // Define a join for TypeValues
+  given JoinTV: Join[Value] with {
+    private def join(v1: Value, v2: Value): Value = (v2, v2) match
+      case (TypeValue(ty1), TypeValue(ty2)) if ty1 == ty2 => v1
+      case _ => Value.Top
+
+    override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
+      MaybeChanged(join(v1, v2), v1)
+  }
 
   private class IRAtomOrderingOps extends BaseAtomOrderingOps
     with irdata.ordering.AtomOrderingOps
@@ -67,21 +78,19 @@ class IRTypeAbstractInterpreter(
 
   override lazy val eqOps: EqOps[Value, Topped[Boolean]] = new EqOps[Value, Topped[Boolean]] {
     def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-      case (AType(ty1), AType(ty2)) => if (ty1 != ty2) Topped.Actual(false) else Topped.Top
-      case (Value.Top, Value.Top) => Topped.Top
+      case (TypeValue(ty1), TypeValue(ty2)) => if (ty1 != ty2) Topped.Actual(false) else Topped.Top
+      case _ => Topped.Top
 
     def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-      case (AType(ty1), AType(ty2)) => if (ty1 != ty2) Topped.Actual(true) else Topped.Top
-      case (Value.Top, Value.Top) => Topped.Top
-      case (Value.Top, _) => Topped.Top
-      case (_, Value.Top) => Topped.Top
+      case (TypeValue(ty1), TypeValue(ty2)) => if (ty1 != ty2) Topped.Actual(true) else Topped.Top
+      case _ => Topped.Top
   }
 
   given EqOps[Value, Topped[Boolean]] = eqOps
   
   override val mayJoinV: WithJoin[Value] = implicitly
   override val joinRV: Join[TRV] = implicitly
-  override lazy val mayJoinRV: MayJoin.WithJoin[TypeRelation] = MakeJoined(using joinRV, effects)
+  override lazy val mayJoinRV: MayJoin.WithJoin[TRV] = MakeJoined(using joinRV, effects)
 
   given Widen[TRV] with {
     override def apply(v1: TRV, v2: TRV): MaybeChanged[TRV] = joinRV(v1, v2)
@@ -89,15 +98,15 @@ class IRTypeAbstractInterpreter(
   
   override val mayJoinUnit: WithJoin[Unit] = implicitly
 
-  override val supplementaryTable: SupplementaryTable[TRV] = new ASupplementaryTable[TRV]() {
-    override def initialTable: TRV = TypeRelation(Seq(), Seq(), Topped.Actual(false))
+  override val supplementaryTable: SupplementaryTable[TRV] = new AbstractSupplementaryTable[TRV]() {
+    override def initialTable: TRV = AbstractRelation(Seq(), Seq(), Topped.Actual(false))
   }
 
-  override val relationOps: RelationOps[Value, Topped[Boolean], TypeRelation] = new TypeRelationOps(using except)
+  override val relationOps: RelationOps[Value, Topped[Boolean], TRV] = new AbstractRelationOps(using except)
 
   given Meet[Value] = new BaseMeetV(using except):
     override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-      case (AType(t1), AType(t2)) if t1 == t2 => lhs
+      case (TypeValue(t1), TypeValue(t2)) if t1 == t2 => lhs
       case _ => super.meet(lhs, rhs)
 
   class AnalysisAnnotator

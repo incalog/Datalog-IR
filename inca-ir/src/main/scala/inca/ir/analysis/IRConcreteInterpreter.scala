@@ -3,7 +3,7 @@ package inca.ir.analysis
 import inca.ir
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, CSupplementaryTable, FixIn, FixOut, given}
+import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, ConcreteSupplementaryTable, FixIn, FixOut, given}
 import inca.ir.analysis.base.logger.PrintLogger
 import inca.ir.analysis.base.ordering.BaseAtomOrderingOps
 import inca.ir.analysis.base.values.*
@@ -102,7 +102,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   
   override val mayJoinUnit: NoJoin[Unit] = implicitly
 
-  override val supplementaryTable: CSupplementaryTable = new CSupplementaryTable
+  override val supplementaryTable: ConcreteSupplementaryTable = new ConcreteSupplementaryTable
 
   given EqOps[Value, Boolean] = eqOps
 
