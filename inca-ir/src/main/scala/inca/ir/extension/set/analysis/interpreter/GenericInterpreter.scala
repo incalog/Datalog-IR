@@ -25,7 +25,11 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   lazy val setOps: SetOps[V, RV, B]
 
   override protected def canDetermineValue(t: Term): Boolean = t match
+    case SetLit(ts) => ts.forall(canDetermineValue)
     case _: SetComprehension => true
+    case SetIntersection(t1, t2) => canDetermineValue(t1) && canDetermineValue(t2)
+    case SetUnion(ts) => ts.forall(canDetermineValue)
+    case _: SetFrom => true
     case _ => super.canDetermineValue(t)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match

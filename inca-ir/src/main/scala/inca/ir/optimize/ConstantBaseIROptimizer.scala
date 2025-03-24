@@ -88,7 +88,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   private def transformTerm(term: Term): Option[Term] =
     val option = getTermResult(term).headOption
     option.flatMap(valueToTerm.apply) match
-      case Some(value) => if (value == term) None else Some(value)
+      case Some(value) =>
+        if (value == term) None else Some(value)
       case None => None
 
   override def visitRelation(relation: Relation): Seq[Relation] = preserveHints(relation) {
@@ -126,7 +127,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     }
   }
 
-  private def eqsToBindConstantParams(body: Body): Seq[Eq] =
+  def eqsToBindConstantParams(body: Body): Seq[Eq] =
     getBodyResult(body).headOption match
       case None => Seq()
       case Some(constRel) =>
@@ -174,9 +175,11 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   /*protected def mayEliminate(arg: Arg): Boolean = arg match
     case TermArg(t) => mayEliminate(t)
     case WildcardArg() => false*/
-  
-  protected def mayEliminate(eq: Eq): Boolean =
-    eq.neg || (mayEliminate(eq.lhs) && mayEliminate(eq.rhs))
+
+
+  protected def mayEliminate(at: Atom): Boolean = at match
+    case eq: Eq => eq.neg || (mayEliminate(eq.lhs) && mayEliminate(eq.rhs))
+    case _ => false
 
   protected def isConstant(arg: Arg): Boolean = arg match
     case TermArg(t) => isConstant(t)
@@ -240,7 +243,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     if (mayEliminate(term)) {
       transformTerm(term) match
-        case None => super.visitTerm(term)
+        case None =>
+          super.visitTerm(term)
         case Some(trans) =>
           logOptimizationStat("constant term", 1, _+1)
           term match
@@ -262,6 +266,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       super.visitTerm(term)
     }
   }
+
 
 class IRConstantOptimizer(
                            override val assumeEdbIsNotEmpty: Boolean,

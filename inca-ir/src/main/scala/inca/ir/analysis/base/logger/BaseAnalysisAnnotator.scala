@@ -49,10 +49,6 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
     override val akey: RelationKey.type = RelationKey
     override def toString: String = res.toString
 
-  /**
-   * During logging, we might over approximate some terms. This class computes the meet for each term
-   * and refines the results.
-   */
   class TermAnnotator(termToValue: Map[Term, TV]) extends IRVisitor:
     override def visitTerm(term: Term): Seq[Term] =
       val oldVOption = term.getAnalysisResult(TermKey).headOption.map(_.value)

@@ -47,7 +47,7 @@ type SupColumn = String
 
 enum FixOut[V, RV]:
   case Term(col: SupColumn)
-  case Assign(to: SupColumn, from: SupColumn)
+  case Assign(to: Seq[SupColumn], from: SupColumn)
   case Atom()
   case ExitCall(value: RV)
   case Body(value: RV, rawBody: RV)
@@ -298,13 +298,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Assign(_, _) => ()
     case _ => throw new IllegalStateException()
 
-  private final def evalAssignOpen(to: ir.Term, from: ir.Term)(using Fixed): (SupColumn, SupColumn) =
+  protected def evalAssignOpen(to: ir.Term, from: ir.Term)(using Fixed): (Seq[SupColumn], SupColumn) =
     val fromCol = evalTerm(from)
     val toCol = extractVarName(to).get.name
     updateSupplementaryUnchecked { sup =>
       relationOps.copyColumn(sup, fromCol, toCol)
     }
-    (toCol, fromCol)
+    (Seq(toCol), fromCol)
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)

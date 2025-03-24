@@ -1123,6 +1123,89 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
+  test("Tuple - Binding") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("out1", TTuple(Seq(TInt, TInt))),
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+          Eq(TupleLit(Seq(Var("x"), Var("y"))), Var("out1"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.cols == Seq("out1", "x", "y"))
+    assert(mainRel.rows == Seq(ConstantTupleV(Seq(ConstantIntV(1), ConstantIntV(2))), ConstantIntV(1), ConstantIntV(2)))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Tuple - Binding (partial)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("out1", TTuple(Seq(TInt, TInt))),
+        Param("x", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+          Eq(TupleLit(Seq(Var("x"), IntNum(2))), Var("out1"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.cols == Seq("out1", "x"))
+    assert(mainRel.rows == Seq(ConstantTupleV(Seq(ConstantIntV(1), ConstantIntV(2))), ConstantIntV(1)))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Tuple - Binding (partial - nested)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("x", TInt),
+        Param("y", TInt),
+        Param("z", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(
+            TupleLit(Seq(Var("x"), TupleLit(Seq(Var("y"), Var("z"))))),
+            TupleLit(Seq(IntNum(1), TupleLit(Seq(IntNum(2), IntNum(3)))))
+          )
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.cols == Seq("x", "y", "z"))
+    assert(mainRel.rows == Seq(ConstantIntV(1), ConstantIntV(2), ConstantIntV(3)))
+    assertResult(Topped.Actual(false))(mainRel.empty)
+  }
+
+  test("Tuple - Binding (failing)") {
+    val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(
+      Relation("main", Seq(
+        Param("out1", TTuple(Seq(TInt, TInt))),
+        Param("x", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+          Eq(TupleLit(Seq(Var("x"), IntNum(3))), Var("out1"))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.cols == Seq("out1", "x"))
+    assertResult(Topped.Actual(true))(mainRel.empty)
+  }
+
   /* Boolean */
 
   test("Boolean - AtomAsBool failing") {

@@ -48,6 +48,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   override protected def canDetermineValue(t: Term): Boolean = t match
     case _: MapComprehension => true
     case _: MapFun => true
+    case _: MapFrom => true
+    case MapLit(ts) => ts.forall((k, v) => canDetermineValue(k) && canDetermineValue(v))
+    case MapUnion(t1, t2) => canDetermineValue(t1) && canDetermineValue(t2)
+    case MapConcat(t1, t2) => canDetermineValue(t1) && canDetermineValue(t2)
+    case MapPlus(m, k, v) => canDetermineValue(m) && canDetermineValue(k) && canDetermineValue(v)
+    case MapLookUp(m, k) => canDetermineValue(m) && canDetermineValue(k)
     case _ => super.canDetermineValue(t)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match

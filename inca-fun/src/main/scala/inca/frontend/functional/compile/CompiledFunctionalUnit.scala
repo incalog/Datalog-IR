@@ -4,7 +4,6 @@ import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
-import inca.ir.extension.set.SyntacticOptimizer
 import inca.ir.optimize.{Optimizer, ReplaceSingletonVariables}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
@@ -125,7 +124,8 @@ object CompiledFunctionalUnit:
     List(
       () => new typeparam.Lowering {},
       () => new aggregateset.Lowering {},
-      () => new SyntacticOptimizer {},
+      () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+      () => new set.SyntacticOptimizer {},
       () => new set.Lowering {},
       () => new map.Lowering {},
       () => new bool.optimize.DnfOptimizer {},

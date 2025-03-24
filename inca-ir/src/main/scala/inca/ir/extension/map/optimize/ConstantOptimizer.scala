@@ -9,6 +9,10 @@ import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
+  override def mayEliminate(t: Term): Boolean = t match
+    case _: irmap.MapComprehension => false // contains atoms that might fail
+    case _ => super.mayEliminate(t)
+
   override def valueToTermInternal(value: Value): Option[Term] = value match
     case ConstantMapV(values) => Some(irmap.MapLit(values.toSeq.flatMap {
       (k, vs) => valueToTerm(k) match

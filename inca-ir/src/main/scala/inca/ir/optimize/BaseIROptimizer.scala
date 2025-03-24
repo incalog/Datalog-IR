@@ -3,6 +3,7 @@ package inca.ir.optimize
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
+import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
 import inca.util.{DEFAULT_PRINTER, printSteps}
 import sturdy.effect.failure.{AFallible, CollectedFailures}
@@ -35,6 +36,8 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
     abstractInterpreter.failure.fallible {
       abstractInterpreter.evalProgram(modules)
     }.get
+
+    println(new IRDebugPrinter{}.prettyPrint(modules))
 
   override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
     if (!analysisHasRun)
