@@ -124,7 +124,7 @@ object CompiledFunctionalUnit:
     List(
       () => new typeparam.Lowering {},
       () => new aggregateset.Lowering {},
-      //() => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+      () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
       () => new set.SyntacticOptimizer {},
       () => new set.Lowering {},
       () => new map.Lowering {},

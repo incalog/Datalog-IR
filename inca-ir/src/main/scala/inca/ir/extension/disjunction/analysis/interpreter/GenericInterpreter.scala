@@ -20,16 +20,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         acc.intersect(altVars)
       } ++ colsBefore
 
-      println(s"alternatives: ${alternatives.size}")
-
-      println(s"bound after: $boundAfterDisjunction")
-
       val joinedRes = mapJoin(alternatives, { alt =>
         scopedSupplementary {
-          println(s"Atoms: \n${alt.body}\n")
           evalAtoms(alt.body.atoms)
           val sup = supplementaryTable.getTable
-          println(s"The sup: $sup")
           relationOps.project(sup, boundAfterDisjunction)
         }
       })
