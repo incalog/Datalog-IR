@@ -5,6 +5,7 @@ import inca.ir.*
 import inca.ir.analysis.base.effect.BaseIRFailure
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
 import inca.ir.extension.bool.*
+import inca.ir.visitors.IRVisitor
 import sturdy.data.MayJoin
 import sturdy.values.booleans.BooleanOps
 import sturdy.data.MakeJoined
@@ -14,21 +15,37 @@ import sturdy.values.JoinToppedFlat
 
 case object InvalidBooleanOp extends BaseIRFailure
 
-trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
+trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]
+  with IRVisitor: // we use the visitor to negate atoms
+
   val booleanOps: BooleanOps[V]
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case AtomAsBool(a) =>
+      val resName = gensym.fresh("result")
+
       val sup = snapshotSupplementary()
-      val res = except.tryCatch {
-        evalAtom(a)
-        booleanOps.boolLit(true)
+      val colsBefore = relationOps.columns(sup)
+      val posBranchVars = a.vars.map(_.name.name)
+      val negBranchVars = negateAtom(a).vars.map(_.name.name)
+      val commonCols = colsBefore ++ posBranchVars.intersect(negBranchVars) :+ resName
+
+      val joinedSup = except.tryCatch {
+        val res = supplementaryTable.scoped {
+          evalAtom(a)
+          relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(true) }
+        }
+        relationOps.project(res, commonCols)
       } /* catch */ { exec =>
-        // negation does not bind => rollback the changes to the supplementary
-        updateSupplementaryUnchecked(_ => sup)
-        booleanOps.boolLit(false)
-      }(using mayJoinV)
-      termResult(res)
+        val res = supplementaryTable.scoped {
+          evalAtom(negateAtom(a))
+          relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(false) }
+        }
+        relationOps.project(res, commonCols)
+      }(using mayJoinRV)
+
+      updateSupplementaryChecked(_ => joinedSup)
+      resName
     case BoolAnd(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.and)
     case BoolOr(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.or)
     case BoolNot(t) => unaryOp(evalTerm(t))(booleanOps.not)
