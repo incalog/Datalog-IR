@@ -15,6 +15,7 @@ trait Lowering extends BaseLowering:
   override def visitBody(body: Body): Seq[Body] = preserveHints(body) {
     val before: ListBuffer[Atom] = ListBuffer.empty
     var after: Seq[Atom] = body.atoms
+    println(after.map(_.getClass.getSimpleName))
     while (after.nonEmpty && !after.head.isInstanceOf[Disjunction]) {
       before += after.head
       after = after.tail
@@ -24,7 +25,13 @@ trait Lowering extends BaseLowering:
     else {
       val disj = after.head.asInstanceOf[Disjunction]
       after = after.tail
-      val bodies = disj.alternatives.map(alt => Body(before.toList ++ alt.body.atoms ++ after))
+      // If we don't have a disjunction alternative, we still want preserve everything before and after
+      val alternatives =
+        if (disj.alternatives.isEmpty)
+          Seq(DisjunctionAlternative(Seq()))
+        else
+          disj.alternatives
+      val bodies = alternatives.map(alt => Body(before.toList ++ alt.body.atoms ++ after))
       bodies.flatMap(visitBody)
     }
   }

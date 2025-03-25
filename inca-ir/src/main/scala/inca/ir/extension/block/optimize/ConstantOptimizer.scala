@@ -9,9 +9,9 @@ import inca.ir.optimize.ConstantBaseIROptimizer
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   // blocks may fail, we can not eliminate them if they contain an atom
-  override def mayEliminate(t: Term): Boolean = t match
-    case irblock.Block(ats, t) => ats.flatMap(visitAtom).isEmpty
-    case _ => super.mayEliminate(t)
+  override def mayEliminate(term: Term): Boolean = term match
+    case irblock.Block(ats, t) => ats.flatMap(visitAtom).isEmpty && mayEliminate(t)
+    case _ => super.mayEliminate(term)
 
 
 
