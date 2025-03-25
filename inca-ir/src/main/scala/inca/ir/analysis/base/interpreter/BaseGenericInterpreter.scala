@@ -122,6 +122,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def snapshotSupplementary(): RV = supplementaryTable.getTable
 
+  def scopedSupplementary[A](f: => A): A = supplementaryTable.scoped {
+    gensym.scoped {
+      f
+    }
+  }
+
   /** updates the supplementary table; ASSUMEs the new table is non-empty */
   inline def updateSupplementaryUnchecked(f: RV => RV): RV = supplementaryTable.update(f)
 
@@ -399,7 +405,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       val relRes = evalRelationLikeEntry(r, params, adornment, evalContext)
       val callRes = bindCallResultInSupplementary(r, params, args, relRes, argMapping)
       if (neg)
-        relationOps.antiJoin(beforeCall, callRes)
+        // Project everything away that way freshly bound.
+        // This is safe, since a negative call does not bind variables
+        val colsBefore = relationOps.columns(beforeCall)
+        val colsAfter = relationOps.columns(callRes)
+        val projected = relationOps.project(callRes, colsBefore.intersect(colsAfter))
+        relationOps.antiJoin(beforeCall, projected)
       else
         relationOps.naturalJoin(beforeCall, callRes)
     }

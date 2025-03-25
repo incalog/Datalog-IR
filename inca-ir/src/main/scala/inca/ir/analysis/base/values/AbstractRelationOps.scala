@@ -189,12 +189,12 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
           case _ => AbstractRelation(newCols, newVals, newEmpty)
 
   override def antiJoin(rv: AbstractRelation, other: AbstractRelation): AbstractRelation =
-    val sharedCols = rv.cols.intersect(other.cols)
-    if (sharedCols.isEmpty)
-      throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: ${rv.cols} <-> ${other.cols}")
     (rv, other) match
       case (AbstractRelation.Empty(_), _) | (_, AbstractRelation.Empty(_)) => rv
       case (rv: AbstractRelation.NonEmpty, other: AbstractRelation.NonEmpty) =>
+        val sharedCols = rv.cols.intersect(other.cols)
+        if (sharedCols.isEmpty)
+          throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: ${rv.cols} <-> ${other.cols}")
         (rv.empty, other.empty) match
           case (Topped.Actual(true), Topped.Actual(true)) => AbstractRelation.Empty(rv.cols)
           case (Topped.Actual(false), Topped.Actual(true)) => AbstractRelation(rv.cols, rv.rows, Topped.Actual(false))

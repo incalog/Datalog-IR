@@ -40,13 +40,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val commonCols = colsBefore ++ posBranchVars.intersect(negBranchVars) :+ resName
 
       val joinedSup = except.tryCatch {
-        val res = supplementaryTable.scoped {
+        val res = scopedSupplementary {
           evalAtom(a)
           relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(true) }
         }
         relationOps.project(res, commonCols)
       } /* catch */ { exec =>
-        val res = supplementaryTable.scoped {
+        val res = scopedSupplementary {
           evalAtom(negateAtom(a))
           relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(false) }
         }

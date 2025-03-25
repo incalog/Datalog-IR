@@ -156,18 +156,20 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
     ConcreteRelation(cols ++ otherNewCols, newEntries)
 
   def antiJoin(other: ConcreteRelation[V]): ConcreteRelation[V] =
-    val sharedCols = cols.intersect(other.cols)
-    if (sharedCols.isEmpty)
-      throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: $cols <-> ${other.cols}")
-    val sameColsIndices = sharedCols.map(cols.indexOf)
-    val sameOtherColsIndices = sharedCols.map(other.cols.indexOf)
-    val filteredRows = rows.filter { row1 =>
-      !other.rows.exists { row2 =>
-        sameColsIndices.map(row1.apply) == sameOtherColsIndices.map(row2.apply)
+    if (isEmpty || other.isEmpty)
+      this
+    else
+      val sharedCols = cols.intersect(other.cols)
+      if (sharedCols.isEmpty)
+        throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: $cols <-> ${other.cols}")
+      val sameColsIndices = sharedCols.map(cols.indexOf)
+      val sameOtherColsIndices = sharedCols.map(other.cols.indexOf)
+      val filteredRows = rows.filter { row1 =>
+        !other.rows.exists { row2 =>
+          sameColsIndices.map(row1.apply) == sameOtherColsIndices.map(row2.apply)
+        }
       }
-    }
-    ConcreteRelation(cols,  filteredRows)
-
+      ConcreteRelation(cols,  filteredRows)
 
 class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   extends RelationOps[V, Boolean, ConcreteRelation[V]]:
