@@ -37,47 +37,6 @@ case class CompiledFunctionalUnit(fun: Module, override val compilerOptions: Fun
     fun
   }
 
-  /*lazy val monoModule: Module = {
-    val logMono = funLogging.readBoolean("mono")
-    val mono = new Monomorph
-    val module = mono.transModule(typed)
-
-    if (logMono && !logTyped)
-      printStep("Mono", module)
-
-    val typer: Typechecker = new Typechecker
-    typer.typecheck(module)
-
-    if (logMono && logTyped)
-      printStep("Mono", module)
-
-    messages ++= typer.getErrors
-    messages ++= typer.getWarnings
-    stopIfNeeded()
-    module
-  }
-
-  lazy val defunModule: Module = {
-    val logDefun = funLogging.readBoolean("defun")
-
-    val defun = new Defunctionalize
-    val module = defun.transModule(monoModule)
-
-    if (logDefun && !logTyped)
-      printStep("Defun", module)
-
-    val typer: Typechecker = new Typechecker
-    typer.typecheck(module)
-
-    if (logDefun && logTyped)
-      printStep("Defun", module)
-
-    messages ++= typer.getErrors
-    messages ++= typer.getWarnings
-    stopIfNeeded()
-    module
-  }*/
-
   lazy val normalizedFoldModule: Module = {
     val logNormalized = funLogging.logNormalizedModule
 
