@@ -19,6 +19,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
   override protected def canDetermineValue(t: Term): Boolean = t match
     case TupleLit(ts) => ts.forall(canDetermineValue)
+    case Project(t, idx) => canDetermineValue(t)
     case _ => super.canDetermineValue(t)
 
   // Transform a term or possible nested tuple into a flat structure with the corresponding index.

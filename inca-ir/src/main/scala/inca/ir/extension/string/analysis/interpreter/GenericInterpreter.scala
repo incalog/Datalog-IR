@@ -15,6 +15,12 @@ trait StringOps[V]:
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val stringOps: StringOps[V]
 
+  override protected def canDetermineValue(t: ir.Term): Boolean = t match
+    case StringLit(_) => true
+    case StringConcat(lhs, rhs) => canDetermineValue(lhs) && canDetermineValue(rhs)
+    case ToString(t) => canDetermineValue(t)
+    case _ => super.canDetermineValue(t)
+
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case StringLit(s) => termResult(stringOps.stringLit(s))
     case ToString(t) => unaryOp(evalTerm(t))(stringOps.toString)

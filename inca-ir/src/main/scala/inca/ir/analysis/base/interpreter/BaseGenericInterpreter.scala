@@ -325,11 +325,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   protected def boundInSupplementary(s: String): Boolean =
     relationOps.hasColumn(supplementaryTable.getTable, s)
 
-  protected def canDetermineValue(t: ir.Term): Boolean =
-    // This function assumes that all of our programs are well-typed.
+  protected def canDetermineValue(t: ir.Term): Boolean = t match
+    case ir.Var(ref) => boundInSupplementary(ref.name.name)
+    case ir.Cast(t, _) => canDetermineValue(t)
+  // This function assumes that all of our programs are well-typed.
     // Subclasses, e.g. for Blocks or Sets should override this method to correctly
     // handle arguments, such as SetComprehension to indicate that they can be computed.
-    t.vars.forall { v => boundInSupplementary(v.name.name) }
+
 
   protected final def evalEq(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     (canDetermineValue(lhs), canDetermineValue(rhs), neg) match

@@ -12,7 +12,11 @@ trait DataOps[V, R]:
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val dataOps: DataOps[V, RV]
-  
+
+  override protected def canDetermineValue(t: ir.Term): Boolean = t match
+    case Construct(_, _) => true
+    case _ => super.canDetermineValue(t)
+
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case Construct(caseRef, args) =>
       val caseDef = caseRef.target.get

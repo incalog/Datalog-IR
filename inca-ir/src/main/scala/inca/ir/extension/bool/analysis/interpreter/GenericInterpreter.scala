@@ -8,10 +8,6 @@ import inca.ir.extension.bool.*
 import inca.ir.visitors.IRVisitor
 import sturdy.data.MayJoin
 import sturdy.values.booleans.BooleanOps
-import sturdy.data.MakeJoined
-import sturdy.values.{Join, MaybeChanged, Topped}
-import sturdy.values.booleans.given_Structural_Boolean
-import sturdy.values.JoinToppedFlat
 
 case object InvalidBooleanOp extends BaseIRFailure
 

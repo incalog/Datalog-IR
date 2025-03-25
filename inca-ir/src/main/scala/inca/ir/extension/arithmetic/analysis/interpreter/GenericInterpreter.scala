@@ -15,6 +15,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]
 
+  override protected def canDetermineValue(t: ir.Term): Boolean = t match
+    case IntNum(_) => true
+    case DoubleNum(_) => true
+    case BinOp(lhs, rhs, _) => canDetermineValue(lhs) && canDetermineValue(rhs)
+    case _ => super.canDetermineValue(t)
+
   private def binaryArithmeticComparison(op: String, ops: OrderingOps[V, B]): (V, V) => B = op match
     case "<=" => ops.le
     case "<" => ops.lt
