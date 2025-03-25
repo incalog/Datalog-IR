@@ -20,6 +20,15 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
   val booleanOps: BooleanOps[V]
 
+  override protected def canDetermineValue(term: ir.Term): Boolean = term match
+    case AtomAsBool(a) => true
+    case BoolAnd(t1, t2) => canDetermineValue(t1) && canDetermineValue(t2)
+    case BoolOr(t1, t2) => canDetermineValue(t1) && canDetermineValue(t2)
+    case BoolNot(t) => canDetermineValue(t)
+    case BoolTrue => true
+    case BoolFalse => true
+    case _ => super.canDetermineValue(term)
+
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case AtomAsBool(a) =>
       val resName = gensym.fresh("result")
