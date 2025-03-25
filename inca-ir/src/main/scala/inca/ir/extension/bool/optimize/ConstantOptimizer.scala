@@ -4,14 +4,18 @@ import inca.ir
 import inca.ir.*
 import inca.ir.analysis.base.values.Value
 import inca.ir.extension.bool as irbool
-import inca.ir.extension.bool.AtomAsBool
+import inca.ir.extension.bool.{AtomAsBool, BoolAnd, BoolFalse, BoolNot, BoolOr, BoolTrue}
 import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
 import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   override def mayEliminate(term: Term): Boolean = term match
-    case AtomAsBool(at) => visitAtom(at).isEmpty
+    case AtomAsBool(at) => isConstant(term) && visitAtom(at).isEmpty
+    case BoolTrue | BoolFalse => isConstant(term)
+    case BoolAnd(lhs, rhs) => isConstant(term) && mayEliminate(lhs) && mayEliminate(rhs)
+    case BoolOr(lhs, rhs) => isConstant(term) && mayEliminate(lhs) && mayEliminate(rhs)
+    case BoolNot(tt) => isConstant(term) && mayEliminate(tt)
     case _ => super.mayEliminate(term)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match

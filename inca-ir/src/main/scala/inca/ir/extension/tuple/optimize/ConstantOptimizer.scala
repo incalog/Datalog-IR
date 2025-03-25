@@ -9,6 +9,11 @@ import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
+  override def mayEliminate(t: Term): Boolean = t match
+    case irtuple.TupleLit(ts) => isConstant(t) && ts.forall(mayEliminate)
+    case irtuple.Project(tt, _) => isConstant(t) && mayEliminate(tt)
+    case _ => super.mayEliminate(t)
+
   override def valueToTermInternal(value: Value): Option[Term] = value match
     case ConstantTupleV(values) => Some(irtuple.TupleLit(values.flatMap(valueToTerm.apply)))
     case _ => super.valueToTermInternal(value)

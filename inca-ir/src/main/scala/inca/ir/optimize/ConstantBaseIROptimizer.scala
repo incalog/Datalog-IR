@@ -16,6 +16,7 @@ import inca.ir.extension.block as irblock
 import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.set as irset
 import inca.ir.extension.map as irmap
+import inca.ir.extension.disjunction as irdisjunction
 import sturdy.values.Topped
 
 extension [T](topped: Topped[T])
@@ -159,10 +160,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
   protected def mayEliminate(p: Param)(implicit relation: Relation): Boolean =
     true
 
-  protected def mayEliminate(t: Term): Boolean =
-    // See branching test. Our annotation is too imprecise, we work around this with a simple heuristic.
-    // A term can only be constant, if we know that all variables used in the term are constant as well.
-    isConstant(t) && t.vars.forall(isConstant)
+  protected def mayEliminate(t: Term): Boolean = t match
+    case Var(ref) => isConstant(t)
+    case Cast(tt, _) => isConstant(t) && mayEliminate(tt)
 
   protected def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
     case TermArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
@@ -172,10 +172,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     case TermArg(t) => t.typ.get.ty
     case w@WildcardArg() => w.typ.get.ty
   
-  /*protected def mayEliminate(arg: Arg): Boolean = arg match
+  protected def mayEliminate(arg: Arg): Boolean = arg match
     case TermArg(t) => mayEliminate(t)
-    case WildcardArg() => false*/
-
+    case WildcardArg() => false
 
   protected def mayEliminate(at: Atom): Boolean = at match
     case eq: Eq => eq.neg || (mayEliminate(eq.lhs) && mayEliminate(eq.rhs))
@@ -283,6 +282,7 @@ class IRConstantOptimizer(
     with irblock.optimize.ConstantOptimizer
     with irset.optimize.ConstantOptimizer
     with irmap.optimize.ConstantOptimizer
+    with irdisjunction.optimize.ConstantOptimizer
 
 
 

@@ -7,6 +7,10 @@ import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
+  override protected def mayEliminate(arg: Arg): Boolean = arg match
+    case AggregateColumnArg(t) => mayEliminate(t)
+    case _ => super.mayEliminate(arg)
+
   private var paramUsedAsAggregateColumn: Map[Relation, Set[Param]] = Map()
   override def mayEliminate(p: Param)(implicit relation: Relation): Boolean =
     !paramUsedAsAggregateColumn.contains(relation) && super.mayEliminate(p)

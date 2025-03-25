@@ -15,6 +15,11 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = abstractInterpreter.intOrderingOps
 
+  override def mayEliminate(t: Term): Boolean = t match
+    case irarith.IntNum(_) | irarith.DoubleNum(_) => isConstant(t)
+    case irarith.BinOp(lhs, rhs, _) => isConstant(t) && mayEliminate(lhs) && mayEliminate(rhs)
+    case _ => super.mayEliminate(t)
+
   override def valueToTermInternal(value: Value): Option[Term] = value match
     case ConstantIntV(v1) => Some(irarith.IntNum(v1))
     case ConstantDoubleV(v1) => Some(irarith.DoubleNum(v1))

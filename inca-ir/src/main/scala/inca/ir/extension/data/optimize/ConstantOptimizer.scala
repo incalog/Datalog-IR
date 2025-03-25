@@ -11,6 +11,10 @@ import inca.ir.optimize.{isTrue, isFalse}
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
+  override def mayEliminate(t: Term): Boolean = t match
+    case Construct(_, args) => isConstant(t) && args.forall(mayEliminate)
+    case _ => super.mayEliminate(t)
+  
   override def valueToTermInternal(value: Value): Option[Term] = value match
     case ConstantDataV(caseDef, args) =>
       val argsV = args.flatMap(valueToTermInternal)

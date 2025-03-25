@@ -70,9 +70,7 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) =>
       supColumnStack.head.put(supName, t)
-      //extractTermValue(supName).foreach(updateTermResult(t, _))
-    case (FixIn.Body(rel, ix, _), None) =>
-      // body failed
+    case (FixIn.Body(rel, ix, _), None) => // body failed
       supColumnStack.pop()
     case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv, rawBody))) =>
       // map all terms to values

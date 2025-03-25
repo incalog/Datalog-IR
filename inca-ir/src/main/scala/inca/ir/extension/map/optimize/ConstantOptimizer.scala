@@ -2,15 +2,40 @@ package inca.ir.extension.map.optimize
 
 import inca.ir
 import inca.ir.analysis.base.values.Value
-import inca.ir.extension.map.analysis.interpreter.{ConstantMapV, ConstantMapFunV}
+import inca.ir.extension.map.analysis.interpreter.{ConstantMapFunV, ConstantMapV}
 import inca.ir.extension.map as irmap
 import inca.ir.*
+import inca.ir.extension.map.TMap
 import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
+  override def eqsToBindConstantParams(body: Body): Seq[Eq] =
+    getBodyResult(body).headOption match
+      case None => Seq()
+      case Some(constRel) =>
+        constRel.cols.zip(constRel.rows).flatMap { (c, v) =>
+            val isMap = v match
+              case _: ConstantMapV | _: ConstantMapFunV => true
+              case _ => false
+            val bodyBindsVar = body.vars.map(_.name.name).contains(c)
+            if (isMap && bodyBindsVar)
+              None
+            else
+              valueToTerm(v).flatMap { t =>
+                val expectedTy = params.get(RefByName(Name(c)))
+                expectedTy.map(ty => Eq(Var(Name(c)), Cast(t, ty)))
+              }
+        }
+  
   override def mayEliminate(t: Term): Boolean = t match
-    case _: irmap.MapComprehension => false // contains atoms that might fail
+    case irmap.MapComprehension(k, v, ats) => isConstant(t) && ats.flatMap(visitAtom).isEmpty
+    case irmap.MapFun(_, valTerm) => isConstant(t) && mayEliminate(valTerm)
+    case irmap.MapPlus(map, key, value) => isConstant(t) && mayEliminate(map) && mayEliminate(key) && mayEliminate(value)
+    case irmap.MapUnion(t1, t2) => isConstant(t) && mayEliminate(t1) && mayEliminate(t2)
+    case irmap.MapConcat(t1, t2) => isConstant(t) && mayEliminate(t1) && mayEliminate(t2)
+    case irmap.MapLookUp(map, key) => isConstant(t) && mayEliminate(map) && mayEliminate(key)
+    case v: Var if v.typ.exists(tty => tty.ty.isInstanceOf[TMap] && tty.mode.isBinding) => false
     case _ => super.mayEliminate(t)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match
