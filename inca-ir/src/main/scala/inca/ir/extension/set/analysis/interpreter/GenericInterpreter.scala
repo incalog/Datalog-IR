@@ -67,7 +67,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       updateSupplementaryChecked { sup =>
         val columnsBefore = relationOps.columns(sup)
         except.tryCatch {
-          evalAtoms(atoms)
+          evalAtomGroup(atoms)
           val elemCol = evalTerm(elem)
           val newSup = supplementaryTable.getTable
           relationOps.groupBy(newSup, elemCol, columnsBefore)(columnsBefore :+ resultColumn, {

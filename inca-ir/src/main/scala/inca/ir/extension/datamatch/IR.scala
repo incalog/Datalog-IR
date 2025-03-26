@@ -7,8 +7,8 @@ import inca.ir.extension.disjunction
 import inca.ir.util.SourceLocation
 
 // TODO: Support wildcards here ?
-case class Case(name: Ref[CaseDefinition], patVars: Seq[Var], body: Seq[Atom]) extends SourceLocation:
-  override def toString: String = s"case $name(${patVars.mkString(", ")}) => ${body.mkString(", ")}"
+case class Case(ref: Ref[CaseDefinition], patVars: Seq[Var], body: Seq[Atom]) extends SourceLocation:
+  override def toString: String = s"case $ref(${patVars.mkString(", ")}) => ${body.mkString(", ")}"
   def vars: Seq[Var] = patVars.flatMap(_.vars) ++ body.flatMap(_.vars)
 
 case class Match(matchee: Term, cases: Seq[Case]) extends Atom:

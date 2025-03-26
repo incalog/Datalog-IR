@@ -4,7 +4,7 @@ import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
 import inca.ir.extension.*
-import inca.ir.optimize.{Optimizer, ReplaceSingletonVariables}
+import inca.ir.optimize.{IRDataKindOptimizer, Optimizer, ReplaceSingletonVariables}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
 import inca.ir.{CompiledUnit, Name, optimize, Module as IRModule}
@@ -82,6 +82,7 @@ object CompiledFunctionalUnit:
       () => new typeparam.Lowering {},
       () => new aggregateset.Lowering {},
       //() => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+      () => new IRDataKindOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
       () => new set.SyntacticOptimizer {},
       () => new set.Lowering {},
       () => new map.Lowering {},

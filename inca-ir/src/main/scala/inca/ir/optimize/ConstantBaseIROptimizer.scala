@@ -19,10 +19,6 @@ import inca.ir.extension.map as irmap
 import inca.ir.extension.disjunction as irdisjunction
 import sturdy.values.Topped
 
-extension [T](topped: Topped[T])
-  def isTrue: Boolean = topped.isActual && topped.get == true
-  def isFalse: Boolean = topped.isActual && topped.get == false
-
 trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimizer[Value, AbstractRelation, Value]:
   override def name: String =
     if (interRelational)

@@ -5,8 +5,11 @@ import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
-import inca.util.{DEFAULT_PRINTER, printSteps}
-import sturdy.effect.failure.{AFallible, CollectedFailures}
+import sturdy.values.Topped
+
+extension [T](topped: Topped[T])
+  def isTrue: Boolean = topped.isActual && topped.get == true
+  def isFalse: Boolean = topped.isActual && topped.get == false
 
 trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   // Configure

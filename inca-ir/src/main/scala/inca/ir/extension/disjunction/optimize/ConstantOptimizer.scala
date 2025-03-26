@@ -1,11 +1,9 @@
 package inca.ir.extension.disjunction.optimize
 
 import inca.ir
-import inca.ir.analysis.base.values.Value
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
-import sturdy.values.{Top, Topped}
 import inca.ir.*
-import inca.ir.optimize.{ConstantBaseIROptimizer, isFalse, isTrue}
+import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
@@ -13,8 +11,13 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case Disjunction(alternatives) =>
       // Do not visit the body here, since we don't have a body result for it.
       // ConstantBaseIROptimizer interprets a missing body result as a failing body.
-      Seq(Disjunction(alternatives.map { alt => 
-        DisjunctionAlternative(Body(alt.body.atoms.flatMap(visitAtom)))
+      Seq(Disjunction(alternatives.flatMap { alt =>
+        try {
+          val dis = DisjunctionAlternative(Body(alt.body.atoms.flatMap(visitAtom)))
+          Some(dis)
+        } catch { case FailedBody =>
+          None
+        }
       }))
     case _ => super.visitAtom(atom)
 

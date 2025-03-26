@@ -33,7 +33,6 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case irset.SetLit(ts) => isConstant(t) && ts.forall(mayEliminate)
     case irset.SetUnion(ts) => isConstant(t) && ts.forall(mayEliminate)
     case irset.SetIntersection(t1, t2) => isConstant(t) && mayEliminate(t1) && mayEliminate(t2)
-    // Do not eliminate set variables if they are binding
     case v: Var if v.typ.exists(tty => tty.ty.isInstanceOf[TSet] && tty.mode.isBinding) => false
     case _ => super.mayEliminate(t)
 
