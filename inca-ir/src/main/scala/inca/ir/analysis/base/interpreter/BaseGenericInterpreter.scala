@@ -128,9 +128,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def snapshotSupplementary(): RV = supplementaryTable.getTable
 
-  def scopedSupplementary[A](f: => A): A = supplementaryTable.scoped {
+  def scopedSupplementary[A](f: RV => A): A = supplementaryTable.scoped {
     gensym.scoped {
-      f
+      f(supplementaryTable.getTable)
     }
   }
 

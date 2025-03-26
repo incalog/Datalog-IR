@@ -63,17 +63,15 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
    */
   private def mapFunResult[A](inputCols: Seq[String])(f: => A): SupColumn =
     val mapFun = mapOps.mapFun(key => {
-      supplementaryTable.scoped {
+      scopedSupplementary { sup =>
         val keys = tupleOps.iter(key)
 
         // we can always query a map with partial results
+        // it is not obvious how to support that here
         val evalContext = if (keys.nonEmpty)
-          relationOps.naturalJoin(
-            relationOps.make(inputCols, Seq(keys)),
-            supplementaryTable.getTable
-          )
+          relationOps.naturalJoin(relationOps.make(inputCols, Seq(keys)), sup)
         else
-          supplementaryTable.getTable
+          sup
 
         val columnsBefore = relationOps.columns(evalContext)
         supplementaryTable.setTable(evalContext)
@@ -81,9 +79,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         // update the supplementary table
         f
 
-        val sup = supplementaryTable.getTable
-        val outCols = relationOps.columns(sup).dropWhile(columnsBefore.contains)
-        val outputRows = relationOps.extract(sup, outCols)
+        val newSup = supplementaryTable.getTable
+        val outCols = relationOps.columns(newSup).dropWhile(columnsBefore.contains)
+        val outputRows = relationOps.extract(newSup, outCols)
         val vs = outputRows.map { v =>
           if (v.size == 1) v.head
           else tupleOps.tupleLit(v)
@@ -128,15 +126,40 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         case (Param(_, TDemand(_)), i) => i
       }
       val inputCols = inputIndices.map(params(_).name.name)
-      mapFunResult(inputCols) {
-        // evaluate the corresponding relation
-        val accCols = params.indices.map {
-          case i if inputIndices.contains(i) => inputCols(i)
-          case _ => gensym.fresh("arg")
+
+      if (inputCols.nonEmpty)
+        mapFunResult(inputCols) {
+          // evaluate the corresponding relation
+          val accCols = params.indices.map {
+            case i if inputIndices.contains(i) => inputCols(i)
+            case _ => gensym.fresh("arg")
+          }
+          val args = accCols.map(c => Var(c).arg)
+          evalCall(r, params, args, false)
         }
-        val args = accCols.map(c => ir.TermArg(Var(c)))
-        evalCall(r, params, args, false)
-      }
+      else
+        // no demanded arguments, that means we basically call SetFrom
+        val resultColumn = gensym.fresh("result")
+        scopedSupplementary { sup =>
+          val columnsBefore = relationOps.columns(sup)
+          except.tryCatch {
+            val accCols = params.map(_ => gensym.fresh("arg"))
+            val unboundArgs = accCols.map(c => Var(c).arg)
+            evalCall(r, params, unboundArgs, false)
+            val newSup = supplementaryTable.getTable
+            relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
+              case (groupedVals, elemVals) if accCols.size == 1 =>
+                groupedVals :+ setOps.setLit(elemVals.flatten)
+              case (groupedVals, elemVals) =>
+                val tups = elemVals.map(tupleOps.tupleLit)
+                groupedVals :+ setOps.setLit(tups)
+            })
+          } /* catch */ { exec =>
+            relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
+          }(using mayJoinRV)
+          resultColumn
+        }
+
     case MapLookUp(map, key) =>
       val resName = gensym.fresh("result")
       val mapCol = evalTerm(map)

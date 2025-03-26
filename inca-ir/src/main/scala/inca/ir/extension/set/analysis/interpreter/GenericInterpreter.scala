@@ -44,7 +44,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         except.tryCatch {
           val params = relationParams(r)
           val accCols = params.map(_ => gensym.fresh("arg"))
-          val args = accCols.map(c => ir.TermArg(Var(c)))
+          val args = accCols.map(c => Var(c).arg)
           evalCall(r, params, args, false)
           val newSup = supplementaryTable.getTable
           relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
