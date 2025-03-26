@@ -1,5 +1,6 @@
 package inca.ir.analysis.base.logger
 
+import inca.ir.analysis.base.interpreter.FixIn.EnterRelation
 import inca.ir.{Body, Name, Relation, Term, Var}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
@@ -65,13 +66,31 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
 
   override def enter(dom: FixIn): Unit = dom match
     case FixIn.Body(_, _, _) => supColumnStack.push(mutable.Map())
+    case FixIn.AtomGroup(_) => supColumnStack.push(mutable.Map())
     case _ => // nothing
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = (dom, codom.get) match
     case (FixIn.Term(t), Some(FixOut.Term(supName))) =>
       supColumnStack.head.put(supName, t)
-    case (FixIn.Body(rel, ix, _), None) => // body failed
+    case (FixIn.Body(_, _, _), None) => // body failed
       supColumnStack.pop()
+    case (FixIn.AtomGroup(_), None) =>
+      supColumnStack.pop()
+    case (FixIn.AtomGroup(as), Some(FixOut.AtomGroup(rv))) =>
+      // map all terms to values
+      val supColumnToTerm = supColumnStack.pop()
+      var termToValue = supColumnToTerm.flatMap { (supCol, term) =>
+        extractTermValue(supCol, rv).map(term -> _)
+      }
+      // we might miss some variables terms we have not visited in the fixpoint
+      val collectedSupColumns = supColumnToTerm.keys.toSet
+      val allSubColumns = extractColumns(rv).toSet
+      termToValue = termToValue ++= allSubColumns.diff(collectedSupColumns).flatMap { missingCol =>
+        extractTermValue(missingCol, rv).map(Var(Name(missingCol)) -> _)
+      }
+      // annotate the terms
+      val annotator = TermAnnotator(termToValue.toMap)
+      as.foreach(annotator.visitAtom)
     case (FixIn.Body(rel, ix, _), Some(FixOut.Body(rv, rawBody))) =>
       // map all terms to values
       val supColumnToTerm = supColumnStack.pop()

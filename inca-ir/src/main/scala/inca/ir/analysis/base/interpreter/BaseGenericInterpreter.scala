@@ -30,16 +30,20 @@ case class Adornment(as: Seq[Adorn]):
   lazy val unboundIndices: Seq[Int] = as.zipWithIndex.collect { case (Adorn.f, idx) => idx }
 
 enum FixIn:
+  // logging only
   case Term(term: ir.Term)
   case Atom(atom: ir.Atom)
+  case AtomGroup(atoms: Seq[ir.Atom])
   case Assign(to: ir.Term, from: ir.Term)
   case Body(rel: ir.Relation, ruleIx: Int, paramNames: Seq[String])
+  // relevant for fixpoint computations
   case EnterRelation(rel: ir.Relation, adornment: Adornment)
 
   override def toString: String = this match
     case FixIn.Term(t) => t.toString
     case FixIn.Assign(to, from) => s"$to = $from"
     case FixIn.Atom(a) => a.toString
+    case FixIn.AtomGroup(as) => as.mkString(",")
     case FixIn.Body(rel, ix, _) => s"${rel.name}: $ix" //b.toString
     case FixIn.EnterRelation(rel: ir.Relation, adornment: Adornment) => s"${rel.name.name}_$adornment"
 
@@ -49,6 +53,7 @@ enum FixOut[V, RV]:
   case Term(col: SupColumn)
   case Assign(to: Seq[SupColumn], from: SupColumn)
   case Atom()
+  case AtomGroup(value: RV)
   case ExitCall(value: RV)
   case Body(value: RV, rawBody: RV)
   case Relation(value: RV)
@@ -61,6 +66,7 @@ given CCombineFixOut[V, RV, W <: Widening](using Combine[RV, W]): Combine[FixOut
       case (FixOut.Term(rv1), FixOut.Term(rv2)) => assert(rv1 == rv2); MaybeChanged(FixOut.Term(rv1), out1)
       case (FixOut.Assign(t1, f1), FixOut.Assign(t2, f2)) => assert(t1 == t2); MaybeChanged(FixOut.Assign(t1, f1), out1)
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
+      case (FixOut.AtomGroup(rv1), FixOut.AtomGroup(rv2)) => Combine(rv1, rv2).map(FixOut.AtomGroup.apply)
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => Combine(rv1, rv2).map(FixOut.ExitCall.apply)
       case (FixOut.Body(rv1, rbv1), FixOut.Body(rv2, rbv2)) =>
         val c1 = Combine(rv1, rv2)
@@ -151,6 +157,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       evalAtomOpen(atom);
       //println(s"  ## Success :: ${supplementaryTable.getTable}")
       FixOut.Atom()
+    case FixIn.AtomGroup(as) =>
+      evalAtomGroupOpen(as)
+      FixOut.AtomGroup(supplementaryTable.getTable)
     case FixIn.Assign(to, from) =>
       val (toSup, fromSup) = evalAssignOpen(to, from)
       FixOut.Assign(toSup, fromSup)
@@ -265,6 +274,13 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       extractVarName(rhs).isDefined && lhs.unboundVars.isEmpty && lhs.boundVars.map(_.name.name).forall(supCols.contains) ||
         extractVarName(lhs).isDefined && rhs.unboundVars.isEmpty && rhs.boundVars.map(_.name.name).forall(supCols.contains)
     case _ => false
+
+  inline def evalAtomGroup(atoms: Seq[Atom])(using rec: Fixed): Unit = rec(FixIn.AtomGroup(atoms)) match
+    case FixOut.AtomGroup(_) => ()
+    case _ => throw new IllegalStateException()
+
+  protected def evalAtomGroupOpen(atoms: Seq[Atom])(using rec: Fixed): Unit =
+    evalAtoms(atoms)
 
   protected def evalAtoms(ats: Seq[Atom])(using rec: Fixed): Unit =
     var rest = ats

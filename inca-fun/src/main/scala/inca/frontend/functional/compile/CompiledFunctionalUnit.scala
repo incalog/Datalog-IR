@@ -77,8 +77,6 @@ object CompiledFunctionalUnit:
     () => new foreign.DDLogLowering {}
   )
 
-  //class BoolIROptimizer(analysis: IRConstantAbstractInterpreter) extends BaseIROptimizer(analysis)
-
   def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
     List(
       () => new typeparam.Lowering {},

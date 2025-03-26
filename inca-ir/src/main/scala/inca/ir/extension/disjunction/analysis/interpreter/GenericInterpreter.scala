@@ -22,7 +22,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       val joinedRes = mapJoin(alternatives, { alt =>
         scopedSupplementary {
-          evalAtoms(alt.body.atoms)
+          evalAtomGroup(alt.body.atoms)
           val sup = supplementaryTable.getTable
           relationOps.project(sup, boundAfterDisjunction)
         }
