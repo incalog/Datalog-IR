@@ -55,30 +55,29 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case _ => super.canDetermineValue(t)
 
   /**
-   * `f` is a function that should update the supplementary with fresh columns.
-   * Every column that was not in the supplementary table before execution is
-   * considered an output of the map.
+   * `f` should compute the mapFun value(s) and return the output columns of the supplementary
+   * that contain these value. This function will automatically pack the values into a tuple.
    */
-  private def mapFunResult[A](inputCols: Seq[String])(f: => A): SupColumn =
+  private def mapFunResult(inputCols: Seq[String])(f: => Seq[String]): SupColumn =
     val mapFun = mapOps.mapFun(key => {
       scopedSupplementary { sup =>
+        // Key must be a tuple or a single value!
+        // Otherwise, operations such as MapLookup are not type correct.
         val keys = tupleOps.iter(key)
 
-        // we can always query a map with partial results
-        // it is not obvious how to support that here
-        val evalContext = if (keys.nonEmpty)
-          relationOps.naturalJoin(relationOps.make(inputCols, Seq(keys)), sup)
-        else
-          sup
-
-        val columnsBefore = relationOps.columns(evalContext)
+        val evalContext =
+          if (keys.nonEmpty)
+            if (inputCols.size != keys.size)
+              throw IllegalStateException(s"MapFun requires exactly ${inputCols.size} many inputs")
+            relationOps.naturalJoin(relationOps.make(inputCols, Seq(keys)), sup)
+          else
+            sup
         supplementaryTable.setTable(evalContext)
 
         // update the supplementary table
-        f
+        val outCols = f
 
         val newSup = supplementaryTable.getTable
-        val outCols = relationOps.columns(newSup).dropWhile(columnsBefore.contains)
         val outputRows = relationOps.extract(newSup, outCols)
         val vs = outputRows.map { v =>
           if (v.size == 1) v.head
@@ -96,7 +95,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapUnion(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(mapOps.union)
     case MapFun(params, valTerm) =>
       val inputCols = params.map(_.name.name)
-      mapFunResult(inputCols)(evalTerm(valTerm))
+      mapFunResult(inputCols)(Seq(evalTerm(valTerm)))
     case MapComprehension(key, value, atoms) =>
       val resultColumn = gensym.fresh("result")
       updateSupplementaryChecked { sup =>
@@ -123,20 +122,22 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val inputIndices = params.zipWithIndex.collect {
         case (Param(_, TDemand(_)), i) => i
       }
-      val inputCols = inputIndices.map(params(_).name.name)
 
-      if (inputCols.isEmpty)
+      if (inputIndices.isEmpty)
         // no demanded arguments, that means we get a set from the relation
         evalRelationToSet(r)
       else
         // demanded arguments, that means we create a map fun
+        val inputCols = inputIndices.map(_ => gensym.fresh("bArg"))
         mapFunResult(inputCols) {
-          val accCols = params.indices.map {
+          val argCols = params.indices.map {
             case i if inputIndices.contains(i) => inputCols(i)
-            case _ => gensym.fresh("arg") // fresh arguments are the output of the mapFun
+            case _ => gensym.fresh("fArg") // fresh arguments are the output of the mapFun
           }
-          val args = accCols.map(c => Var(c).arg)
+          val args = argCols.map(c => Var(c).arg)
           evalCall(r, params, args, false)
+          val outCols = argCols.filter(!inputCols.contains(_))
+          outCols
         }
 
     case MapLookUp(map, key) =>
