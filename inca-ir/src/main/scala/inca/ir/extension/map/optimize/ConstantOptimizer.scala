@@ -22,12 +22,9 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
             if (isMap && bodyBindsVar)
               None
             else
-              valueToTerm(v).flatMap { t =>
-                val expectedTy = params.get(RefByName(Name(c)))
-                expectedTy.map(ty => Eq(Var(Name(c)), Cast(t, ty)))
-              }
+              super.eqsToBindConstantParams(body)
         }
-  
+
   override def mayEliminate(t: Term): Boolean = t match
     case irmap.MapComprehension(k, v, ats) => isConstant(t) && ats.flatMap(visitAtom).isEmpty
     case irmap.MapFun(_, valTerm) => isConstant(t) && mayEliminate(valTerm)

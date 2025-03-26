@@ -21,13 +21,11 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
         constRel.cols.zip(constRel.rows).flatMap { (c, v) =>
           val isSet = v.isInstanceOf[ConstantSetV]
           val bodyBindsVar = body.vars.map(_.name.name).contains(c)
+          println(s"$c :: $v :: $isSet :: $bodyBindsVar")
           if (isSet && bodyBindsVar)
             None
           else
-            valueToTerm(v).flatMap { t =>
-              val expectedTy = params.get(RefByName(Name(c)))
-              expectedTy.map(ty => Eq(Var(Name(c)), Cast(t, ty)))
-            }
+            super.eqsToBindConstantParams(body)
         }
 
   override def mayEliminate(t: Term): Boolean = t match
