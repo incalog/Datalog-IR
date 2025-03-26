@@ -4,9 +4,23 @@ import inca.ir
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
 import inca.ir.extension.data.{CaseDefinition, CaseDefinitionReference, Construct, DataDefinition, DataDefinitionReference, Deconstruct}
 import inca.ir.extension.datamatch.{Case, Match}
-import inca.ir.*
+import inca.ir.{Atom, Var, RefByName, Name}
 import inca.ir.extension.data.analysis.interpreter.DataOps
-import sturdy.data.{MayJoin, mapJoin, MakeJoined}
+import inca.ir.visitors.IRVisitor
+import sturdy.data.{MakeJoined, MayJoin, mapJoin}
+
+class PatternVarCollector extends IRVisitor:
+  var patternVars: Seq[Var] = Seq()
+
+  def extractPatternVars(atom: Atom): Seq[Var] =
+    visitAtom(atom)
+    patternVars
+
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case Match(_, cases) =>
+      patternVars ++= cases.flatMap(_.patVars)
+      super.visitAtom(atom)
+    case _ => super.visitAtom(atom)
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val dataOps: DataOps[V, RV]
@@ -20,12 +34,14 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val colsBefore = relationOps.columns(supBefore)
 
       // all variables that are in scope after the match construct
-      val allVars = cases.map(_.body.flatMap(_.vars).map(_.name.name))
-      val boundAfterDisjunction = allVars.foldLeft[Seq[String]](allVars.flatten) { (acc, altVars) =>
+      val patVars = PatternVarCollector().extractPatternVars(at).map(_.name.name)
+      val caseVars = cases.map(_.vars.map(_.name.name))
+      val allVars = caseVars.flatten.intersect(patVars)
+      val boundAfterMatch = caseVars.foldLeft[Seq[String]](allVars) { (acc, altVars) =>
         acc.intersect(altVars)
       } ++ colsBefore
 
-      val joinedRes = mapJoin(cases, { case Case(caseRef, patVars, body) =>
+      val joinedRes = mapJoin(cases, { case Case(caseRef, patVars, atoms) =>
         supplementaryTable.scoped {
           val caseDef = caseRef.target.get
           val deconNames = caseDef.args.map(_ => gensym.fresh(s"Decon"))
@@ -54,10 +70,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           }
 
           // 2. Eval the body
-          evalAtoms(body)
+          val updatedSup = updateSupplementaryChecked { _ =>
+            evalAtomGroup(atoms)
+            supplementaryTable.getTable
+          }
 
           // 3. Project relevant vars
-          relationOps.project(supplementaryTable.getTable, boundAfterDisjunction)
+          relationOps.project(updatedSup, boundAfterMatch)
         }
       })
       updateSupplementaryChecked(_ => joinedRes)
