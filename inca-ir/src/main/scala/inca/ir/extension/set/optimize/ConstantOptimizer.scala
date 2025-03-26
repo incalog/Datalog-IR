@@ -21,7 +21,6 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
         constRel.cols.zip(constRel.rows).flatMap { (c, v) =>
           val isSet = v.isInstanceOf[ConstantSetV]
           val bodyBindsVar = body.vars.map(_.name.name).contains(c)
-          println(s"$c :: $v :: $isSet :: $bodyBindsVar")
           if (isSet && bodyBindsVar)
             None
           else
