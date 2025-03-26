@@ -225,7 +225,12 @@ class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
     val (newCols, newRows) = subst.foldLeft((Seq[String](), initialRows)) {
       case ((accCols, accRows), (supColumn, cols)) =>
         val cIx = columnIndex(rv, supColumn)
-        val dupRows = rows.map(r => repeat(r(cIx), cols.size))
+        val dupRows = rows.map { r =>
+          if (r.isEmpty)
+            r
+          else
+            repeat(r(cIx), cols.size)
+        }
         (accCols ++ cols, accRows.zip(dupRows).map((r1, r2) => r1 ++ r2))
     }
     ConcreteRelation(newCols, newRows.toSet)

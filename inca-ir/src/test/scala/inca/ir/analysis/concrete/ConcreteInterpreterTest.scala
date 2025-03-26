@@ -17,6 +17,7 @@ import inca.ir.extension.not.{Not, IR as notIR}
 import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit, SetMember, SetUnion, SyntacticOptimizer, TSet, IR as setIR}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.extension.impure.{Impure, ImpurityKind, IR as impureIR}
+import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, RefByName, Relation, TNothing, Type, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
@@ -1966,10 +1967,13 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     ))
     val res = interp(mod)
     assert(res("main").size == 1)
-    assert(res("main").entries.head == Map(
+    val mapFun = res("main").entries.head.asInstanceOf[Function[Any, Any]]
+    assert(mapFun("A") == Set(1))
+    assert(mapFun("B") == Set(2))
+    /*assert(res("main").entries.head == Map(
       "A" -> Set(1),
       "B" -> Set(2)
-    ))
+    ))*/
   }
 
   test("Map - Comprehension") {

@@ -40,7 +40,7 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
       abstractInterpreter.evalProgram(modules)
     }.get
 
-    println(new IRDebugPrinter{}.prettyPrint(modules))
+    //println(new IRDebugPrinter{}.prettyPrint(modules))
 
   override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
     if (!analysisHasRun)

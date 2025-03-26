@@ -18,6 +18,23 @@ import inca.ir.extension.string.TString
 
 // TODO: Support Scala code
 // TODO: Support incremental updates
+
+private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
+  val argTys = args.map {
+    case _: CIntV => TInt
+    case _: CDoubleV => TDouble
+    case _: CStringV => TString
+    case CDataV(caseDef, _) => caseDef.data
+  }
+  val caseDef = CaseDefinition(Name(caseName), argTys, TData(Name(dataName)))
+  CDataV(caseDef, args.map(_.asInstanceOf[Value]))
+
+private def interpretfyTupleEntry(v: Any): Value = v match
+  case () => CTupleV(Seq())
+  case _ => 
+  // TODO: Support more values, such as Boolean, Tuples as input
+    transformEDBInput(v)(CStringV.apply, CIntV.apply, CDoubleV.apply, transformADT).asInstanceOf[Value]
+
 class Executor extends IRExecutor:
   override val name: String = "Interpreter"
   
@@ -76,20 +93,6 @@ class Executor extends IRExecutor:
     override def readAll(): Seq[Relation] =
       interp(mods).values.toSeq
 
-    private def transformADT(dataName: String, caseName: String, args: Seq[Any]): Any =
-      val argTys = args.map {
-        case _: CIntV => TInt
-        case _: CDoubleV => TDouble
-        case _: CStringV => TString
-        case CDataV(caseDef, _) => caseDef.data
-      }
-      val caseDef = CaseDefinition(Name(caseName), argTys, TData(Name(dataName)))
-      CDataV(caseDef, args.map(_.asInstanceOf[Value]))
-
-    private def interpretfyTupleEntry(v: Any): Value =
-      // TODO: Support more values, such as Boolean as input
-      transformEDBInput(v)(CStringV.apply, CIntV.apply, CDoubleV.apply, transformADT).asInstanceOf[Value]
-
     private def relationToCRV(rel: Relation) =
       ConcreteRelation[Value](rel.parameterNames, rel.entries.map { e =>
         rel.flattenEntry(e).map(interpretfyTupleEntry)
@@ -131,8 +134,8 @@ case class InterpreterRelation(name: String, table: ConcreteRelation[Value]) ext
       case CMapV(ts) => ts.map { (k, vs) =>
         convert(k) -> vs.map(convert)
       }
-      case CMapFunV(f) =>
-        throw UnsupportedOperationException("CMapFunV is not supported as output")
+      case CMapFunV(f) => (v: Any) => f(interpretfyTupleEntry(v)).map(convert) 
+        //throw UnsupportedOperationException("CMapFunV is not supported as output")
     }
 
     val queryMatches: Iterable[Seq[Any]] = table.rows.map(_.map(convert))

@@ -283,7 +283,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     evalAtoms(atoms)
 
   protected def evalAtoms(ats: Seq[Atom])(using rec: Fixed): Unit =
-    var rest = ats
+    ats.foreach(evalAtom)
+    /*var rest = ats
     while (rest.nonEmpty) {
       val sup = supplementaryTable.getTable
       val supCols = relationOps.columns(sup)
@@ -295,7 +296,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         throw new IllegalStateException()
       ordered.foreach(evalAtom)
       rest = later
-    }
+    }*/
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): (RV, RV) = supplementaryTable.scoped {
     evalAtoms(b.atoms)

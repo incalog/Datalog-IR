@@ -79,6 +79,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           relationOps.project(updatedSup, boundAfterMatch)
         }
       })
+      println(s"The joined: $joinedRes")
       updateSupplementaryChecked(_ => joinedRes)
     case _ => super.evalAtomOpen(at)
 

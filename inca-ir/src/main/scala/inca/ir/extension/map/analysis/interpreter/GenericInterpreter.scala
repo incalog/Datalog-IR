@@ -56,37 +56,51 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapLookUp(m, k) => canDetermineValue(m) && canDetermineValue(k)
     case _ => super.canDetermineValue(t)
 
+  /**
+   * `f` is a function that should update the supplementary with fresh columns.
+   * Every column that was not in the supplementary table before execution is
+   * considered an output of the map.
+   */
+  private def mapFunResult[A](inputCols: Seq[String])(f: => A): SupColumn =
+    val mapFun = mapOps.mapFun(key => {
+      supplementaryTable.scoped {
+        val keys = tupleOps.iter(key)
+
+        // we can always query a map with partial results
+        val evalContext = if (keys.nonEmpty)
+          relationOps.naturalJoin(
+            relationOps.make(inputCols, Seq(keys)),
+            supplementaryTable.getTable
+          )
+        else
+          supplementaryTable.getTable
+
+        val columnsBefore = relationOps.columns(evalContext)
+        supplementaryTable.setTable(evalContext)
+
+        // update the supplementary table
+        f
+
+        val sup = supplementaryTable.getTable
+        val outCols = relationOps.columns(sup).dropWhile(columnsBefore.contains)
+        val outputRows = relationOps.extract(sup, outCols)
+        val vs = outputRows.map { v =>
+          if (v.size == 1) v.head
+          else tupleOps.tupleLit(v)
+        }
+        vs.toSet
+      }
+    })
+    termResult(mapFun)
+
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case MapLit(ts) => naryTupleOp(ts.map(evalTermTuple))(mapOps.mapLit)
     case MapConcat(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(mapOps.concat)
     case MapPlus(map, key, value) => ternaryOp(evalTerm(map), evalTerm(key), evalTerm(value))(mapOps.plus)
     case MapUnion(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(mapOps.union)
     case MapFun(params, valTerm) =>
-      val mapFun = mapOps.mapFun(key => {
-        supplementaryTable.scoped {
-          val keys = tupleOps.iter(key)
-          // This should always be a cartesian product, based on the fact that our typechecker
-          // prevents name shadowing.
-          val inputCols = params.map(_.name.name)
-          val evalContext = relationOps.naturalJoin(
-            relationOps.make(inputCols, Seq(keys)),
-            supplementaryTable.getTable
-          )
-          val columnsBefore = relationOps.columns(evalContext)
-          supplementaryTable.setTable(evalContext)
-          evalTerm(valTerm)
-
-          val sup = supplementaryTable.getTable
-          val outCols = relationOps.columns(sup).dropWhile(columnsBefore.contains)
-          val outputRows = relationOps.extract(sup, outCols)
-          val vs = outputRows.map { v =>
-            if (v.size == 1) v.head
-            else tupleOps.tupleLit(v)
-          }
-          vs.toSet
-        }
-      })
-      termResult(mapFun)
+      val inputCols = params.map(_.name.name)
+      mapFunResult(inputCols)(evalTerm(valTerm))
     case MapComprehension(key, value, atoms) =>
       val resultColumn = gensym.fresh("result")
       updateSupplementaryChecked { sup =>
@@ -110,55 +124,19 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapFrom(ref) =>
       val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
       val params = relationParams(r)
-      // 1. Everything that is demanded is a key, the rest is a value
-      val demanded = params.collect {
-        case Param(name, TDemand(_)) => name.name
-      }.toSet
-
-      val resultColumn = gensym.fresh("result")
-      updateSupplementaryChecked { sup =>
-        val columnsBefore = relationOps.columns(sup)
-        except.tryCatch {
-          // 2. Evaluate the relation we want to convert to a map
-          val accCols = params.map(_ => gensym.fresh("arg"))
-          val args = accCols.map(c => ir.TermArg(Var(c)))
-          evalCall(r, params, args, false)
-          val newSup = supplementaryTable.getTable
-
-          val argToParam = accCols.zip(params.map(_.name.name)).toMap
-
-            // Confusing behaviour, but in accordance to the lowering.
-          relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
-            case (groupedVals, accVals) if demanded.isEmpty =>
-              // 3. Create a set if we don't have demanded parameters aka keys
-              if (accCols.size == 1)
-                // Don't create unary tuples
-                groupedVals :+ setOps.setLit(accVals.flatten)
-              else
-                val tups = accVals.map(tupleOps.tupleLit)
-                groupedVals :+ setOps.setLit(tups)
-            case (groupedVals, accVals: Seq[Seq[V]]) =>
-              // 4. Create a map only if we have demanded parameters
-              val kvs = accVals.map { row =>
-                val (namedInputVals, namedOutputVals) = accCols.zip(row).partition((c, _) => demanded.contains(argToParam(c)))
-                val inputVals = namedInputVals.map(_._2)
-                val outputVals = namedOutputVals.map(_._2)
-                // Don't create unary tuples
-                (inputVals.size, outputVals.size) match
-                  case (1, 1) => inputVals.head -> outputVals.head
-                  case (1, _) => inputVals.head -> tupleOps.tupleLit(outputVals)
-                  case (_, 1) => tupleOps.tupleLit(inputVals) -> outputVals.head
-              }
-              val map = mapOps.mapLit(kvs)
-              groupedVals :+ map
-          })
-        } /* catch */ { exec =>
-          // FIXME: To be in accordance with the lowering we need to differentiate empty maps based on the type
-          //  e.g Map[K, V]() != Map[K1, V1]() if (K1 != K) || (V != V1)
-          relationOps.map(sup, resultColumn) { _ => mapOps.mapLit(Seq()) }
-        }(using mayJoinRV)
+      val inputIndices = params.zipWithIndex.collect {
+        case (Param(_, TDemand(_)), i) => i
       }
-      resultColumn
+      val inputCols = inputIndices.map(params(_).name.name)
+      mapFunResult(inputCols) {
+        // evaluate the corresponding relation
+        val accCols = params.indices.map {
+          case i if inputIndices.contains(i) => inputCols(i)
+          case _ => gensym.fresh("arg")
+        }
+        val args = accCols.map(c => ir.TermArg(Var(c)))
+        evalCall(r, params, args, false)
+      }
     case MapLookUp(map, key) =>
       val resName = gensym.fresh("result")
       val mapCol = evalTerm(map)
