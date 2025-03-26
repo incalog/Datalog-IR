@@ -32,35 +32,38 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case _: SetFrom => true
     case _ => super.canDetermineValue(t)
 
+  protected def evalRelationToSet(rel: Relation)(using Fixed): SupColumn =
+    val resultColumn = gensym.fresh("result")
+    updateSupplementaryChecked { sup =>
+      val columnsBefore = relationOps.columns(sup)
+      except.tryCatch {
+        val params = relationParams(rel)
+        val accCols = params.map(_ => gensym.fresh("arg"))
+        val args = accCols.map(c => Var(c).arg)
+        evalCall(rel, params, args, false)
+        val newSup = supplementaryTable.getTable
+        relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
+          case (groupedVals, elemVals) if accCols.size == 1 =>
+            groupedVals :+ setOps.setLit(elemVals.flatten)
+          case (groupedVals, elemVals) =>
+            val tups = elemVals.map(tupleOps.tupleLit)
+            groupedVals :+ setOps.setLit(tups)
+        })
+      } /* catch */ { exec =>
+        // FIXME: To be in accordance with the lowering we need to differentiate empty sets based on the type
+        //  e.g Set[Int]() != Set[String]()
+        relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
+      }(using mayJoinRV)
+    }
+    resultColumn
+
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case SetLit(ts) => naryOp(ts.map(evalTerm))(setOps.setLit)
     case SetUnion(ts) => naryOp(ts.map(evalTerm))(setOps.union)
     case SetIntersection(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(setOps.intersect)
     case SetFrom(ref) =>
       val r = ref.target.getOrElse(throw new IllegalStateException(s"Unknown relation ${ref.name}"))
-      val resultColumn = gensym.fresh("result")
-      updateSupplementaryChecked { sup =>
-        val columnsBefore = relationOps.columns(sup)
-        except.tryCatch {
-          val params = relationParams(r)
-          val accCols = params.map(_ => gensym.fresh("arg"))
-          val args = accCols.map(c => Var(c).arg)
-          evalCall(r, params, args, false)
-          val newSup = supplementaryTable.getTable
-          relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
-            case (groupedVals, elemVals) if accCols.size == 1 =>
-              groupedVals :+ setOps.setLit(elemVals.flatten)
-            case (groupedVals, elemVals) =>
-              val tups = elemVals.map(tupleOps.tupleLit)
-              groupedVals :+ setOps.setLit(tups)
-          })
-        } /* catch */ { exec =>
-          // FIXME: To be in accordance with the lowering we need to differentiate empty sets based on the type
-          //  e.g Set[Int]() != Set[String]() 
-          relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
-        }(using mayJoinRV)
-      }
-      resultColumn
+      evalRelationToSet(r)
     case SetComprehension(elem, atoms) =>
       // { elem | if atoms hold }
       val resultColumn = gensym.fresh("result")
@@ -83,6 +86,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case _ => super.evalTermOpen(term)
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
+    // TODO: I guess we can group those two cases together
     case SetMember(mem, s) if canDetermineValue(mem) => // containment check
       val memCol = evalTerm(mem)
       val setCol = evalTerm(s)
@@ -92,6 +96,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         relationOps.filter(sup) { row => setOps.contains(row(setIx), row(memIx)) }
       }
     case SetMember(mem, s) => // iterate over the set
+      println(s"SetMember: $at :: $mem")
+      // TODO: This is not generic enough. We need to support tuple deconstruction here
+      // We should use a more generic version of `deconstructTupleTerm` here?
+      // And we must check for equality for all non binding terms
       val memCol = extractVarName(mem).get.name
       val setCol = evalTerm(s)
       updateSupplementaryChecked { sup =>

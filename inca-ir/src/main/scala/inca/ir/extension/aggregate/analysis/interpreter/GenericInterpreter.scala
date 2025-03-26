@@ -35,6 +35,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     // the expected
     val AggregateColumnArg(t) = args(aggColumnIndex): @unchecked
     val expectedAggResult = if (canDetermineValue(t)) Some(evalTerm(t)) else None
+
+    // TODO: Should this also work with tuple arguments?
     val resultColumn = extractVarName(t).map(_.name).getOrElse(gensym.fresh("agg"))
 
     // eval the actual call in a new scoped environment

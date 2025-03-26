@@ -37,13 +37,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       val joinedSup = effects.joinComputations {
         val res = scopedSupplementary { _ => 
-          evalAtom(a)
+          evalAtomGroup(Seq(a))
           relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(true) }
         }
         relationOps.project(res, commonCols)
       } {
         val res = scopedSupplementary { _ =>
-          evalAtom(negateAtom(a))
+          evalAtomGroup(Seq(negateAtom(a)))
           relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(false) }
         }
         relationOps.project(res, commonCols)

@@ -6,7 +6,7 @@ import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom,
 import inca.ir.*
 import inca.ir.analysis.base.effect.EmptySupplementary
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.set.analysis.interpreter.SetOps
+import inca.ir.extension.set as setir
 import inca.ir.extension.tuple.analysis.interpreter.TupleOps
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
@@ -23,10 +23,8 @@ trait MapOps[V, RV, B]:
   def keyIter(m: V)(keySet: Set[V] => RV)(noKeys: => RV): RV
 
 
-trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
-  // We need both of these for MapFrom
-  val tupleOps: TupleOps[V]
-  lazy val setOps: SetOps[V, RV, B]
+trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]
+  with setir.analysis.interpreter.GenericInterpreter[V, B, RV, ExcV, J]: // needed for FromMap
 
   lazy val mapOps: MapOps[V, RV, B]
 
@@ -104,7 +102,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       updateSupplementaryChecked { sup =>
         val columnsBefore = relationOps.columns(sup)
         except.tryCatch {
-          evalAtoms(atoms)
+          evalAtomGroup(atoms)
           val keyCol = evalTerm(key)
           val valCol = evalTerm(value)
           val newSup = supplementaryTable.getTable
@@ -127,37 +125,18 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       }
       val inputCols = inputIndices.map(params(_).name.name)
 
-      if (inputCols.nonEmpty)
+      if (inputCols.isEmpty)
+        // no demanded arguments, that means we get a set from the relation
+        evalRelationToSet(r)
+      else
+        // demanded arguments, that means we create a map fun
         mapFunResult(inputCols) {
-          // evaluate the corresponding relation
           val accCols = params.indices.map {
             case i if inputIndices.contains(i) => inputCols(i)
-            case _ => gensym.fresh("arg")
+            case _ => gensym.fresh("arg") // fresh arguments are the output of the mapFun
           }
           val args = accCols.map(c => Var(c).arg)
           evalCall(r, params, args, false)
-        }
-      else
-        // no demanded arguments, that means we basically call SetFrom
-        val resultColumn = gensym.fresh("result")
-        scopedSupplementary { sup =>
-          val columnsBefore = relationOps.columns(sup)
-          except.tryCatch {
-            val accCols = params.map(_ => gensym.fresh("arg"))
-            val unboundArgs = accCols.map(c => Var(c).arg)
-            evalCall(r, params, unboundArgs, false)
-            val newSup = supplementaryTable.getTable
-            relationOps.groupBy(newSup, accCols, columnsBefore)(columnsBefore :+ resultColumn, {
-              case (groupedVals, elemVals) if accCols.size == 1 =>
-                groupedVals :+ setOps.setLit(elemVals.flatten)
-              case (groupedVals, elemVals) =>
-                val tups = elemVals.map(tupleOps.tupleLit)
-                groupedVals :+ setOps.setLit(tups)
-            })
-          } /* catch */ { exec =>
-            relationOps.map(sup, resultColumn) { _ => setOps.setLit(Seq()) }
-          }(using mayJoinRV)
-          resultColumn
         }
 
     case MapLookUp(map, key) =>
@@ -186,6 +165,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case _ => super.evalTermOpen(term)
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
+    // TODO: Support tuples as arguments
     case MapContains(map, key) if canDetermineValue(key) => // containment check
       val keyCol = evalTerm(key)
       val mapCol = evalTerm(map)

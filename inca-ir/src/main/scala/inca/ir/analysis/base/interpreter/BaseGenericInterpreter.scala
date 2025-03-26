@@ -275,6 +275,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         extractVarName(lhs).isDefined && rhs.unboundVars.isEmpty && rhs.boundVars.map(_.name.name).forall(supCols.contains)
     case _ => false
 
+  // evalAtomGroup is only used for annotation purposes. Whenever a construct such as a disjunction performs
+  // a scoped operation on the supplementary, we need to make sure that the contained atoms are correctly annotated.
   inline def evalAtomGroup(atoms: Seq[Atom])(using rec: Fixed): Unit = rec(FixIn.AtomGroup(atoms)) match
     case FixOut.AtomGroup(_) => ()
     case _ => throw new IllegalStateException()
@@ -283,8 +285,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     evalAtoms(atoms)
 
   protected def evalAtoms(ats: Seq[Atom])(using rec: Fixed): Unit =
-    ats.foreach(evalAtom)
-    /*var rest = ats
+    //ats.foreach(evalAtom)
+    var rest = ats
     while (rest.nonEmpty) {
       val sup = supplementaryTable.getTable
       val supCols = relationOps.columns(sup)
@@ -296,7 +298,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         throw new IllegalStateException()
       ordered.foreach(evalAtom)
       rest = later
-    }*/
+    }
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): (RV, RV) = supplementaryTable.scoped {
     evalAtoms(b.atoms)
@@ -408,6 +410,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
 
   def bindCallResultInSupplementary[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], relRes: RV, argMapping: ArgMapping): RV =
+    // TODO: Should this also work with tuple arguments?
     val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
     val subst = argMapping.zip(params).map {
       case (Some(before, after), _) => after -> before

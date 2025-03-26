@@ -7,7 +7,7 @@ import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as boolIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
 import inca.ir.extension.demand.TDemand
-import inca.ir.extension.map.analysis.interpreter.ConstantMapV
+import inca.ir.extension.map.analysis.interpreter.{ConstantMapFunV, ConstantMapV}
 import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
 import inca.ir.extension.not.Not
@@ -1700,7 +1700,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m"))
     // Top, since we first evaluate the relation and then fill the map
-    assert(mainRel.rows == Seq(ConstantMapV.Top))
+    assert(mainRel.rows.head.isInstanceOf[ConstantMapFunV])
     assertResult(Topped.Actual(false))(mainRel.empty)
   }
 
