@@ -28,34 +28,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case TupleLit(ts) => ts.zipWithIndex.flatMap { (t, i) => deconstructTupleTerm(t, indexPath :+ i) }
     case _ => Seq(term -> indexPath)
 
-  // TODO: move this to BaseGenericInterpreter
-  /*type IndexPath = Seq[Int]
-  case class IndexedTerm(term: ir.Term, indexPath: IndexPath):
-    def isBound: Boolean = canDetermineValue(term)
-    def varName: String = 
-      if (isBound)
-        throw IllegalArgumentException("Can not get variable name for boud term!")
-      else 
-        extractVarName(term).get
-
-  def deconstructNestedTerm(term: ir.Term, initialIndexPath: IndexPath = Seq()): Seq[IndexedTerm] = term match
-    case TupleLit(ts) => ts.zipWithIndex.flatMap { (t, i) => deconstructNestedTerm(t, initialIndexPath :+ i) }
-    //case _ => super.deconstructTerm(term)
-
-  def evalAssignNestedTerm(term: ir.Term, from: ir.Term)(using Fixed): (Seq[SupColumn], SupColumn) =
-    val resCol = evalTerm(from)
-    val (_, binding) = deconstructNestedTerm(term).partition(_.isBound)
-    updateSupplementaryChecked { sup =>
-      val resColIndex = relationOps.columnIndex(sup, resCol)
-      binding.foldLeft(sup) { case (acc, indexedTerm) =>
-        relationOps.map(acc, indexedTerm.varName) { row =>
-          indexedTerm.indexPath.foldLeft(row(resColIndex)) { (v, i) => tupleOps.project(v, i) }
-        }
-      }
-    }
-    (binding.map(_.varName), resCol)*/
-
-
   override protected def evalAssignOpen(to: ir.Term, from: ir.Term)(using Fixed): (Seq[SupColumn], SupColumn) =
     val resCol = evalTerm(from)
     val termsWithIndex = deconstructTupleTerm(to)

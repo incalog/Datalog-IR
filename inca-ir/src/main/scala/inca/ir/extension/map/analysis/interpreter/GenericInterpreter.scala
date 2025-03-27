@@ -7,7 +7,6 @@ import inca.ir.*
 import inca.ir.analysis.base.effect.EmptySupplementary
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.set as setir
-import inca.ir.extension.tuple.analysis.interpreter.TupleOps
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
 trait MapOps[V, RV, B]:
@@ -40,7 +39,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     }
     resName
 
-  private def evalTermTuple(tup: (ir.Term, ir.Term))(using Fixed): (SupColumn, SupColumn) =
+  private inline def evalTermTuple(tup: (ir.Term, ir.Term))(using Fixed): (SupColumn, SupColumn) =
     (evalTerm(tup._1), evalTerm(tup._2))
 
   override protected def canDetermineValue(t: Term): Boolean = t match
@@ -93,9 +92,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case MapConcat(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(mapOps.concat)
     case MapPlus(map, key, value) => ternaryOp(evalTerm(map), evalTerm(key), evalTerm(value))(mapOps.plus)
     case MapUnion(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(mapOps.union)
-    case MapFun(params, valTerm) =>
-      val inputCols = params.map(_.name.name)
-      mapFunResult(inputCols)(Seq(evalTerm(valTerm)))
+    case MapFun(params, valTerm) => mapFunResult(params.map(_.name.name))(Seq(evalTerm(valTerm)))
     case MapComprehension(key, value, atoms) =>
       val resultColumn = gensym.fresh("result")
       updateSupplementaryChecked { sup =>
