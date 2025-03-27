@@ -17,6 +17,9 @@ import sturdy.values.*
 import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
 
+trait Index
+case object NoIndex extends Index
+
 enum Adorn:
   case b
   case f
@@ -319,17 +322,37 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.Cast(t, _) => extractVarName(t)
     case _ => None
 
+  type BindingColumns = Seq[(SupColumn, Index)]
+
+  protected def extractBindingColumns(term: ir.Term, index: Index = NoIndex): BindingColumns = term match
+    case ir.Var(ref) if !canDetermineValue(term) =>
+      Seq(ref.name.name -> index)
+    case ir.Cast(t, _) => extractBindingColumns(t)
+    case _ => Seq()
+
+  protected def bindInSupplementary(to: Seq[SupColumn], from: (SupColumn, Seq[Index])): (Seq[SupColumn], SupColumn) =
+    (to, from) match
+      case (Seq(toCol), (fromCol, Seq(NoIndex))) => // standard single variable binding
+        updateSupplementaryUnchecked { sup =>
+          relationOps.copyColumn(sup, fromCol, toCol)
+        }
+        (Seq(toCol), fromCol)
+      case _ => failure(InvalidBindings, "Invalid binding information")
+
   inline def evalAssign(to: ir.Term, from: ir.Term)(using rec: Fixed): Unit = rec(FixIn.Assign(to, from)) match
     case FixOut.Assign(_, _) => ()
     case _ => throw new IllegalStateException()
 
   protected def evalAssignOpen(to: ir.Term, from: ir.Term)(using Fixed): (Seq[SupColumn], SupColumn) =
     val fromCol = evalTerm(from)
-    val toCol = extractVarName(to).get.name
-    updateSupplementaryUnchecked { sup =>
-      relationOps.copyColumn(sup, fromCol, toCol)
-    }
-    (Seq(toCol), fromCol)
+    val binding = extractBindingColumns(to)
+
+    // bind everything that needs to be bound
+    val (toCols, toIndices) = binding.unzip
+    if (toCols.size != toIndices.size)
+      failure(InvalidBindings, s"Can not bind ${toCols.size} values to ${toIndices.size} values")
+
+    bindInSupplementary(toCols, fromCol -> toIndices)
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)

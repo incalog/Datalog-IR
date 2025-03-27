@@ -23,7 +23,7 @@ trait MapOps[V, RV, B]:
 
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]
-  with setir.analysis.interpreter.GenericInterpreter[V, B, RV, ExcV, J]: // needed for FromMap
+  with setir.analysis.interpreter.GenericInterpreter[V, B, RV, ExcV, J]: // needed for MapFrom
 
   lazy val mapOps: MapOps[V, RV, B]
 
