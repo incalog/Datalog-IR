@@ -1275,6 +1275,29 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(firstEntry.last.asInstanceOf[Int] == 2)
   }
 
+  /*test("Tuple - Unpacking in call argument") {
+    val mod = Module("Test1", BaseIR.language + arithIR + tupleIR, Seq(
+      Relation("helper", Seq(
+        Param("out1", TTuple(Seq(TInt, TInt))),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt)
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(TupleLit(Seq(IntNum(1), Var("x"))))),
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    assert(mainRel.entries.head.asInstanceOf[Int] == 2)
+  }*/
+
   /* Boolean */
 
   test("Boolean - AtomAsBool failing") {

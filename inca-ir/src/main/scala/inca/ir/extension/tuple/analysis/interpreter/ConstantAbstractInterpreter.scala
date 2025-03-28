@@ -56,5 +56,5 @@ trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boole
       case _ => failure(InvalidTupleProjection, s"Expected a tuple, but got $t")
 
     override def iter(t: Value): Seq[Value] = t match
-      case ConstantTupleV(ts) => ts
+      case ConstantTupleV(ts) => ts.flatMap(iter)
       case _ => failure(InvalidTupleProjection, s"Expected a tuple, but got $t")

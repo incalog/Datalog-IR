@@ -131,7 +131,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   given EffectStack = effects
 
   def supplementaryTable: SupplementaryTable[RV]
-  
+
   def scopedSupplementary[A](f: RV => A): A = supplementaryTable.scoped {
     gensym.scoped {
       f(supplementaryTable.getTable)
@@ -316,13 +316,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Atom() => ()
     case _ => throw new IllegalStateException()
 
-  // TODO: Remove this in the future
-  // I don't think that anything else can be binding in an equality. But if so, subclasses may override this
-  def extractVarName(term: ir.Term): Option[ir.Name] = term match
-    case ir.Var(ref) => Some(ref.name)
-    case ir.Cast(t, _) => extractVarName(t)
-    case _ => None
-
   protected def extractBindingInfo(term: ir.Term, indexPath: IndexPath = Seq())(using rec: Fixed): Seq[BindingInfo] =
     term match
       case ir.Var(ref) =>
@@ -413,6 +406,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.WildcardArg() => None
     case _ => failure(UnknownArg, s"Unknown arg $arg")
 
+  def extractVarName(term: ir.Term): Option[ir.Name] = term match
+    case ir.Var(ref) => Some(ref.name)
+    case ir.Cast(t, _) => extractVarName(t)
+    case _ => None
+
   def extractVarName(arg: ir.Arg): Option[ir.Name] = arg match
     case ir.TermArg(t) => extractVarName(t)
     case ir.WildcardArg() => Some(ir.Name(gensym.fresh("_")))
@@ -457,8 +455,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
 
   def bindCallResultInSupplementary[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], relRes: RV, argMapping: ArgMapping): RV =
-    // TODO: Should this also work with tuple arguments?
-    val paramNameToArgName = params.zip(args).flatMap { case (p, a) => extractVarName(a).map(p.name.name -> _.name) }.toMap
+    // TODO: This should this also work with tuple arguments?
+    val paramNameToArgName = params.zip(args).flatMap { case (p, a) =>
+      extractVarName(a).map(p.name.name -> _.name)
+    }.toMap
     val subst = argMapping.zip(params).map {
       case (Some(before, after), _) => after -> before
       case (_, p) => p.name.name -> paramNameToArgName(p.name.name)

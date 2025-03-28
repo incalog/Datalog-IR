@@ -5,7 +5,11 @@ import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
+import sturdy.effect.failure.AFallible
 import sturdy.values.Topped
+
+case class AnalysisFailed(msg: String) extends Exception:
+  override def toString: String = msg
 
 extension [T](topped: Topped[T])
   def isTrue: Boolean = topped.isActual && topped.get == true
@@ -36,9 +40,20 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   /** Important, evaluate the program first */
   override def analyzeProgram(modules: Seq[Module]): Unit =
     analysisHasRun = true
-    abstractInterpreter.failure.fallible {
+    val analysisRes = abstractInterpreter.failure.fallible {
       abstractInterpreter.evalProgram(modules)
-    }.get
+    }
+    analysisRes match {
+      case AFallible.Failing(failures) =>
+        val msg = failures.map { (kind, message) =>
+          s"[$kind]: $message"
+        }.set.mkString("\n")
+        throw AnalysisFailed(msg)
+      case AFallible.Diverging(recur) =>
+        // TODO: unhandled error, occurs for FixFunction compiler test
+      case _ => // nothing
+    }
+
 
     //println(new IRDebugPrinter{}.prettyPrint(modules))
 

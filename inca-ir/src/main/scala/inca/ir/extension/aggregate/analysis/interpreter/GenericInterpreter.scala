@@ -3,7 +3,7 @@ package inca.ir.extension.aggregate.analysis.interpreter
 import inca.ir
 import inca.ir.analysis.base.effect.NoParamRelation
 import inca.ir.{Arg, Atom, ModuleEntry, Name, RefByName, Var}
-import inca.ir.analysis.base.interpreter.{Adorn, Adornment, BaseGenericInterpreter, SupColumn}
+import inca.ir.analysis.base.interpreter.{Adorn, Adornment, BaseGenericInterpreter, BindingInfo, IndexPath, SupColumn}
 import inca.ir.extension.aggregate.*
 import sturdy.data.MayJoin
 
@@ -36,7 +36,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     val AggregateColumnArg(t) = args(aggColumnIndex): @unchecked
     val expectedAggResult = if (canDetermineValue(t)) Some(evalTerm(t)) else None
 
-    // TODO: Should this also work with tuple arguments?
+    // TODO: This should this also work with tuple arguments?
     val resultColumn = extractVarName(t).map(_.name).getOrElse(gensym.fresh("agg"))
 
     // eval the actual call in a new scoped environment
