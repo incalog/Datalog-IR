@@ -36,7 +36,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       // all variables that are in scope after the match construct
       val patVars = PatternVarCollector().extractPatternVars(at).map(_.name.name)
       val caseVars = cases.map(_.vars.map(_.name.name))
-      val allVars = caseVars.flatten.diff(patVars)
+      val allVars = caseVars.flatten.distinct.diff(patVars)
       val boundAfterMatch = caseVars.foldLeft[Seq[String]](allVars) { (acc, altVars) =>
         acc.intersect(altVars)
       } ++ colsBefore
@@ -75,6 +75,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             supplementaryTable.getTable
           }
 
+          println()
+          println(updatedSup)
+          println(patVars)
+          println(boundAfterMatch)
           // 3. Project relevant vars
           relationOps.project(updatedSup, boundAfterMatch)
         }
