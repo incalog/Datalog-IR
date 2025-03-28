@@ -75,10 +75,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             supplementaryTable.getTable
           }
 
-          println()
-          println(updatedSup)
-          println(patVars)
-          println(boundAfterMatch)
           // 3. Project relevant vars
           relationOps.project(updatedSup, boundAfterMatch)
         }
