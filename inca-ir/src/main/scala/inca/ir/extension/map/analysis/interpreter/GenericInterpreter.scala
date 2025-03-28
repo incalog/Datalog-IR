@@ -163,7 +163,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case _ => super.evalTermOpen(term)
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
-    // TODO: Support tuples as arguments
     case MapContains(map, key) if canDetermineValue(key) => // containment check
       val keyCol = evalTerm(key)
       val mapCol = evalTerm(map)
@@ -173,7 +172,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         relationOps.filter(sup) { row => mapOps.contains(row(mapIdx), row(keyIdx)) }
       }
     case MapContains(map, key) => // iterate over keys
-      val keyCol = extractVarName(key).get.name
+      val info = extractBindingInfo(key)
       val mapCol = evalTerm(map)
       updateSupplementaryChecked { sup =>
         val columnsBefore = relationOps.columns(sup)
@@ -181,15 +180,19 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
         relationOps.flatMap(sup) { row =>
           val m = row(mapIdx)
+          val tmpRes = gensym.fresh("result")
 
-          mapOps.keyIter(m) { keyValues =>
+          val tmpSup = mapOps.keyIter(m) { keyValues =>
             mapJoin(keyValues, { v =>
-              relationOps.make(columnsBefore :+ keyCol, Seq(row :+ v))
+              relationOps.make(columnsBefore :+ tmpRes, Seq(row :+ v))
             })
           } {
             // No member is bound, that is, the body fails
             except.throws(EmptySupplementary)
           }
+
+          // bind or check the member columns
+          process(tmpSup, info, tmpRes)
         }
       }
     case _ => super.evalAtomOpen(at)

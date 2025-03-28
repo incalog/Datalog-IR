@@ -18,7 +18,10 @@ import sturdy.values.booleans.{BooleanBranching, BooleanOps}
 import sturdy.values.ordering.EqOps
 
 trait Index
-case object NoIndex extends Index
+type IndexPath = Seq[Index]
+
+case class BindingInfo(col: SupColumn, indexPath: IndexPath, isBound: Boolean)
+
 
 enum Adorn:
   case b
@@ -54,7 +57,7 @@ type SupColumn = String
 
 enum FixOut[V, RV]:
   case Term(col: SupColumn)
-  case Assign(to: Seq[SupColumn], from: SupColumn)
+  case Assign()
   case Atom()
   case AtomGroup(value: RV)
   case ExitCall(value: RV)
@@ -67,7 +70,7 @@ given CCombineFixOut[V, RV, W <: Widening](using Combine[RV, W]): Combine[FixOut
   override def apply(out1: FixOut[V, RV], out2: FixOut[V, RV]): MaybeChanged[FixOut[V, RV]] =
     (out1, out2) match
       case (FixOut.Term(rv1), FixOut.Term(rv2)) => assert(rv1 == rv2); MaybeChanged(FixOut.Term(rv1), out1)
-      case (FixOut.Assign(t1, f1), FixOut.Assign(t2, f2)) => assert(t1 == t2); MaybeChanged(FixOut.Assign(t1, f1), out1)
+      case (FixOut.Assign(), FixOut.Assign()) => Unchanged(FixOut.Assign())
       case (FixOut.Atom(), FixOut.Atom()) => Unchanged(FixOut.Atom())
       case (FixOut.AtomGroup(rv1), FixOut.AtomGroup(rv2)) => Combine(rv1, rv2).map(FixOut.AtomGroup.apply)
       case (FixOut.ExitCall(rv1), FixOut.ExitCall(rv2)) => Combine(rv1, rv2).map(FixOut.ExitCall.apply)
@@ -164,8 +167,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       evalAtomGroupOpen(as)
       FixOut.AtomGroup(supplementaryTable.getTable)
     case FixIn.Assign(to, from) =>
-      val (toSup, fromSup) = evalAssignOpen(to, from)
-      FixOut.Assign(toSup, fromSup)
+      evalAssignOpen(to, from)
+      FixOut.Assign()
     case FixIn.Body(rel, ix, paramNames) =>
       //(s"## Eval ${rel.name} body $ix")
       val (rv, rawRV) = evalBodyOpen(rel.bodies(ix), paramNames)
@@ -315,44 +318,67 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Atom() => ()
     case _ => throw new IllegalStateException()
 
-
+  // TODO: Remove this in the future
   // I don't think that anything else can be binding in an equality. But if so, subclasses may override this
   def extractVarName(term: ir.Term): Option[ir.Name] = term match
     case ir.Var(ref) => Some(ref.name)
     case ir.Cast(t, _) => extractVarName(t)
     case _ => None
 
-  type BindingColumns = Seq[(SupColumn, Index)]
+  protected def extractBindingInfo(term: ir.Term, indexPath: IndexPath = Seq())(using rec: Fixed): Seq[BindingInfo] =
+    term match
+      case ir.Var(ref) =>
+        val isBound = canDetermineValue(term)
+        Seq(BindingInfo(ref.name.name, indexPath, isBound))
+      case ir.Cast(t, _) =>
+        extractBindingInfo(t, indexPath)
+      case _ =>
+        if (canDetermineValue(term))
+          val sup = evalTerm(term)
+          Seq(BindingInfo(sup, indexPath, true))
+        else
+          throw IllegalStateException(s"Unknown binding term $term")
 
-  protected def extractBindingColumns(term: ir.Term, index: Index = NoIndex): BindingColumns = term match
-    case ir.Var(ref) if !canDetermineValue(term) =>
-      Seq(ref.name.name -> index)
-    case ir.Cast(t, _) => extractBindingColumns(t)
-    case _ => Seq()
+  protected def stepIndex(v: V, index: Index): V =
+    throw IllegalStateException(s"Unknown index $index")
 
-  protected def bindInSupplementary(to: Seq[SupColumn], from: (SupColumn, Seq[Index])): (Seq[SupColumn], SupColumn) =
-    (to, from) match
-      case (Seq(toCol), (fromCol, Seq(NoIndex))) => // standard single variable binding
-        updateSupplementaryUnchecked { sup =>
-          relationOps.copyColumn(sup, fromCol, toCol)
-        }
-        (Seq(toCol), fromCol)
-      case _ => failure(InvalidBindings, "Invalid binding information")
+  protected final def process(rv: RV, info: Seq[BindingInfo], from: SupColumn): RV =
+    info.foldLeft(rv) { (accSup, info) =>
+      if (info.isBound)
+        check(accSup, info, from)
+      else
+        bind(accSup, info, from)
+    }
+
+  protected final def bind(rv: RV, info: BindingInfo, from: SupColumn): RV =
+    if (info.isBound)
+      throw IllegalArgumentException(s"Can not bind already bound column ${info.col}")
+    val fromColIdx = relationOps.columnIndex(rv, from)
+    relationOps.map(rv, info.col) { row =>
+      info.indexPath.foldLeft(row(fromColIdx))(stepIndex(_, _))
+    }
+
+  protected final def check(rv: RV, info: BindingInfo, from: SupColumn): RV =
+    if (!info.isBound)
+      throw IllegalArgumentException(s"Can not check unbound column ${info.col}")
+    val lhsColIdx = relationOps.columnIndex(rv, from)
+    val lhsCol = gensym.fresh("result")
+    val newRv = relationOps.map(rv, lhsCol) { row =>
+      info.indexPath.foldLeft(row(lhsColIdx))(stepIndex(_, _))
+    }
+    relationOps.filterEq(newRv, lhsCol, info.col)
 
   inline def evalAssign(to: ir.Term, from: ir.Term)(using rec: Fixed): Unit = rec(FixIn.Assign(to, from)) match
-    case FixOut.Assign(_, _) => ()
+    case FixOut.Assign() => ()
     case _ => throw new IllegalStateException()
 
-  protected def evalAssignOpen(to: ir.Term, from: ir.Term)(using Fixed): (Seq[SupColumn], SupColumn) =
+  protected def evalAssignOpen(to: ir.Term, from: ir.Term)(using Fixed): Unit =
     val fromCol = evalTerm(from)
-    val binding = extractBindingColumns(to)
-
-    // bind everything that needs to be bound
-    val (toCols, toIndices) = binding.unzip
-    if (toCols.size != toIndices.size)
-      failure(InvalidBindings, s"Can not bind ${toCols.size} values to ${toIndices.size} values")
-
-    bindInSupplementary(toCols, fromCol -> toIndices)
+    val bindingInfos = extractBindingInfo(to)
+    // things in tuples might be bound as well and not just binding
+    updateSupplementaryUnchecked { sup =>
+      process(sup, bindingInfos, fromCol)
+    }
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =
     val ls = evalTerm(lhs)

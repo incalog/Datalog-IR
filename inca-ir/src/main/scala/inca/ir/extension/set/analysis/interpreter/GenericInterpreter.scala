@@ -86,8 +86,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case _ => super.evalTermOpen(term)
 
   override def evalAtomOpen(at: Atom)(using rec: Fixed): Unit = at match
-    // TODO: I guess we can group those two cases together
     case SetMember(mem, s) if canDetermineValue(mem) => // containment check
+      // This case is subsumed by the second case.
+      // However, we are more precise having a separate op for this.
       val memCol = evalTerm(mem)
       val setCol = evalTerm(s)
       updateSupplementaryChecked { sup =>
@@ -96,11 +97,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         relationOps.filter(sup) { row => setOps.contains(row(setIx), row(memIx)) }
       }
     case SetMember(mem, s) => // iterate over the set
-      println(s"SetMember: $at :: $mem")
-      // TODO: This is not generic enough. We need to support tuple deconstruction here
-      // We should use a more generic version of `deconstructTupleTerm` here?
-      // And we must check for equality for all non binding terms
-      val memCol = extractVarName(mem).get.name
+      val info = extractBindingInfo(mem)
       val setCol = evalTerm(s)
       updateSupplementaryChecked { sup =>
         val columnsBefore = relationOps.columns(sup)
@@ -108,15 +105,20 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
         relationOps.flatMap(sup) { row =>
           val s = row(setIx)
+          val tmpRes = gensym.fresh("result")
 
-          setOps.iter(s) { memValues =>
+          // bind all values in the set to a SupColumn
+          val tmpSup = setOps.iter(s) { memValues =>
             mapJoin(memValues, { v =>
-              relationOps.make(columnsBefore :+ memCol, Seq(row :+ v))
+              relationOps.make(columnsBefore :+ tmpRes, Seq(row :+ v))
             })
           } {
             // No member is bound, that is, the body fails
             except.throws(EmptySupplementary)
           }
+
+          // bind or check the member columns
+          process(tmpSup, info, tmpRes)
         }
       }
     case _ => super.evalAtomOpen(at)
