@@ -14,7 +14,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   val dataOps: DataOps[V, RV]
 
   override protected def canDetermineValue(t: ir.Term): Boolean = t match
-    case Construct(_, _) => true
+    case Construct(_, args) => args.forall(canDetermineValue)
     case _ => super.canDetermineValue(t)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match

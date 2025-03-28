@@ -273,11 +273,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Body(rv, _) => rv
     case _ => throw new IllegalStateException()
 
-  protected def isAssignable(at: Atom, supCols: Seq[String]): Boolean = at match
+  /*protected def isAssignable(at: Atom, supCols: Seq[String]): Boolean = at match
     case ir.Eq(lhs, rhs, false) =>
       extractVarName(rhs).isDefined && lhs.unboundVars.isEmpty && lhs.boundVars.map(_.name.name).forall(supCols.contains) ||
         extractVarName(lhs).isDefined && rhs.unboundVars.isEmpty && rhs.boundVars.map(_.name.name).forall(supCols.contains)
-    case _ => false
+    case _ => false*/
 
   // evalAtomGroup is only used for annotation purposes. Whenever a construct such as a disjunction performs
   // a scoped operation on the supplementary, we need to make sure that the contained atoms are correctly annotated.
@@ -289,11 +289,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     evalAtoms(atoms)
 
   protected def evalAtoms(ats: Seq[Atom])(using rec: Fixed): Unit =
-    //ats.foreach(evalAtom)
-    var rest = ats
+    ats.foreach(evalAtom)
+    /*var rest = ats
     while (rest.nonEmpty) {
       val sup = supplementaryTable.getTable
       val supCols = relationOps.columns(sup)
+      // This part here is too hacky and not extensible at all
       val (now, later) = rest.partition { at =>
         at.boundVars.map(_.name.name).forall(supCols.contains) || isAssignable(at, supCols)
       }
@@ -302,7 +303,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         throw new IllegalStateException()
       ordered.foreach(evalAtom)
       rest = later
-    }
+    }*/
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): (RV, RV) = supplementaryTable.scoped {
     evalAtoms(b.atoms)

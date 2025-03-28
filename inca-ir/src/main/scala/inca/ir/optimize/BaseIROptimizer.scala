@@ -50,6 +50,7 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
         }.set.mkString("\n")
         throw AnalysisFailed(msg)
       case AFallible.Diverging(recur) =>
+        throw IllegalStateException()
         // TODO: unhandled error, occurs for FixFunction compiler test
       case _ => // nothing
     }

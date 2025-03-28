@@ -1,6 +1,6 @@
 package inca.ir.analysis.base.ordering
 
-import inca.ir.{Atom, Eq}
+import inca.ir.{Atom, Eq, ExtensionalCall}
 
 trait Priority(val rawValue: Int)
 
@@ -20,4 +20,5 @@ trait AtomOrderingOps:
 trait BaseAtomOrderingOps extends AtomOrderingOps:
   def priority(at: Atom): Int = at match
     case _: Eq => Priority.Highest
+    case _: ExtensionalCall => Priority.High
     case _ => Priority.Normal
