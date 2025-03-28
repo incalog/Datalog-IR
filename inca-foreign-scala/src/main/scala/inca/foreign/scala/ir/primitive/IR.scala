@@ -57,6 +57,8 @@ case class ScalaTerm(code: String, ty: Type, args: Seq[Term], isApp: Boolean = t
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
 
+  override def commonVars: Set[Var] = args.flatMap(_.commonVars).toSet
+
   override def inTypes: Seq[ScalaType] = args.map { a =>
     val tty = a.typ match
       case Some(TermType(ty, _)) => ty
@@ -81,6 +83,8 @@ case class ScalaConstantTerm(code: String, ty: ScalaType) extends ForeignTerm(Se
   override val lang: ScalaInca.type = ScalaInca
 
   override def vars: Seq[Var] = Seq()
+
+  override def commonVars: Set[Var] = Set()
 
   override def inTypes: Seq[ScalaType] = Seq()
 

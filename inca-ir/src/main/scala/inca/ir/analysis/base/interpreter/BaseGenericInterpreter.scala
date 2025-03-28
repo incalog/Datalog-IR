@@ -131,9 +131,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   given EffectStack = effects
 
   def supplementaryTable: SupplementaryTable[RV]
-
-  def snapshotSupplementary(): RV = supplementaryTable.getTable
-
+  
   def scopedSupplementary[A](f: RV => A): A = supplementaryTable.scoped {
     gensym.scoped {
       f(supplementaryTable.getTable)

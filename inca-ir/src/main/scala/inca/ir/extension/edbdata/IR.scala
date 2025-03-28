@@ -40,18 +40,22 @@ case class TEdbList(ty: EdbType) extends EdbType:
 
 case class LookupEdbType(ty: EdbType) extends Term:
   override def vars: Seq[Var] = Seq()
+  override def commonVars: Set[Var] = Set()
   override def toString: String = s"edb[$ty]"
 
 case class NotInEdbType(t: Term, ty: EdbType) extends Atom:
   override def vars: Seq[Var] = t.vars
+  override def commonVars: Set[Var] = t.commonVars
   override def toString: String = s"not t in edb[$ty]"
 
 case class UndefEdbType(ty: EdbType) extends Atom:
   override def vars: Seq[Var] = Seq()
+  override def commonVars: Set[Var] = Set()
   override def toString: String = s"undef edb[$ty]"
 
 case class LookupEdbField(src: Term, link: Link) extends Term:
   override def vars: Seq[Var] = src.vars
+  override def commonVars: Set[Var] = src.commonVars
   override def toString: String = s"($src).$link"
 
 object LookupEdbField:
@@ -59,10 +63,12 @@ object LookupEdbField:
 
 case class UndefEdbField(src: Term, link: Link) extends Atom:
   override def vars: Seq[Var] = src.vars
+  override def commonVars: Set[Var] = src.commonVars
   override def toString: String = s"undef $src.$link"
 
 case class UndefEdbFieldInverse(srcTy: EdbType, link: Link, trg: Term) extends Atom:
   override def vars: Seq[Var] = trg.vars
+  override def commonVars: Set[Var] = trg.commonVars
   override def toString: String = s"undef $trg.$link^⁻¹"
 
 def EdbDeconstruct(t: Term, node: Name, fields: (String, Term)*): Seq[Atom] =

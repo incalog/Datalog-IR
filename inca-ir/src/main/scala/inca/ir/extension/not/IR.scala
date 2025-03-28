@@ -16,6 +16,7 @@ object IR extends IR {}
 case class Not(at: Atom) extends Atom:
   override def toString: String = s"not($at)"
   override def vars: Seq[Var] = at.vars
+  override def commonVars: Set[Var] = at.commonVars
 
 /**
  * WeakNot is a less strict-form of not. If a variable was binding in an atom `a`, and we negate this atom
@@ -35,3 +36,4 @@ case class Not(at: Atom) extends Atom:
 case class WeakNot(at: Atom) extends Atom:
   override def toString: String = s"weaknot($at)"
   override def vars: Seq[Var] = at.vars
+  override def commonVars: Set[Var] = at.commonVars

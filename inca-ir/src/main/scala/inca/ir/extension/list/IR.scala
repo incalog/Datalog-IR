@@ -15,6 +15,7 @@ object IR extends IR {}
 case class ListLit(ts: Seq[Term]) extends Term:
   override def toString: String = ts.mkString("List(", ", ", ")")
   override def vars: Seq[Var] = ts.flatMap(_.vars)
+  override def commonVars: Set[Var] = ts.flatMap(_.commonVars).toSet
 
 object ListLit:
   def from(ts: Term*): ListLit = new ListLit(ts)
@@ -23,27 +24,34 @@ object ListLit:
 case class Size(list: Term) extends Term:
   override def toString: String = s"$list.size"
   override def vars: Seq[Var] = list.vars
+  override def commonVars: Set[Var] = list.commonVars
 
 case class Head(list: Term) extends Term:
   override def toString: String = s"$list.head"
   override def vars: Seq[Var] = list.vars
+  override def commonVars: Set[Var] = list.commonVars
 
 case class Tail(list: Term) extends Term:
   override def toString: String = s"$list.tail"
   override def vars: Seq[Var] = list.vars
+  override def commonVars: Set[Var] = list.commonVars
 
 case class IsEmpty(list: Term) extends Term:
   override def toString: String = s"$list.isEmpty"
   override def vars: Seq[Var] = list.vars
+  override def commonVars: Set[Var] = list.commonVars
 
 case class Append(list: Term, element: Term) extends Term:
   override def toString: String = s"$list.append($element)"
   override def vars: Seq[Var] = list.vars ++ element.vars
+  override def commonVars: Set[Var] = list.commonVars ++ element.commonVars
 
 case class Prepend(list: Term, element: Term) extends Term:
   override def toString: String = s"$list.prepend($element)"
   override def vars: Seq[Var] = element.vars ++ list.vars
+  override def commonVars: Set[Var] = list.commonVars ++ element.commonVars
 
 case class Deconstruct(list: Term, hd: Term, tail: Term) extends Atom:
   override def toString: String = s"?$list($hd, $tail)"
   override def vars: Seq[Var] = list.vars ++ hd.vars ++ tail.vars
+  override def commonVars: Set[Var] = list.commonVars ++ hd.commonVars ++ tail.commonVars

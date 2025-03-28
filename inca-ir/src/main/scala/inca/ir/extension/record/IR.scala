@@ -1,6 +1,6 @@
 package inca.ir.extension.record
 
-import inca.ir.{Arg, Atom, BaseIR, Language, ModuleEntry, RefByName, Name, Ref, Term, Type}
+import inca.ir.{Arg, Atom, BaseIR, Language, ModuleEntry, Name, Ref, RefByName, Term, Type, Var}
 import inca.ir.extension.data
 import inca.ir.extension.block
 
@@ -32,18 +32,21 @@ case class FieldDefinition(fieldName: Name, ty: Type, record: TRecord) extends R
 
 case class RecordLit(name: Ref[RecordDefinition], fields: Seq[(Ref[FieldDefinition], Term)]) extends Term:
   override def toString: String = s"""$name${fields.mkString("(", ", ", ")")}"""
-  def vars: Seq[inca.ir.Var] = fields.flatMap { case (name, term) => term.vars }
+  override def vars: Seq[Var] = fields.flatMap { case (name, term) => term.vars }
+  override def commonVars: Set[Var] = fields.flatMap { case (name, term) => term.commonVars }.toSet
 
 object RecordLit:
   def apply(name: Name, fields: Seq[(Ref[FieldDefinition], Term)]) = new RecordLit(RefByName(name), fields)
 
 case class FieldLookup(record: Term, field: Ref[FieldDefinition]) extends Term:
   override def toString: String = s"""$record.$field"""
-  def vars: Seq[inca.ir.Var] = record.vars
+  def vars: Seq[Var] = record.vars
+  override def commonVars: Set[Var] = record.commonVars
 
 object FieldLookup:
   def apply(record: Term, field: Name) = new FieldLookup(record, RefByName(field))
 
 case class Deconstruct(record: Term, name: Ref[RecordDefinition], fields: Seq[(Name, Arg)], neg: Boolean = false) extends Atom:
   override def toString: String = s"""${if !neg then "" else "~"} ?$name${fields.mkString("(", ", ", ")")}"""
-  def vars: Seq[inca.ir.Var] = record.vars ++ fields.flatMap { case (name, arg) => arg.vars }
+  def vars: Seq[Var] = record.vars ++ fields.flatMap { case (name, arg) => arg.vars }
+  override def commonVars: Set[Var] = record.commonVars ++ fields.flatMap { case (name, arg) => arg.commonVars }

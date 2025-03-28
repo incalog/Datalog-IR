@@ -3,7 +3,6 @@ package inca.ir.analysis
 import inca.ir.analysis.base.values.AbstractRelation
 import inca.ir.extension.arithmetic.{Add, IntNum, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
-import inca.ir.printer.IRDebugPrinter
 import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, Relation, Var, WildcardArg, string2name, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
@@ -20,12 +19,7 @@ class TypeAnalysisTest extends AnyFunSuiteLike:
     val abstractInterp = IRTypeAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
-    val res = abstractInterp.getIDB
-
-    //val printer = new IRDebugPrinter {}
-    //println(printer.prettyPrint(mod))
-
-    res
+    abstractInterp.getIDB
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(

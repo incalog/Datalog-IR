@@ -151,11 +151,13 @@ case class RefByQualifiedName[Target](ns: Seq[Name]) extends Ref[Target]:
 
 trait Atom extends Analyzable with SourceLocation with Hints with Identifiable:
   def vars: Seq[Var]
+  def commonVars: Set[Var]
   lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))
   lazy val unboundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBinding)
 
 trait Term extends Typeable[TermType] with Analyzable with SourceLocation with Hints with Identifiable:
   def vars: Seq[Var]
+  def commonVars: Set[Var]
 
   lazy val boundVars: Seq[Var] = vars.filter(v => v.typ.get.mode.isBound && !unboundVars.contains(v))
   lazy val unboundVars: Seq[Var] = vars.filter(_.typ.get.mode.isBinding)
@@ -177,15 +179,18 @@ trait Type extends SourceLocation with Hints:
 
 trait Arg extends SourceLocation:
   def vars: Seq[Var]
+  def commonVars: Set[Var]
 
 case class TermArg(t: Term) extends Arg:
   def vars: Seq[Var] = t.vars
+  def commonVars: Set[Var] = t.commonVars
 
   override def toString: String = t.toString
 
 // We still need type information on wildcards for lowerings (e.g. Tuple)
 case class WildcardArg() extends Arg with Typeable[TermType] with Analyzable:
   def vars: Seq[Var] = Seq()
+  def commonVars: Set[Var] = Set()
 
   override def toString: String =
     if (typ.isEmpty)
@@ -235,6 +240,7 @@ case class Body(atoms: Seq[Atom]) extends SourceLocation with Analyzable with Hi
   override def toString: String = s"${atoms.mkString("\t", "\n\t", "")}"
 
   def vars: Seq[Var] = atoms.flatMap(_.vars)
+  def commonVars: Set[Var] = atoms.flatMap(_.commonVars).toSet
 
 case class Var(ref: Ref[Var.Target]) extends Term with Var.Target:
   def name: Name = ref.name
@@ -246,6 +252,7 @@ case class Var(ref: Ref[Var.Target]) extends Term with Var.Target:
       s"$ref: ${typ.get}"
 
   override def vars: Seq[Var] = Seq(this)
+  override def commonVars: Set[Var] = Set(this)
 
 object Var:
   def apply(name: Name): Var = new Var(RefByName(name))
@@ -260,6 +267,7 @@ case class Cast(t: Term, ty: Type) extends Term:
       s"Cast($t, $ty)"
 
   override def vars: Seq[Var] = t.vars
+  override def commonVars: Set[Var] = t.commonVars
 
 trait RelationBase extends ModuleEntry
 
@@ -269,7 +277,8 @@ case class Call(ref: Ref[? <: RelationBase], args: Seq[Arg], neg: Boolean) exten
     s"$negPrefix$ref${args.mkString("(", ", ", ")")}"
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
-
+  override def commonVars: Set[Var] = args.flatMap(_.commonVars).toSet
+  
 object Call:
   def apply(name: Name, args: Seq[Arg], neg: Boolean = false): Call = Call(RefByName(name), args, neg)
 
@@ -297,6 +306,7 @@ case class ExtensionalCall(ref: Ref[? <: ExtensionalRelationBase], args: Seq[Arg
     s"ext $negPrefix$ref${args.mkString("(", ", ", ")")}"
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
+  override def commonVars: Set[Var] = args.flatMap(_.commonVars).toSet
 
 object ExtensionalCall:
   def apply(name: Name, args: Seq[Arg], neg: Boolean = false): ExtensionalCall =
@@ -308,6 +318,7 @@ case class Eq(lhs: Term, rhs: Term, neg: Boolean = false) extends Atom:
     s"$lhs $op $rhs"
 
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+  override def commonVars: Set[Var] = lhs.commonVars ++ rhs.commonVars
 
   def isAssignment: Boolean =
     !neg &&

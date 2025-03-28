@@ -10,14 +10,17 @@ case object TString extends Type
 case class StringLit(value: String) extends Term:
   override def toString: String = s"\"$value\""
   override def vars: Seq[Var] = Seq()
+  override def commonVars: Set[Var] = Set()
 
 case class StringConcat(lhs: Term, rhs: Term) extends Term:
   override def toString: String = s"$lhs + $rhs"
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+  override def commonVars: Set[Var] = lhs.commonVars ++ rhs.commonVars
 
 case class ToString(t: Term) extends Term:
   override def toString: String = s"$t.toString"
   override def vars: Seq[Var] = t.vars
+  override def commonVars: Set[Var] = t.commonVars
 
 object IR extends IR {}
 

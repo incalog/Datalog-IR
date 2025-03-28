@@ -10,10 +10,15 @@ import inca.ir.util.SourceLocation
 case class Case(ref: Ref[CaseDefinition], patVars: Seq[Var], body: Seq[Atom]) extends SourceLocation:
   override def toString: String = s"case $ref(${patVars.mkString(", ")}) => ${body.mkString(", ")}"
   def vars: Seq[Var] = patVars.flatMap(_.vars) ++ body.flatMap(_.vars)
+  def commonVars: Set[Var] = body.flatMap(_.commonVars).toSet
 
 case class Match(matchee: Term, cases: Seq[Case]) extends Atom:
   override def toString: String = s"$matchee match ${cases.mkString("\n\t\t", "\n\t\t", "\n")}"
   override def vars: Seq[Var] = matchee.vars ++ cases.flatMap(_.vars)
+  override def commonVars: Set[Var] =
+    val allVars = cases.map(_.commonVars).toSet
+    val commonForAllCases = allVars.foldLeft(allVars.flatten)(_.intersect(_))
+    matchee.commonVars ++ commonForAllCases
 
 object IR extends IR {}
 

@@ -21,6 +21,8 @@ case class Impure(v: Ref[Var.Target], atoms: Seq[Atom], update: Term, kind: Impu
   override def vars: Seq[Var] =
     // FIXME: Var(v) could also be bound! We just need some value here for our Generic Interpreter
     Var(v).typed(kind.ty.binding) +: (atoms.flatMap(_.vars) ++ update.vars)
+  override def commonVars: Set[Var] =
+    (update.commonVars ++ atoms.flatMap(_.commonVars)) + Var(v).typed(kind.ty.binding)
 
 object Impure:
   def apply(v: Name, atoms: Seq[Atom], update: Term, kind: ImpurityKind): Impure =

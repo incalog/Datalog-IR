@@ -22,6 +22,7 @@ case class TupleLit(ts: Seq[Term]) extends Term:
     throw new IllegalArgumentException(s"Unary tuples are not allowed.")
   override def toString: String = ts.mkString("(", ", ", ")")
   override def vars: Seq[Var] = ts.flatMap(_.vars)
+  override def commonVars: Set[Var] = ts.flatMap(_.commonVars).toSet
 
 object TupleLit:
   def make(t: Term, ts: Term*): Term = if (ts.isEmpty) t else new TupleLit(t +: ts)
@@ -30,4 +31,5 @@ object TupleLit:
 case class Project(t: Term, idx: Int) extends Term:
   override def toString: String = s"$t._${idx+1}"
   override def vars: Seq[Var] = t.vars
+  override def commonVars: Set[Var] = t.commonVars
 

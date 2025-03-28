@@ -15,8 +15,10 @@ import smtlib.trees.CommandsResponses.*
 object DisjointRuleAnalysis:
   case class SmtAtom(atom: Terms.Term) extends Atom:
     override def vars: Seq[Var] = Seq()
+    override def commonVars: Set[Var] = Set()
   case class SmtTerm(term: Terms.Term) extends Term:
     override def vars: Seq[Var] = Seq()
+    override def commonVars: Set[Var] = Set()
 
   case object DisjointKey extends AnalysisKey:
     override val key: String = "DisjointRules"

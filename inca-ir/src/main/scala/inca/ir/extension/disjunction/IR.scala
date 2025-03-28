@@ -14,6 +14,8 @@ trait IR extends BaseIR:
 
 case class DisjunctionAlternative(body: Body) extends SourceLocation:
   override def toString: String = body.atoms.mkString("{", ", ", "}")
+  def vars: Seq[Var] = body.vars
+  def commonVars: Set[Var] = body.commonVars
 
 object DisjunctionAlternative:
   def apply(at: Atom): DisjunctionAlternative = DisjunctionAlternative(Body(Seq(at)))
@@ -22,7 +24,10 @@ object DisjunctionAlternative:
 
 case class Disjunction(alternatives: Seq[DisjunctionAlternative]) extends Atom:
   override def toString: String = alternatives.mkString(" or ")
-  override def vars: Seq[Var] = alternatives.flatMap(_.body.atoms.flatMap(_.vars))
+  override def vars: Seq[Var] = alternatives.flatMap(_.body.vars)
+  override def commonVars: Set[Var] =
+    val allVars = alternatives.map(_.commonVars).toSet
+    allVars.foldLeft(allVars.flatten)(_.intersect(_))
 
 object Disjunction:
   def apply(b1: Body, b2: Body): Disjunction =

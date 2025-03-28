@@ -11,21 +11,17 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
     case Disjunction(Seq()) => // nothing
     case Disjunction(alternatives) =>
-      val before = snapshotSupplementary()
-      val colsBefore = relationOps.columns(before)
+      updateSupplementaryChecked { supBefore =>
+        val colsBefore = relationOps.columns(supBefore)
 
-      // all variables that are in scope after the disjunction
-      val allVars = alternatives.map(_.body.vars.map(_.name.name))
-      val boundAfterDisjunction = allVars.foldLeft[Seq[String]](allVars.flatten) { (acc, altVars) =>
-        acc.intersect(altVars)
-      } ++ colsBefore
+        val boundAfterDisjunction = (at.commonVars.map(_.name.name) ++ colsBefore).toSeq
 
-      val joinedRes = mapJoin(alternatives, { alt =>
-        scopedSupplementary { _ => 
-          evalAtomGroup(alt.body.atoms)
-          val sup = supplementaryTable.getTable
-          relationOps.project(sup, boundAfterDisjunction)
-        }
-      })
-      updateSupplementaryChecked(_ => joinedRes)
+        mapJoin(alternatives, { alt =>
+          scopedSupplementary { _ =>
+            evalAtomGroup(alt.body.atoms)
+            val sup = supplementaryTable.getTable
+            relationOps.project(sup, boundAfterDisjunction)
+          }
+        })
+      }
     case _ => super.evalAtomOpen(at)

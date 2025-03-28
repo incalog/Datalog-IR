@@ -12,12 +12,14 @@ trait IR extends BaseIR:
 case class AggregateColumnArg(t: Term) extends Arg:
   override def toString: String = s"#$t"
   override def vars: Seq[Var] = t.vars
+  override def commonVars: Set[Var] = t.commonVars
 
 // TODO: Support aggregation over Extensional Relation ?
 case class Aggregate(rel: Ref[Relation], args: Seq[Arg], op: AggregationOperator) extends Atom:
   override def toString: String = s"aggregate($rel(${args.mkString(", ")}), $op)"
 
   override def vars: Seq[Var] = args.flatMap(_.vars)
+  override def commonVars: Set[Var] = args.flatMap(_.commonVars).toSet
 
   def aggregationColumns: Seq[Int] = args.zipWithIndex.filter(_._1.isInstanceOf[AggregateColumnArg]).map(_._2)
 

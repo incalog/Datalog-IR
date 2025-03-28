@@ -90,6 +90,7 @@ case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends Case
 case class Construct(caseRef: Ref[_ <: CaseDefinitionReference], args: Seq[Term]) extends Term:
   override def toString: String = s"!$caseRef(${args.mkString(", ")})"
   override def vars: Seq[Var] = args.flatMap(_.vars)
+  override def commonVars: Set[Var] = args.flatMap(_.commonVars).toSet
 
 object Construct:
   def apply(caseName: Name, args: Seq[Term]): Construct = new Construct(RefByName(caseName), args)
@@ -107,6 +108,7 @@ case class Deconstruct(t: Term, caseRef: Ref[_ <: CaseDefinitionReference], args
     s"$negPrefix?$caseRef($t$ifArgs${args.mkString(", ")})"
 
   override def vars: Seq[Var] = t.vars ++ args.flatMap(_.vars)
+  override def commonVars: Set[Var] = t.commonVars ++ args.flatMap(_.commonVars).toSet
 
 object Deconstruct:
   def apply(t: Term, caseName: Name, args: Seq[Arg], neg: Boolean = false): Deconstruct =

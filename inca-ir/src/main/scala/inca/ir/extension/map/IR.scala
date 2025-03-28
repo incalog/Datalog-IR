@@ -15,6 +15,7 @@ case class TMap(k: Type, v: Type) extends Type:
 case class MapLit(ts: Seq[(Term, Term)]) extends Term:
   override def toString: String = s"Map(${ts.map[String] { (t1, t2) => s"$t1 -> $t2" }.mkString(", ")})"
   override def vars: Seq[Var] = ts.flatMap[Var]((t1, t2) => t1.vars ++ t2.vars)
+  override def commonVars: Set[Var] = ts.flatMap[Var]((t1, t2) => t1.commonVars ++ t2.commonVars).toSet
 
 object MapLit:
   def from(ts: (Term, Term)*): MapLit = new MapLit(ts)
@@ -23,6 +24,7 @@ object MapLit:
 case class MapFrom(ref: Ref[Relation]) extends Term:
   override def toString: String = s"Map.from(${ref.name})"
   override def vars: Seq[Var] = Seq()
+  override def commonVars: Set[Var] = Set()
 
 object MapFrom:
   def apply(name: Name): MapFrom = new MapFrom(RefByName(name))
@@ -31,27 +33,34 @@ case class MapFun(params: Seq[Param], valTerm: Term) extends Term:
   override def toString: String = s"MapFun(${params.mkString(", ")} => $valTerm)"
   lazy val names: Set[Name] = params.map(_._1).toSet
   override def vars: Seq[Var] = valTerm.vars.filterNot(v => names.contains(v.name))
+  override def commonVars: Set[Var] = valTerm.commonVars.filterNot(v => names.contains(v.name))
 
 case class MapPlus(map: Term, key: Term, value: Term) extends Term:
   override def toString: String = s"$map += $key -> $value"
   override def vars: Seq[Var] = map.vars ++ key.vars ++ value.vars
+  override def commonVars: Set[Var] = map.commonVars ++ key.commonVars ++ value.commonVars
 
 case class MapUnion(t1: Term, t2: Term) extends Term:
   override def toString: String = s"$t1 ∪ $t2"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
+  override def commonVars: Set[Var] = t1.commonVars ++ t2.commonVars
 
 case class MapConcat(t1: Term, t2: Term) extends Term:
   override def toString: String = s"$t1 ++ $t2"
   override def vars: Seq[Var] = t1.vars ++ t2.vars
+  override def commonVars: Set[Var] = t1.commonVars ++ t2.commonVars
 
 case class MapComprehension(key: Term, value: Term, atoms: Seq[Atom]) extends Term:
   override def toString: String = s"{ $key -> $value | ${atoms.mkString(",")} }"
   override def vars: Seq[Var] = key.vars ++ value.vars ++ atoms.flatMap(atom => atom.vars)
+  override def commonVars: Set[Var] = key.commonVars ++ value.commonVars ++ atoms.flatMap(atom => atom.commonVars)
 
 case class MapLookUp(map: Term, key: Term) extends Term:
   override def toString: String = s"$map($key)"
   override def vars: Seq[Var] = map.vars ++ key.vars
+  override def commonVars: Set[Var] = map.commonVars ++ key.commonVars
 
 case class MapContains(map: Term, key: Term) extends Atom:
   override def toString: String = s"$key in $map"
   override def vars: Seq[Var] = map.vars ++ key.vars
+  override def commonVars: Set[Var] = map.commonVars ++ key.commonVars

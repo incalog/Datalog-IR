@@ -12,10 +12,12 @@ case object TDouble extends Type
 case class IntNum(value: Int) extends Term:
   override def vars: Seq[Var] = Seq()
   override def toString: String = value.toString
+  override def commonVars: Set[Var] = Set()
 
 case class DoubleNum(value: Double) extends Term:
   override def vars: Seq[Var] = Seq()
   override def toString: String = value.toString
+  override def commonVars: Set[Var] = Set()
 
 case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
   override def toString: String =
@@ -24,14 +26,17 @@ case class BinOp(lhs: Term, rhs: Term, op: String) extends Term:
     else
       s"($lhs $op $rhs)"
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+  override def commonVars: Set[Var] = lhs.commonVars ++ rhs.commonVars
 
 case class UnOp(t: Term, op: String) extends Term:
   override def toString: String = s"$op $t"
   override def vars: Seq[Var] = t.vars
+  override def commonVars: Set[Var] = t.commonVars
 
 case class BinCompare(lhs: Term, rhs: Term, op: String) extends Atom:
   override def toString: String = s"$lhs $op $rhs" + analysisString
   override def vars: Seq[Var] = lhs.vars ++ rhs.vars
+  override def commonVars: Set[Var] = lhs.commonVars ++ rhs.commonVars
 
 def Add(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "+")
 def Sub(lhs: Term, rhs: Term): BinOp = BinOp(lhs, rhs, "-")

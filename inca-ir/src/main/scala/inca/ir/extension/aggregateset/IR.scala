@@ -17,3 +17,4 @@ trait IR extends BaseIR:
 case class AggregateSet(rel: Ref[Relation], args: Seq[Arg], op: AggregationOperator) extends Atom:
   override def toString: String = s"aggregateSet($rel(${args.mkString(", ")}), $op)"
   override def vars: Seq[Var] = args.flatMap(_.vars)
+  override def commonVars: Set[Var] = args.flatMap(_.commonVars).toSet

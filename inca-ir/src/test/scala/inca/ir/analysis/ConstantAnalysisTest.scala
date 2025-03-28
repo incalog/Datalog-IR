@@ -30,12 +30,7 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val abstractInterp = IRConstantAbstractInterpreter(interRelational = true)
     edb.foreach(abstractInterp.insertEDB)
     abstractInterp.evalProgram(Seq(mod))
-    val res = abstractInterp.getIDB
-
-    //val printer = new IRDebugPrinter {}
-    //println(printer.prettyPrint(mod))
-
-    res
+    abstractInterp.getIDB
 
   test("Single relation") {
     val mod = Module("Test1", BaseIR.language + arithIR + dataIR, Seq(

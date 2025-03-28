@@ -28,28 +28,28 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case AtomAsBool(a) =>
       val resName = gensym.fresh("result")
+      updateSupplementaryChecked { supBefore =>
+        val colsBefore = relationOps.columns(supBefore)
+        val posBranchVars = a.vars.map(_.name.name)
+        val negBranchVars = negateAtom(a).vars.map(_.name.name)
+        val commonCols = colsBefore ++ posBranchVars.intersect(negBranchVars) :+ resName
 
-      val sup = snapshotSupplementary()
-      val colsBefore = relationOps.columns(sup)
-      val posBranchVars = a.vars.map(_.name.name)
-      val negBranchVars = negateAtom(a).vars.map(_.name.name)
-      val commonCols = colsBefore ++ posBranchVars.intersect(negBranchVars) :+ resName
-
-      val joinedSup = effects.joinComputations {
-        val res = scopedSupplementary { _ => 
-          evalAtomGroup(Seq(a))
-          relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(true) }
+        effects.joinComputations {
+          scopedSupplementary { _ =>
+            evalAtomGroup(Seq(a))
+            val sup = supplementaryTable.getTable
+            val res = relationOps.map(sup, resName) { _ => booleanOps.boolLit(true) }
+            relationOps.project(res, commonCols)
+          }
+        } {
+          scopedSupplementary { _ =>
+            evalAtomGroup(Seq(negateAtom(a)))
+            val sup = supplementaryTable.getTable
+            val res = relationOps.map(sup, resName) { _ => booleanOps.boolLit(false) }
+            relationOps.project(res, commonCols)
+          }
         }
-        relationOps.project(res, commonCols)
-      } {
-        val res = scopedSupplementary { _ =>
-          evalAtomGroup(Seq(negateAtom(a)))
-          relationOps.map(supplementaryTable.getTable, resName) { _ => booleanOps.boolLit(false) }
-        }
-        relationOps.project(res, commonCols)
       }
-
-      updateSupplementaryChecked(_ => joinedSup)
       resName
     case BoolAnd(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.and)
     case BoolOr(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(booleanOps.or)
