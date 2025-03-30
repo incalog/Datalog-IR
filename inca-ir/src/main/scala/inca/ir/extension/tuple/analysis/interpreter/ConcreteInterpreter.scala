@@ -19,7 +19,7 @@ private class CTupleVOps(using failure: Failure) extends TupleOps[Value]:
     case CTupleV(ts) => failure(InvalidTupleProjection, s"Index $index out of bounds")
     case _ => failure(InvalidTupleProjection, s"Expected a tuple, but got $t")
   override def iter(t: Value): Seq[Value] = t match
-    case CTupleV(ts) => ts.flatMap(iter)
+    case CTupleV(ts) => ts //ts.flatMap(iter)
     case _ => Seq(t)
 
 

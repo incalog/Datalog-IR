@@ -6,6 +6,7 @@ import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit
 import inca.ir.*
 import inca.ir.analysis.base.effect.EmptySupplementary
 import inca.ir.extension.tuple.analysis.interpreter.TupleOps
+import inca.ir.extension.tuple
 import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
 trait SetOps[V, RV, B]:
@@ -18,10 +19,9 @@ trait SetOps[V, RV, B]:
   def iter(s: V)(values: Set[V] => RV)(empty: => RV): RV
 
 
-trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
-  // SetFrom can produce a Set with tuple values from a relation.
-  // That means, we need at least a way to create a TupleLit.
-  val tupleOps: TupleOps[V]
+trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]
+  with tuple.analysis.interpreter.GenericInterpreter[V, B, RV, ExcV, J]: // Needed for SetFrom
+  
   lazy val setOps: SetOps[V, RV, B]
 
   override protected def canDetermineValue(t: Term): Boolean = t match
