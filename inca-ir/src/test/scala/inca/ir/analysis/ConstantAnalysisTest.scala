@@ -1079,7 +1079,8 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val constRes = interp(mod)
-    
+    println(constRes)
+
     val inputCalcEdgeRelType = constRes("input_calc")
     assert(inputCalcEdgeRelType.cols == Seq("x"))
     assert(inputCalcEdgeRelType.rows == Seq(Value.Top))

@@ -19,8 +19,9 @@ import sturdy.values.ordering.EqOps
 trait Index
 type IndexPath = Seq[Index]
 
-case class BindingInfo(col: SupColumn, indexPath: IndexPath, isBound: Boolean)
-
+case class BindingInfo(col: SupColumn, indexPath: IndexPath, isBound: Boolean):
+  def isToplevel: Boolean = indexPath.isEmpty
+  def asBinding: BindingInfo = BindingInfo(col, indexPath, false)
 
 enum Adorn:
   case b
@@ -97,7 +98,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   lazy val boolOps: BooleanOps[B]
 
   val branchOps: BooleanBranching[B, RV]
-  
+
   lazy val eqOps: EqOps[V, B]
 
   lazy val failure: CollectedFailures[effect.BaseIRFailure]
@@ -293,6 +294,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Atom() => ()
     case _ => throw new IllegalStateException()
 
+  protected def extractBindingInfo(arg: ir.Arg)(using rec: Fixed): Seq[BindingInfo] = arg match
+    case ir.TermArg(t) => extractBindingInfo(t)
+    case ir.WildcardArg() => Seq()
+    case _ => throw IllegalStateException(s"Unknown binding arg $arg")
+
   protected def extractBindingInfo(term: ir.Term, indexPath: IndexPath = Seq())(using rec: Fixed): Seq[BindingInfo] =
     term match
       case ir.Var(ref) =>
@@ -377,44 +383,35 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case (_, false, false) => evalAssign(rhs, lhs)
       case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
-  protected def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
-    case ir.TermArg(t) if canDetermineValue(t) => Some(evalTerm(t))
-    case ir.TermArg(t) => None
-    case ir.WildcardArg() => None
-    case _ => failure(UnknownArg, s"Unknown arg $arg")
+  // One `Seq` entry for each argument
+  type ArgBindingInfo = Seq[Seq[BindingInfo]]
 
-  def extractVarName(term: ir.Term): Option[ir.Name] = term match
-    case ir.Var(ref) => Some(ref.name)
-    case ir.Cast(t, _) => extractVarName(t)
-    case _ => None
-
-  def extractVarName(arg: ir.Arg): Option[ir.Name] = arg match
-    case ir.TermArg(t) => extractVarName(t)
-    case ir.WildcardArg() => Some(ir.Name(gensym.fresh("_")))
-
-  // Mapping: eval(arg) -> param name
-  // None entries represent an unbound argument. Some(_) entries represent a bound argument.
-  type ArgMapping = Seq[Option[(SupColumn, String)]]
-
-  def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg])(using Fixed): (RV, ArgMapping) =
+  def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg])(using Fixed): (RV, ArgBindingInfo) =
     // Relation with no parameters... This should not happen, even though some engines support it
     if (params.isEmpty)
       failure(NoParamRelation, s"Relation ${r.name} has no parameters!")
-    // eval arguments in current scope
-    val argToParamMapping = params.zip(args).map { (p, a) => evalArg(a).map(_ -> p.name.name) }
-    // group all mappings by their name. if we pass the same variable twice to a function we get more than one mapping
-    val multiMapping = argToParamMapping.flatten.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
-    // filter / rename / duplicate the current arguments in the supplementary
-    val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
-    (evalContext, argToParamMapping)
 
-  protected final def calculateAdornment(argMapping: ArgMapping): Adornment =
+    val info = args.map(extractBindingInfo)
+    val argToParamMapping = params.zip(info).flatMap {
+      case (p, Seq(binding)) if binding.isBound && binding.isToplevel =>
+        // We can only directly pass top-level, fully evaluated args.
+        // In particular, this excludes partially evaluated tuples,
+        // such as (x, 5) where x is unbound.
+        Some(binding.col -> p.name.name)
+      case _ =>
+        None
+    }
+    val multiMapping = argToParamMapping.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
+    val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
+    (evalContext, info)
+
+  protected final def calculateAdornment(argMapping: ArgBindingInfo): Adornment =
     Adornment(argMapping.map {
-      case Some(_) => Adorn.b
-      case None => Adorn.f
+      case Seq(binding) if binding.isBound && binding.isToplevel => Adorn.b
+      case _ => Adorn.f
     })
 
-  protected final def evalRelationLikeEntry[R <: ModuleEntry](r: R, params: Seq[ir.Param], adornment: Adornment, evalContext: RV)(using Fixed): RV =
+  protected final def evalRelationEntry[R <: ModuleEntry](r: R, params: Seq[ir.Param], adornment: Adornment, evalContext: RV)(using Fixed): RV =
     supplementaryTable.setTable(evalContext)
     r match
       case rel: ir.Relation if interRelational =>
@@ -422,7 +419,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case extRel: ir.ExtensionalRelation =>
         evalExtensionalRelation(extRel)
       case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
-        // TODO: We could evaluate across module boundaries here for interRelational. For now we just assume top.
         // assume top for all unbound arguments
         adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
           case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
@@ -431,27 +427,46 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         val relCls = r.getClass.getSimpleName
         throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
 
-  def bindCallResultInSupplementary[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], relRes: RV, argMapping: ArgMapping): RV =
-    // TODO: This should this also work with tuple arguments?
-    val paramNameToArgName = params.zip(args).flatMap { case (p, a) =>
-      extractVarName(a).map(p.name.name -> _.name)
-    }.toMap
-    val subst = argMapping.zip(params).map {
-      case (Some(before, after), _) => after -> before
-      case (_, p) => p.name.name -> paramNameToArgName(p.name.name)
-    }.toMap
-    val validKeys = relationOps.columns(relRes)
-    relationOps.projectAndRename(relRes, subst.filter(kv => validKeys.contains(kv._1)))
+  def renameRelationResult(relRes: RV, params: Seq[ir.Param], argBindingInfo: ArgBindingInfo)(using Fixed): RV =
+    val paramNames = params.map(_.name.name)
+    val argColumns = argBindingInfo.flatMap(_.map(_.col))
+
+    val localGensym = Gensym()
+    localGensym.register(paramNames)
+    localGensym.register(argColumns)
+
+    // rename all columns to prevent name collisions
+    val resultCols = paramNames.map(_ -> localGensym.fresh("result")).toMap
+    val renamedRelRes = relationOps.rename(relRes, resultCols)
+
+    // This is effectively a renaming combined with an unpacking.
+    // In particular, that means partially bound tuples R((x, 3), 5)
+    // are bound afterward.
+    val extendedRelRes = paramNames
+      .zip(argBindingInfo)
+      .foldLeft(renamedRelRes) { case (rv, (p, infos)) =>
+        val from = resultCols(p)
+        infos.foldLeft(rv) { (accSup, info) =>
+          bind(accSup, info.asBinding, from)
+        }
+    }
+    // TODO: perform check here to filter partial results
+    /*val filteredRelRes = argBindingInfo.flatten.foldLeft(extendedRelRes) { (accSup, info) =>
+      if (info.isBound)
+        check(accSup, info, from)
+    }*/
+
+    relationOps.project(extendedRelRes, argColumns)
 
   protected final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
     val (evalContext, argMapping) = evaluationContextForCall(r, params, args)
     val adornment = calculateAdornment(argMapping)
 
     updateSupplementaryChecked { beforeCall =>
-      val relRes = evalRelationLikeEntry(r, params, adornment, evalContext)
-      val callRes = bindCallResultInSupplementary(r, params, args, relRes, argMapping)
+      val relRes = evalRelationEntry(r, params, adornment, evalContext)
+      val callRes = renameRelationResult(relRes, params, argMapping)
       if (neg)
-        // Project everything away that way freshly bound.
+        // Project everything away that was freshly bound.
         // This is safe, since a negative call does not bind variables
         val colsBefore = relationOps.columns(beforeCall)
         val colsAfter = relationOps.columns(callRes)

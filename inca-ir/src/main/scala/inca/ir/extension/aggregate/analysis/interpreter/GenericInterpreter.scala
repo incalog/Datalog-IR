@@ -1,7 +1,7 @@
 package inca.ir.extension.aggregate.analysis.interpreter
 
 import inca.ir
-import inca.ir.analysis.base.effect.NoParamRelation
+import inca.ir.analysis.base.effect.{InvalidBindings, NoParamRelation}
 import inca.ir.{Arg, Atom, ModuleEntry, Name, RefByName, Var}
 import inca.ir.analysis.base.interpreter.{Adorn, Adornment, BaseGenericInterpreter, BindingInfo, IndexPath, SupColumn}
 import inca.ir.extension.aggregate.*
@@ -15,60 +15,58 @@ trait AggregateOps[V]:
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val aggregateOps: AggregateOps[V]
 
-  override def evalArg(arg: ir.Arg)(using Fixed): Option[SupColumn] = arg match
-    //case AggregateColumnArg(t) if canDetermineValue(t) => Some(evalTerm(t))
-    case AggregateColumnArg(t) => None
-    case _ => super.evalArg(arg)
-
-  override def extractVarName(arg: Arg): Option[Name] = arg match
-    case AggregateColumnArg(t) => extractVarName(t)
-    case _ => super.extractVarName(arg)
+  override protected def extractBindingInfo(arg: ir.Arg)(using rec: Fixed): Seq[BindingInfo] = arg match
+    case AggregateColumnArg(t) => extractBindingInfo(t)
+    case _ => super.extractBindingInfo(arg)
 
   private final def evalAggregate[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], aggColumns: Seq[Int], op: AggregationOperator)(using Fixed): Unit =
     if (aggColumns.size != 1)
       throw IllegalStateException("Aggregation is only supported on a single column.")
     val Seq(aggColumnIndex) = aggColumns
 
-    val (evalContext, argMapping) = evaluationContextForCall(r, params, args)
-    val adornment = calculateAdornment(argMapping)
-
-    // the expected
-    val AggregateColumnArg(t) = args(aggColumnIndex): @unchecked
-    val expectedAggResult = if (canDetermineValue(t)) Some(evalTerm(t)) else None
-
-    // TODO: This should this also work with tuple arguments?
-    val resultColumn = extractVarName(t).map(_.name).getOrElse(gensym.fresh("agg"))
+    val (evalContext, argBindingInfo) = evaluationContextForCall(r, params, args)
+    val adornment = calculateAdornment(argBindingInfo)
 
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
-      val relRes = evalRelationLikeEntry(r, params, adornment, evalContext)
+      val relRes = evalRelationEntry(r, params, adornment, evalContext)
 
-      // keep all variables that were bound before the aggregation. Important, do not bind new variables!
-      var subst = argMapping.flatMap(beforeAndAfter => beforeAndAfter.map((b, a) => a -> b)).toMap
-      // also keep the column we aggregate over
-      val aggColumn = relationOps.columns(relRes)(aggColumnIndex)
-      subst += aggColumn -> resultColumn
+      // Make sure we have a well-defined aggregation column
+      val aggColInfos = argBindingInfo(aggColumnIndex)
+      if ((aggColInfos.size != 1) || !aggColInfos.head.isToplevel)
+        failure(InvalidBindings, "Aggregation with partially bound nested values is not supported.")
+      val aggColInfo = aggColInfos.head
 
-      val validKeys = relationOps.columns(relRes)
-      val callRes = relationOps.projectAndRename(relRes, subst.filter(kv => validKeys.contains(kv._1)))
-      val callAggColIndex = relationOps.columnIndex(callRes, resultColumn)
+      // Do not bind anything, just keep everything that was bound before
+      // and the aggregate column.
+      val filteredInfo = argBindingInfo.zipWithIndex.map {
+        case (infos, idx) if idx != aggColumnIndex => infos.filter(_.isBound)
+        case _ => Seq()
+      }
+      val combinedInfo = filteredInfo.updated(aggColumnIndex, Seq(aggColInfo))
+      val callRes = renameRelationResult(relRes, params, combinedInfo)
+      val callAggColIndex = relationOps.columnIndex(callRes, aggColInfo.col)
 
-      // Perform the aggregation. Note, the rows must already be grouped here! That is, they all look the same
-      // except for the column that contains the value to be aggregated.
-      val initialValue = aggregateOps.init(op)
-      val aggRes = relationOps.fold(callRes, 0.until(subst.size).map(_ => initialValue)) { case (acc, row) =>
+      val expectedAggResult =
+        if (aggColInfo.isBound)
+          Some(relationOps.project(relRes, Seq(aggColInfo.col)))
+        else
+          None
+
+      // Perform the aggregation
+      val cols = relationOps.columns(callRes)
+      val initialRow = cols.indices.map(_ => aggregateOps.init(op))
+      val aggRes = relationOps.fold(callRes, initialRow) { case (acc, row) =>
         val aggValue = aggregateOps.aggregate(acc(callAggColIndex), row(callAggColIndex), op)
         row.updated(callAggColIndex, aggValue)
       }
 
-      relationOps.naturalJoin(beforeCall, aggRes)
-    }
+      val filteredAggRes = expectedAggResult match
+        case Some(res) =>  relationOps.naturalJoin(aggRes, res)
+        case _ => aggRes
 
-    // assert equalities in case we expected a certain result
-    expectedAggResult match
-      case Some(expectedResSubColumn) =>
-        evalEq(Var(Name(resultColumn)), Var(Name(expectedResSubColumn)), false)
-      case None => // nothing
+      relationOps.naturalJoin(beforeCall, filteredAggRes)
+    }
 
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
     case agg@Aggregate(ref, args, op) =>

@@ -51,7 +51,8 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
         throw AnalysisFailed(msg)
       case AFallible.Diverging(recur) =>
         throw IllegalStateException()
-        // TODO: unhandled error, occurs for FixFunction compiler test
+        // TODO: unhandled error, occurs for FixFunction compiler test if main is
+        //  executed before the extensional call
       case _ => // nothing
     }
 

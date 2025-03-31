@@ -1191,6 +1191,49 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 2)))
   }
 
+  test("Aggregate - non recursive (filtered)") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(3))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(4))
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+        Param("y", TInt),
+      ), Seq(
+        Body(Seq(
+          Aggregate(Name("edge"), Seq(IntNum(1).arg, AggregateColumnArg(Var("y"))), ArithmeticAggregationOperator.MinInt),
+          Call("edge", Seq(Var("x"), Var("y")))
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 3)))
+
+    val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 2)))
+  }
+
+  /* demand */
+
   test("Fibonacci - demand input") {
     val input_n = 3
 
@@ -1275,13 +1318,41 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(firstEntry.last.asInstanceOf[Int] == 2)
   }
 
-  /*test("Tuple - Unpacking in call argument") {
+  test("Tuple - Call argument") {
     val mod = Module("Test1", BaseIR.language + arithIR + tupleIR, Seq(
       Relation("helper", Seq(
         Param("out1", TTuple(Seq(TInt, TInt))),
       ), Seq(
         Body(Seq(
           Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+        ))
+      )),
+      Relation("main", Seq(
+        Param("success", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("helper", Seq(TupleLit(Seq(IntNum(1), IntNum(2))))),
+          Eq(Var("success"), IntNum(1))
+        ))
+      )).addHint(MainHint)
+    ))
+
+    val res = interp(mod)
+    val mainRel = res("main")
+    val entry = mainRel.flattenEntry(mainRel.entries.head)
+    assert(entry.head.asInstanceOf[Int] == 1)
+  }
+
+  test("Tuple - Unpacking in call argument") {
+    val mod = Module("Test1", BaseIR.language + arithIR + tupleIR, Seq(
+      Relation("helper", Seq(
+        Param("out1", TTuple(Seq(TInt, TInt))),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(1), IntNum(2)))),
+        )),
+        Body(Seq(
+          Eq(Var("out1"), TupleLit(Seq(IntNum(2), IntNum(3)))),
         ))
       )),
       Relation("main", Seq(
@@ -1295,8 +1366,9 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
 
     val res = interp(mod)
     val mainRel = res("main")
+    assert(mainRel.entries.size == 1)
     assert(mainRel.entries.head.asInstanceOf[Int] == 2)
-  }*/
+  }
 
   /* Boolean */
 
