@@ -2,7 +2,6 @@ package inca.ir.analysis.base.interpreter
 
 import inca.ir
 import inca.ir.analysis.base.effect.*
-import inca.ir.analysis.base.ordering.AtomOrderingOps
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
 import inca.ir.analysis.base.effect
 import inca.ir.{Atom, MainHint, ModuleEntry}
@@ -98,9 +97,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   lazy val boolOps: BooleanOps[B]
 
   val branchOps: BooleanBranching[B, RV]
-
-  val atomOrderingOps: AtomOrderingOps
-
+  
   lazy val eqOps: EqOps[V, B]
 
   lazy val failure: CollectedFailures[effect.BaseIRFailure]
@@ -206,7 +203,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   def evalModule(m: ir.Module)(using Fixed): Map[String, RV] = {
     entryPoints(m).map { rel =>
-
       val allFreeAdorn = Adornment(relationParams(rel).map(_ => Adorn.f))
       rel.name.name -> evalRelation(rel, allFreeAdorn)
     }.toMap
@@ -273,12 +269,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case FixOut.Body(rv, _) => rv
     case _ => throw new IllegalStateException()
 
-  /*protected def isAssignable(at: Atom, supCols: Seq[String]): Boolean = at match
-    case ir.Eq(lhs, rhs, false) =>
-      extractVarName(rhs).isDefined && lhs.unboundVars.isEmpty && lhs.boundVars.map(_.name.name).forall(supCols.contains) ||
-        extractVarName(lhs).isDefined && rhs.unboundVars.isEmpty && rhs.boundVars.map(_.name.name).forall(supCols.contains)
-    case _ => false*/
-
   // evalAtomGroup is only used for annotation purposes. Whenever a construct such as a disjunction performs
   // a scoped operation on the supplementary, we need to make sure that the contained atoms are correctly annotated.
   inline def evalAtomGroup(atoms: Seq[Atom])(using rec: Fixed): Unit = rec(FixIn.AtomGroup(atoms)) match
@@ -290,20 +280,6 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   protected def evalAtoms(ats: Seq[Atom])(using rec: Fixed): Unit =
     ats.foreach(evalAtom)
-    /*var rest = ats
-    while (rest.nonEmpty) {
-      val sup = supplementaryTable.getTable
-      val supCols = relationOps.columns(sup)
-      // This part here is too hacky and not extensible at all
-      val (now, later) = rest.partition { at =>
-        at.boundVars.map(_.name.name).forall(supCols.contains) || isAssignable(at, supCols)
-      }
-      val ordered = now.sortBy(at => atomOrderingOps.priority(at))
-      if (rest.size == later.size)
-        throw new IllegalStateException()
-      ordered.foreach(evalAtom)
-      rest = later
-    }*/
 
   def evalBodyOpen(b: ir.Body, paramNames: Seq[String])(using rec: Fixed): (RV, RV) = supplementaryTable.scoped {
     evalAtoms(b.atoms)

@@ -5,7 +5,7 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.*
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
-import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
+import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.arithmetic.analysis as irarith
@@ -137,24 +137,6 @@ class IRDataKindAbstractInterpreter(
     with irset.interpreter.BoundedEqOps
     with irmap.interpreter.BoundedEqOps
     with irimpure.interpreter.ConstantEqOps
-
-  private class IRAtomOrderingOps extends BaseAtomOrderingOps
-    with irarith.ordering.AtomOrderingOps
-    with irstr.ordering.AtomOrderingOps
-    with iragg.ordering.AtomOrderingOps
-    with irdata.ordering.AtomOrderingOps
-    with irtuple.ordering.AtomOrderingOps
-    with irbool.ordering.AtomOrderingOps
-    with irdemand.ordering.AtomOrderingOps
-    with irnot.ordering.AtomOrderingOps
-    with irdisjcuntion.ordering.AtomOrderingOps
-    with irblock.ordering.AtomOrderingOps
-    with irdatamatch.ordering.AtomOrderingOps
-    with irset.ordering.AtomOrderingOps
-    with irmap.ordering.AtomOrderingOps
-    with irimpure.ordering.AtomOrderingOps
-  
-  override val atomOrderingOps = new IRAtomOrderingOps
   
   override lazy val topV: Value = Value.Top
 

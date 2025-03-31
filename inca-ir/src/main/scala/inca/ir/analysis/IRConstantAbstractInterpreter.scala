@@ -6,7 +6,7 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, ConcreteRelation, AbstractRelation, AbstractRelationOps, Meet, Value}
 import inca.ir.analysis.base.interpreter.{AbstractSupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
-import inca.ir.analysis.base.ordering.{BaseAtomOrderingOps, BaseEqOps}
+import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
@@ -121,24 +121,6 @@ class IRConstantAbstractInterpreter(
     with irmap.interpreter.ConstantEqOps
     with irimpure.interpreter.ConstantEqOps
 
-  private class IRAtomOrderingOps extends BaseAtomOrderingOps
-    with irarith.ordering.AtomOrderingOps
-    with irstr.ordering.AtomOrderingOps
-    with iragg.ordering.AtomOrderingOps
-    with irdata.ordering.AtomOrderingOps
-    with irtuple.ordering.AtomOrderingOps
-    with irbool.ordering.AtomOrderingOps
-    with irdemand.ordering.AtomOrderingOps
-    with irnot.ordering.AtomOrderingOps
-    with irdisjcuntion.ordering.AtomOrderingOps
-    with irblock.ordering.AtomOrderingOps
-    with irdatamatch.ordering.AtomOrderingOps
-    with irset.ordering.AtomOrderingOps
-    with irmap.ordering.AtomOrderingOps
-    with irimpure.ordering.AtomOrderingOps
-  
-  override val atomOrderingOps = new IRAtomOrderingOps
-  
   override lazy val topV: Value = Value.Top
 
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])

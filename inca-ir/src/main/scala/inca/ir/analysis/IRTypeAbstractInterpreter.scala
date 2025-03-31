@@ -6,7 +6,6 @@ import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{AbstractSupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, PrintLogger}
-import inca.ir.analysis.base.ordering.BaseAtomOrderingOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
@@ -75,12 +74,7 @@ class IRTypeAbstractInterpreter(
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
       MaybeChanged(join(v1, v2), v1)
   }
-
-  private class IRAtomOrderingOps extends BaseAtomOrderingOps
-    with irdata.ordering.AtomOrderingOps
-
-  override val atomOrderingOps = new IRAtomOrderingOps
-
+  
   override lazy val topV: Value = Value.Top
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures
