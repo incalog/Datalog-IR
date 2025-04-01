@@ -11,6 +11,7 @@ import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import inca.ir.extension.aggregate as iragg
+import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.bool as irbool
 import inca.ir.extension.block as irblock
 import inca.ir.extension.tuple as irtuple
@@ -70,7 +71,17 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, args) = params.map(p => (p.name.name, Value.Top)).unzip
+          val (paramNames, args) =
+            if (n.name == "ext_main$input")
+              // OODL specific
+              params.map {
+                case p if p.name.name == "Alloc" => (p.name.name, ConstantIntV(1))
+                case p if p.name.name == "Mutation" => (p.name.name, ConstantIntV(1))
+                case p if p.name.name == "MonoImpurity" => (p.name.name, ConstantIntV(1))
+                case p => (p.name.name, Value.Top)
+              }.unzip
+            else
+              params.map(p => (p.name.name, Value.Top)).unzip
           val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
           abstractInterpreter.insertEDB(n.name, AbstractRelation(paramNames, args, empty))
         case _ => // nothing
@@ -142,6 +153,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     } else {
       val eqAts = eqsToBindConstantParams(body)
       logOptimizationStat("constant equation", 1, _ - eqAts.size)
+      println(s"Visit body: \n$body")
       super.visitBody(body)
         .map(b => Body(eqAts ++ b.atoms)) // .diff(b.atoms)
         .filter(_.atoms.nonEmpty)

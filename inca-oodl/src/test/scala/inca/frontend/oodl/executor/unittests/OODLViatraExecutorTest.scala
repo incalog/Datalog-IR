@@ -14,10 +14,10 @@ class OODLViatraExecutorTest extends AnyFunSuite:
   // Unittests
   test("Add") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Add.oodl")
-    val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
-    val loaded = exec.loadOODL(compiled)
+    val unit = exec.compileOODL(code, options)
+    unit.setPipeline(unit.pipeline)
+    unit.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
+    val loaded = exec.loadOODL(unit)
     val res = loaded.execute("main", Seq())
     assertResult("OID(Succ,7)")(res.entries.head.toString)
   }

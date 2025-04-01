@@ -14,7 +14,8 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     getBodyResult(body).headOption match
       case None => Seq()
       case Some(constRel) =>
-        constRel.cols.zip(constRel.rows).flatMap { (c, v) =>
+        val eqs = super.eqsToBindConstantParams(body)
+        constRel.cols.zip(constRel.rows).zip(eqs).flatMap { case ((c, v), eq) =>
             val isMap = v match
               case _: ConstantMapV | _: ConstantMapFunV => true
               case _ => false
@@ -22,7 +23,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
             if (isMap && bodyBindsVar)
               None
             else
-              super.eqsToBindConstantParams(body)
+              Some(eq)
         }
 
   override def mayEliminate(t: Term): Boolean = t match

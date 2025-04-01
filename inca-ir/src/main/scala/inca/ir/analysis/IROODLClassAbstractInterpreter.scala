@@ -22,6 +22,7 @@ import inca.ir.extension.not.analysis as irnot
 import inca.ir.extension.set.analysis as irset
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.tuple.analysis as irtuple
+import inca.util.MapUtil
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
@@ -36,6 +37,8 @@ import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
 
+import scala.annotation.tailrec
+
 // Implicits
 import inca.ir.analysis.base.effect.{IRException, IRFailure}
 import inca.ir.analysis.base.interpreter.{CCombineFixOut, FiniteFixIn}
@@ -46,19 +49,19 @@ import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
 class IROODLClassAbstractInterpreter(
-    var subclassMap: Map[String, Set[String]], // cls -> subclasses of cls
-    val logTraversalTrace: Boolean = false,
-    val logControlEvents: Boolean = false,
-    override val interRelational: Boolean = false
+                                      var superClassMap: Map[String, Set[String]], // cls -> direct superclass of cls
+                                      val logTraversalTrace: Boolean = false,
+                                      val logControlEvents: Boolean = false,
+                                      override val interRelational: Boolean = false
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.ConstantAbstractInterpreter
     with irstr.interpreter.ConstantAbstractInterpreter
-    with irdata.interpreter.OODLClassAbstractInterpreter
+    with irdata.interpreter.OODLClassAbstractInterpreter // specific to OODL
     with iragg.interpreter.ConstantAbstractInterpreter
     with irtuple.interpreter.ConstantAbstractInterpreter
     with irbool.interpreter.ConstantAbstractInterpreter
-    with irdemand.interpreter.ConstantAbstractInterpreter
+    with irdemand.interpreter.OODLClassAbstractInterpreter // specific to OODL
     with irnot.interpreter.ConstantAbstractInterpreter
     with irdisjcuntion.interpreter.ConstantAbstractInterpreter
     with irblock.interpreter.ConstantAbstractInterpreter
@@ -71,42 +74,54 @@ class IROODLClassAbstractInterpreter(
     with RequireJoin[Value]:
 
   type RV = AbstractRelation
-  
+
+  // all ancestors for a given class
+  private lazy val ancestors: Map[String, Set[String]] =
+    MapUtil.transClosure(superClassMap)
+
+  private lazy val descendants: Map[String, Set[String]] =
+    val subclasses = superClassMap.toSeq.flatMap((k, vs) => vs.toSeq.map(_ -> k))
+      .groupBy(_._1)
+      .view.mapValues(_.map(_._2).toSet)
+      .toMap
+    MapUtil.transClosure(subclasses)
+    
   given classOps: ClassOps[OODLClassV, Boolean] with
     override def isSubclass(cls1: OODLClassV, cls2: OODLClassV): Boolean = (cls1, cls2) match
-      case (OODLClassV.Base, OODLClassV.Base) => true
-      case (_, OODLClassV.Base) => true
-      case (OODLClassV.Base, _) => false
       case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
         if (clsName1 == clsName2) true
-        else if (subclassMap(clsName2).contains(clsName1)) true
+        else if (descendants(clsName2).contains(clsName1)) true
         else false
 
     override def join(cls1: OODLClassV, cls2: OODLClassV): OODLClassV = (cls1, cls2) match
-      case (OODLClassV.Base, _) | (_, OODLClassV.Base) => OODLClassV.Base
       case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
-        if (clsName1 == clsName2) cls1
-        else if (subclassMap(clsName2).contains(clsName1)) cls2 // cls1 is subclass of cls2
-        else if (subclassMap(clsName1).contains(clsName2)) cls1 // cls2 is subclass of cls1
-        else OODLClassV.Base
+        if (clsName1 == clsName2)
+          cls1
+        else
+          val commonAncestors = ancestors(clsName1).intersect(ancestors(clsName2))
+          // Pick the most specific (i.e., lowest in the hierarchy)
+          val lub = commonAncestors.find { candidate =>
+            !commonAncestors.exists { other =>
+              other != candidate && ancestors(other).contains(candidate)
+            }
+          }.get
+          OODLClassV(lub)
 
     override def meet(cls1: OODLClassV, cls2: OODLClassV): OODLClassV = (cls1, cls2) match
-      case (_, OODLClassV.Base) => cls1
-      case (OODLClassV.Base, _) => cls2
       case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
         if (clsName1 == clsName2) cls1
-        else if (subclassMap(clsName2).contains(clsName1)) cls1 // cls1 is subclass of cls2
-        else if (subclassMap(clsName1).contains(clsName2)) cls2 // cls2 is subclass of cls1
-        else except.throws(EmptyTable)
+        else if (descendants(clsName2).contains(clsName1)) cls1 // cls1 is subclass of cls2
+        else if (descendants(clsName1).contains(clsName2)) cls2 // cls2 is subclass of cls1
+        else OODLClassV.Null
 
 
   private class IRJoinV extends Join[Value] with BaseJoinV
     with irarith.interpreter.ConstantJoinV
     with irstr.interpreter.ConstantJoinV
-    with irdata.interpreter.DataKindJoinV
+    with irdata.interpreter.OODLClassJoinV
     with irtuple.interpreter.ConstantJoinV
     with irbool.interpreter.ConstantJoinV
-    with irdemand.interpreter.ConstantJoinV
+    with irdemand.interpreter.OODLClassJoinV
     with irnot.interpreter.ConstantJoinV
     with irdisjcuntion.interpreter.ConstantJoinV
     with irblock.interpreter.ConstantJoinV
@@ -121,10 +136,10 @@ class IROODLClassAbstractInterpreter(
   private class IRMeetV(using except: Except[BaseIRException, Powerset[BaseIRException], WithJoin]) extends BaseMeetV(using except)
     with irarith.interpreter.ConstantMeetV
     with irstr.interpreter.ConstantMeetV
-    with irdata.interpreter.DataKindMeetV
+    with irdata.interpreter.OODLClassMeetV
     with irtuple.interpreter.ConstantMeetV
     with irbool.interpreter.ConstantMeetV
-    with irdemand.interpreter.ConstantMeetV
+    with irdemand.interpreter.OODLClassMeetV
     with irnot.interpreter.ConstantMeetV
     with irdisjcuntion.interpreter.ConstantMeetV
     with irblock.interpreter.ConstantMeetV
@@ -136,10 +151,10 @@ class IROODLClassAbstractInterpreter(
   private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
     with irarith.interpreter.ConstantEqOps
     with irstr.interpreter.ConstantEqOps
-    with irdata.interpreter.DataKindEqOps(using boolOps)
+    with irdata.interpreter.OODLClassEqOps(using boolOps)
     with irtuple.interpreter.ConstantEqOps(using boolOps)
     with irbool.interpreter.ConstantEqOps(using boolOps)
-    with irdemand.interpreter.ConstantEqOps
+    with irdemand.interpreter.OODLClassEqOps
     with irnot.interpreter.ConstantEqOps
     with irdisjcuntion.interpreter.ConstantEqOps
     with irblock.interpreter.ConstantEqOps

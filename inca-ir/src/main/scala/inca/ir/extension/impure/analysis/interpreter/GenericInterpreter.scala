@@ -16,8 +16,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   type InName = Name
   type OutName = Name
 
+  if (!interRelational)
+    println("[WARNING:] Intra-relational impure analysis is not supported!")
+
   private var impurityCounter: Map[ImpurityKind, SupColumn] = Map()
   def updateImpurityCounter(kind: ImpurityKind, col: SupColumn): Unit = impurityCounter += kind -> col
+  def hasImpurityCounter(kind: ImpurityKind): Boolean = impurityCounter.contains(kind)
   def getImpurityCounter(kind: ImpurityKind): SupColumn = impurityCounter(kind)
 
   def impurityScoped[A](f: => A): A = {
@@ -93,14 +97,16 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     relevantImpurities.foreach { case (kind, (inName, _)) =>
       updateImpurityCounter(kind, inName.name)
     }
-
+    
     evalAtoms(b.atoms)
     val sup = supplementaryTable.getTable
 
-    // rename last impurity vars to match the output impurity parameters
-    val renaming = relevantImpurities.map { case (imp, (_, outName)) => getImpurityCounter(imp) -> outName.name }
-
-    val rawBody = relationOps.rename(sup, renaming)
+    // copy last impurity vars to match the output impurity parameters
+    val inOutMapping = relevantImpurities.map { case (imp, (_, outName)) => getImpurityCounter(imp) -> outName.name }
+    val rawBody = inOutMapping.foldLeft(sup) { case (acc, inCol -> outCol) =>
+      relationOps.copyColumn(sup, inCol, outCol)
+    }
+    
     val projectedBody = relationOps.project(rawBody, paramNames)
     (projectedBody, rawBody)
   }
@@ -141,9 +147,11 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val outCol = evalTerm(update)
       updateImpurityCounter(kind, outCol)
     case Impure(v, atoms, update, kind) =>
-      val inCol = getImpurityCounter(kind)
-      updateSupplementaryUnchecked { sup =>
-        relationOps.copyColumn(sup, inCol, v.name.name)
+      if (hasImpurityCounter(kind)) {
+        val inCol = getImpurityCounter(kind)
+        updateSupplementaryUnchecked { sup =>
+          relationOps.copyColumn(sup, inCol, v.name.name)
+        }
       }
       updateSupplementaryChecked { sup =>
         evalAtoms(atoms)

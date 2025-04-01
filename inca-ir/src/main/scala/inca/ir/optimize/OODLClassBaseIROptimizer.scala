@@ -3,35 +3,26 @@ package inca.ir.optimize
 import inca.ir
 import inca.util.{Memoize, memoize}
 import inca.ir.Hint.preserveHints
-import inca.ir.analysis.{IRConstantAbstractInterpreter, IROODLClassAbstractInterpreter}
+import inca.ir.analysis.IROODLClassAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
+import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Name, Param, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
-import inca.ir.extension.arithmetic as irarith
-import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
-import inca.ir.extension.datamatch as irdatamatch
-import inca.ir.extension.aggregate as iragg
-import inca.ir.extension.bool as irbool
-import inca.ir.extension.block as irblock
 import inca.ir.extension.data.analysis.interpreter.OODLClassV
-import inca.ir.extension.tuple as irtuple
-import inca.ir.extension.set as irset
-import inca.ir.extension.map as irmap
-import inca.ir.extension.disjunction as irdisjunction
 import sturdy.values.Topped
 
-trait OODLClassBaseIROptimizer(val _subclassMap: Map[String, Set[String]], val _interRelational: Boolean)
+trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val _interRelational: Boolean)
   extends BaseIROptimizer[Value, AbstractRelation, Value]:
 
   override def name: String =
     if (_interRelational)
-      "Data kind optimizer (inter)"
+      "OODL class optimizer (inter)"
     else
-      "Data kind optimizer (intra)"
+      "OODL class optimizer (intra)"
 
   override val abstractInterpreter: IROODLClassAbstractInterpreter = new IROODLClassAbstractInterpreter(
-    subclassMap = _subclassMap,
+    superClassMap = _superClassMap,
     logControlEvents = computeControlEvents,
     interRelational = _interRelational
   )
@@ -65,7 +56,16 @@ trait OODLClassBaseIROptimizer(val _subclassMap: Map[String, Set[String]], val _
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, args) = params.map(p => (p.name.name, Value.Top)).unzip
+          val (paramNames, args) =
+            if (n.name == "ext_main$input")
+              params.map {
+                case p if p.name.name == "Alloc" => (p.name.name, ConstantIntV(1))
+                case p if p.name.name == "Mutation" => (p.name.name, ConstantIntV(1))
+                case p if p.name.name == "MonoImpurity" => (p.name.name, ConstantIntV(1))
+                case p => (p.name.name, Value.Top)
+              }.unzip
+            else
+              params.map(p => (p.name.name, Value.Top)).unzip
           val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
           abstractInterpreter.insertEDB(n.name, AbstractRelation(paramNames, args, empty))
         case _ => // nothing
@@ -74,12 +74,12 @@ trait OODLClassBaseIROptimizer(val _subclassMap: Map[String, Set[String]], val _
     super.analyzeProgram(modules)
 
 class IROODLClassOptimizer(
-                           val subclassMap: Map[String, Set[String]],
-                           override val assumeEdbIsNotEmpty: Boolean,
-                           override val computeControlEvents: Boolean,
-                           val interRelational: Boolean = false
+                            val superClassMap: Map[String, Set[String]],
+                            override val assumeEdbIsNotEmpty: Boolean,
+                            override val computeControlEvents: Boolean,
+                            val interRelational: Boolean = false
                          )
-  extends OODLClassBaseIROptimizer(subclassMap, interRelational)
+  extends OODLClassBaseIROptimizer(superClassMap, interRelational)
   with irdata.optimize.OODLClassOptimizer
 
 

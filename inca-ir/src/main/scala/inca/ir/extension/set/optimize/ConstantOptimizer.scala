@@ -18,13 +18,14 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     getBodyResult(body).headOption match
       case None => Seq()
       case Some(constRel) =>
-        constRel.cols.zip(constRel.rows).flatMap { (c, v) =>
+        val eqs = super.eqsToBindConstantParams(body)
+        constRel.cols.zip(constRel.rows).zip(eqs).flatMap { case ((c, v), eq) =>
           val isSet = v.isInstanceOf[ConstantSetV]
           val bodyBindsVar = body.vars.map(_.name.name).contains(c)
           if (isSet && bodyBindsVar)
             None
           else
-            super.eqsToBindConstantParams(body)
+            Some(eq)
         }
 
   override def mayEliminate(t: Term): Boolean = t match

@@ -60,7 +60,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val rix = relationOps.columnIndex(sup, rs)
         relationOps.filter(sup) { row => opFun(row(lix), row(rix)) }
       }
-
     case _ => super.evalAtomOpen(at)
 
 

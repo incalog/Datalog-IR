@@ -153,7 +153,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   // Evaluation
   private lazy val fixed: Fixed = fixpoint(using effects) {
-    case FixIn.Term(term) => FixOut.Term(evalTermOpen(term))
+    case FixIn.Term(term) =>
+      FixOut.Term(evalTermOpen(term))
     case FixIn.Atom(atom) =>
       //println(s"  ## Eval $atom :: ${supplementaryTable.getTable}")
       evalAtomOpen(atom);
@@ -166,7 +167,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       evalAssignOpen(to, from)
       FixOut.Assign()
     case FixIn.Body(rel, ix, paramNames) =>
-      //(s"## Eval ${rel.name} body $ix")
+      //println(s"## Eval ${rel.name} body $ix")
       val (rv, rawRV) = evalBodyOpen(rel.bodies(ix), paramNames)
       FixOut.Body(rv, rawRV)
     case FixIn.EnterRelation(rel, adornment) =>
@@ -453,23 +454,22 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         }
     }
     relationOps.project(extendedRelRes, argColumns)
-    
+
     // We need to filter all partial tuples.
-    // E.g. 
+    // E.g.
     //  R(x) :- x = (1,2) v x = (2,3)
     //  Q(x) :- R((_,2))
-    // Should only yield one tuple for x. 
+    // Should only yield one tuple for x.
     // However, since the call result is naturally joined in to the supplementary
-    // and the supplementary contains partial results, we do not need to do this 
+    // and the supplementary contains partial results, we do not need to do this
     // natural join here. If we could write down a program with negation or aggregation
-    // that uses a partial tuple, then we would need this. 
+    // that uses a partial tuple, then we would need this.
     /*val sup = supplementaryTable.getTable
     val supColumns = relationOps.columns(sup)
     relationOps.naturalJoin(
       relationOps.project(extendedRelRes, argColumns),
       relationOps.project(sup, argColumns.intersect(supColumns)),
     )*/
-
 
   protected final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
     val (evalContext, argBindingInfo) = evaluationContextForCall(r, params, args)

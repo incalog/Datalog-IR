@@ -33,10 +33,10 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
 
   test("ControlFlowGraph") {
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/CfgVisitor.oodl")
-    val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
-    val loaded = exec.loadOODL(compiled)
+    val unit = exec.compileOODL(code, options)
+    unit.setPipeline(unit.pipeline)
+    unit.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
+    val loaded = exec.loadOODL(unit)
     var res = loaded.execute("main", Seq())
 
     val setAdt = res.entries.head

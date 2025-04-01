@@ -51,8 +51,13 @@ enum AbstractRelation:
 
 object AbstractRelation:
   def apply(cols: Seq[String], rows: Seq[Value], empty: Topped[Boolean]): AbstractRelation =
+    assert(cols.toSet.size == cols.size) // unique columns
+    assert(cols.size == rows.size) // column size matches row size
     AbstractRelation.NonEmpty(cols, rows, empty)
 
+  def empty(cols: Seq[String]): AbstractRelation =
+    assert(cols.toSet.size == cols.size) // unique columns
+    AbstractRelation.Empty(cols)
 
 class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin])
                                (using joinV: Join[Value],
@@ -69,7 +74,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
 
   override def make(cols: Seq[String], vals: Seq[Row]): AbstractRelation =
     if (vals.isEmpty)
-      AbstractRelation.Empty(cols)
+      AbstractRelation.empty(cols)
     else if (vals.size == 1)
       AbstractRelation(cols, vals.head, Topped.Actual(vals.isEmpty))
     else
@@ -95,7 +100,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def projectAndRenameWithMultipleAliases(rv: AbstractRelation, subst: Map[String, Seq[String]]): AbstractRelation =
     val newCols = subst.values.flatten.toSeq
     rv match
-      case AbstractRelation.Empty(_) => AbstractRelation.Empty(newCols)
+      case AbstractRelation.Empty(_) => AbstractRelation.empty(newCols)
       case AbstractRelation.NonEmpty(_, _, emp) =>
         val newRows = subst.flatMap { case (col, newCols) =>
           val colIndex = rv.cols.indexOf(col)
@@ -111,7 +116,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
   override def groupBy(rv: AbstractRelation, accumulatorCols: Seq[String], groupByCols: Seq[String])
                       (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[Row]) => Row): AbstractRelation =
     rv match
-      case AbstractRelation.Empty(cols) => AbstractRelation.Empty(newCols)
+      case AbstractRelation.Empty(cols) => AbstractRelation.empty(newCols)
       case AbstractRelation.NonEmpty(cols, rows, empty) =>
         val groupyByIndices = groupByCols.map(cols.indexOf) 
         val groupByValues = groupyByIndices.map(rows.apply)
@@ -120,7 +125,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
         val newRows = f(groupByValues, Seq(accValues))
         if (newRows.size != newCols.size)
           throw IllegalStateException("Number of new columns must match arity of new rows.")
-        AbstractRelation.NonEmpty(newCols, newRows, empty)
+        AbstractRelation(newCols, newRows, empty)
 
   override def fold(rv: AbstractRelation, initial: Row)(f: (Row, Row) => Row): AbstractRelation = rv match
     case AbstractRelation.Empty(cols) =>
@@ -160,9 +165,8 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
     val otherCols = other.cols.zipWithIndex.toMap
 
     val newCols = rv.cols ++ other.cols.filterNot(rv.cols.contains)
-
     (rv, other) match
-      case (AbstractRelation.Empty(_), _) | (_, AbstractRelation.Empty(_)) => AbstractRelation.Empty(newCols)
+      case (AbstractRelation.Empty(_), _) | (_, AbstractRelation.Empty(_)) => AbstractRelation.empty(newCols)
       case (rv: AbstractRelation.NonEmpty, other: AbstractRelation.NonEmpty) =>
         val (newVals, comp) = (for (c <- newCols) yield {
           (rvCols.get(c), otherCols.get(c)) match
@@ -185,7 +189,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
           case _ => Topped.Top
 
         newEmpty match
-          case Topped.Actual(true) => AbstractRelation.Empty(newCols)
+          case Topped.Actual(true) => AbstractRelation.empty(newCols)
           case _ => AbstractRelation(newCols, newVals, newEmpty)
 
   override def antiJoin(rv: AbstractRelation, other: AbstractRelation): AbstractRelation =
@@ -196,7 +200,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
         if (sharedCols.isEmpty)
           throw IllegalArgumentException(s"Not possible to anti join with disjunct columns: ${rv.cols} <-> ${other.cols}")
         (rv.empty, other.empty) match
-          case (Topped.Actual(true), Topped.Actual(true)) => AbstractRelation.Empty(rv.cols)
+          case (Topped.Actual(true), Topped.Actual(true)) => AbstractRelation.empty(rv.cols)
           case (Topped.Actual(false), Topped.Actual(true)) => AbstractRelation(rv.cols, rv.rows, Topped.Actual(false))
           case (Topped.Actual(false), Topped.Actual(false)) =>
             val sameColsIndices = sharedCols.map(rv.cols.indexOf)
@@ -207,7 +211,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
             val allComparisonSucceeded = comparison.forall(t => t.isActual && t.get)
             val atLeastOneComparisonFailed = comparison.exists(t => t.isActual && !t.get)
             if (allComparisonSucceeded)
-              AbstractRelation.Empty(rv.cols)
+              AbstractRelation.empty(rv.cols)
             else if (atLeastOneComparisonFailed)
               AbstractRelation(rv.cols, rv.rows, Topped.Actual(false))
             else

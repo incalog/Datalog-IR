@@ -12,24 +12,29 @@ import sturdy.values.booleans.BooleanOps
 import sturdy.data.WithJoin
 
 trait ClassOps[V, B]:
-  def isSubclass(v1: V, v2: V): B
+  def isSubclass(v1: V, v2: V): B // should be reflexive
   def join(v1: V, v2: V): V
   def meet(v1: V, v2: V): V
 
 case class OODLClassV(clsName: String) extends Value:
-  override def toString: String = clsName
+  override def toString: String = s"$$$clsName"
   override def isConstant: Boolean = false
 
 object OODLClassV:
   val Base: OODLClassV = OODLClassV("Object")
+  val Null: OODLClassV = OODLClassV("Null")
 
 trait OODLClassEqOps(using boolOps: BooleanOps[Topped[Boolean]], classOps: ClassOps[OODLClassV, Boolean]) extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (cls1: OODLClassV, cls2: OODLClassV) => Topped.Actual(classOps.isSubclass(cls1, cls2))
+    case (cls1: OODLClassV, cls2: OODLClassV) if classOps.isSubclass(cls1, cls2) => Topped.Top
+    case (cls1: OODLClassV, cls2: OODLClassV) if classOps.isSubclass(cls2, cls1) => Topped.Top
+    case (cls1: OODLClassV, cls2: OODLClassV) => Topped.Actual(false)
     case _ => super.equ(v1, v2)
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (cls1: OODLClassV, cls2: OODLClassV) => boolOps.not(Topped.Actual(classOps.isSubclass(cls1, cls2)))
+    case (cls1: OODLClassV, cls2: OODLClassV) if classOps.isSubclass(cls1, cls2) => Topped.Top
+    case (cls1: OODLClassV, cls2: OODLClassV) if classOps.isSubclass(cls2, cls1) => Topped.Top
+    case (cls1: OODLClassV, cls2: OODLClassV) => Topped.Actual(true)
     case _ => super.neq(v1, v2)
 
 trait OODLClassJoinV(using classOps: ClassOps[OODLClassV, Boolean]) extends BaseJoinV:
@@ -50,24 +55,19 @@ trait OODLClassAbstractInterpreter
 
   val dataOps: DataOps[Value, AbstractRelation] = new DataOps[Value, AbstractRelation]:
     override def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): Value =
-      (caseDef.name.name, args.headOption) match
-        case ("OID", Some(Value.Top)) => OODLClassV.Base
-        case ("SID", Some(Value.Top)) => OODLClassV.Base
-        case ("OID", Some(v)) => OODLClassV(stringOps.stringValue(v))
-        case ("SID", Some(v)) => OODLClassV(stringOps.stringValue(v))
+      (caseDef.data.ref.name.name, args.headOption) match
+        case ("ID", Some(Value.Top)) => OODLClassV.Base
+        case ("ID", Some(v)) => OODLClassV(stringOps.stringValue(v))
         case _ => Value.Top
 
     override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => AbstractRelation)(notMatching: => AbstractRelation): AbstractRelation = v match
-      case OODLClassV(cls) =>
-        caseDef.name.name match
-          case "OID" | "SID" =>
-            // If it matches, the first argument is the exact class
-            effects.joinComputations {
-              matching(stringOps.stringLit(cls) +: caseDef.args.tail.map(_ => Value.Top))
-            } {
-              notMatching
-            }
-          case _ => notMatching
+      case OODLClassV(cls) if caseDef.data.ref.name.name == "ID" =>
+        // If it matches, the first argument is the exact class
+        effects.joinComputations {
+          matching(stringOps.stringLit(cls) +: caseDef.args.tail.map(_ => Value.Top))
+        } {
+          notMatching
+        }
       case Value.Top =>
         // Could or could not match
         effects.joinComputations {

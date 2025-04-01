@@ -82,12 +82,17 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
   def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
     val classes = typed.classes
     val noneTransitiveSubtypeTuples = classes.flatMap { c =>
-      c.parentCls.map {
-        case p: TName => (c.name.name, p.name.name)
-        case t => throw IllegalStateException(s"Unexpected parent class type $t")
-      } :+ ("Null", c.name.name)
-    }
-    val subclassMap = noneTransitiveSubtypeTuples
+      val directParents =
+        if (c.parentCls.isEmpty)
+          Seq((c.name.name, "Object"))
+        else
+          c.parentCls.map {
+            case p: TName => (c.name.name, p.name.name)
+            case t => throw IllegalStateException(s"Unexpected parent class type $t")
+          }
+      directParents :+ ("Null", c.name.name)
+    }.distinct :+ ("Null", "Object") :+ ("Object", "Object")
+    val superClassMap = noneTransitiveSubtypeTuples
       .groupBy(_._1)
       .view.mapValues(_.map(_._2).toSet)
       .toMap
@@ -97,7 +102,7 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
       () => new MonoScalaLowering {},
       () => new ConversionElimination {},
       () => new aggregateset.Lowering {},
-      //() => new IROODLClassOptimizer(subclassMap, true, false, false),
+      //() => new IROODLClassOptimizer(superClassMap, true, false, true),
       () => new set.Lowering {},
       () => new map.Lowering {},
       () => new bool.Lowering {},
@@ -114,7 +119,8 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
       () => new tuple.Lowering {},
       () => new iroptimize.IdentityCastElimination {},
       () => new iroptimize.AliasElimination {},
-      () => new iroptimize.RemoveDuplicatedRelations {}
+      () => new iroptimize.RemoveDuplicatedRelations {},
+      //() => new IROODLClassOptimizer(superClassMap, true, false, true),
     ) // arith + string + data
 
 
