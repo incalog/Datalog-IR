@@ -735,7 +735,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    //println(edgeRelType.empty)
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 
@@ -1079,8 +1078,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val constRes = interp(mod)
-    println(constRes)
-
     val inputCalcEdgeRelType = constRes("input_calc")
     assert(inputCalcEdgeRelType.cols == Seq("x"))
     assert(inputCalcEdgeRelType.rows == Seq(Value.Top))
@@ -1358,7 +1355,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     edgeRelType = constRes("edge")
     assert(edgeRelType.cols == Seq("x", "y"))
     assert(edgeRelType.rows == Seq(Value.Top, Value.Top))
-    //println(edgeRelType.empty)
     assertResult(Topped.Top)(edgeRelType.empty)
   }
 

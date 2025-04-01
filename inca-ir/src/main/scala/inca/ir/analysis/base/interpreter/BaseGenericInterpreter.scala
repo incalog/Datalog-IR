@@ -412,20 +412,22 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     })
 
   protected final def evalRelationEntry[R <: ModuleEntry](r: R, params: Seq[ir.Param], adornment: Adornment, evalContext: RV)(using Fixed): RV =
-    supplementaryTable.setTable(evalContext)
-    r match
-      case rel: ir.Relation if interRelational =>
-        evalRelation(rel, adornment)
-      case extRel: ir.ExtensionalRelation =>
-        evalExtensionalRelation(extRel)
-      case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
-        // assume top for all unbound arguments
-        adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
-          case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
-        }
-      case _ =>
-        val relCls = r.getClass.getSimpleName
-        throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
+    scopedSupplementary { _ =>
+      supplementaryTable.setTable(evalContext)
+      r match
+        case rel: ir.Relation if interRelational =>
+          evalRelation(rel, adornment)
+        case extRel: ir.ExtensionalRelation =>
+          evalExtensionalRelation(extRel)
+        case _: ir.Relation | _: ir.RequireRelation | _: ir.RequireExtensionalRelation =>
+          // assume top for all unbound arguments
+          adornment.unboundIndices.map(params).foldLeft[RV](evalContext) {
+            case (acc, param) => relationOps.map(acc, param.name.name)(_ => topV)
+          }
+        case _ =>
+          val relCls = r.getClass.getSimpleName
+          throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
+    }
 
   def renameRelationResult(relRes: RV, params: Seq[ir.Param], argBindingInfo: ArgBindingInfo)(using Fixed): RV =
     val paramNames = params.map(_.name.name)
@@ -450,21 +452,32 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
           bind(accSup, info.asBinding, from)
         }
     }
-    // TODO: perform check here to filter partial results
-    /*val filteredRelRes = argBindingInfo.flatten.foldLeft(extendedRelRes) { (accSup, info) =>
-      if (info.isBound)
-        check(accSup, info, from)
-    }*/
-
     relationOps.project(extendedRelRes, argColumns)
+    
+    // We need to filter all partial tuples.
+    // E.g. 
+    //  R(x) :- x = (1,2) v x = (2,3)
+    //  Q(x) :- R((_,2))
+    // Should only yield one tuple for x. 
+    // However, since the call result is naturally joined in to the supplementary
+    // and the supplementary contains partial results, we do not need to do this 
+    // natural join here. If we could write down a program with negation or aggregation
+    // that uses a partial tuple, then we would need this. 
+    /*val sup = supplementaryTable.getTable
+    val supColumns = relationOps.columns(sup)
+    relationOps.naturalJoin(
+      relationOps.project(extendedRelRes, argColumns),
+      relationOps.project(sup, argColumns.intersect(supColumns)),
+    )*/
+
 
   protected final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
-    val (evalContext, argMapping) = evaluationContextForCall(r, params, args)
-    val adornment = calculateAdornment(argMapping)
+    val (evalContext, argBindingInfo) = evaluationContextForCall(r, params, args)
+    val adornment = calculateAdornment(argBindingInfo)
 
     updateSupplementaryChecked { beforeCall =>
       val relRes = evalRelationEntry(r, params, adornment, evalContext)
-      val callRes = renameRelationResult(relRes, params, argMapping)
+      val callRes = renameRelationResult(relRes, params, argBindingInfo)
       if (neg)
         // Project everything away that was freshly bound.
         // This is safe, since a negative call does not bind variables
