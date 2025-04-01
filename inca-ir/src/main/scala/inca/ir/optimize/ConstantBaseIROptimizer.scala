@@ -153,7 +153,6 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     } else {
       val eqAts = eqsToBindConstantParams(body)
       logOptimizationStat("constant equation", 1, _ - eqAts.size)
-      println(s"Visit body: \n$body")
       super.visitBody(body)
         .map(b => Body(eqAts ++ b.atoms)) // .diff(b.atoms)
         .filter(_.atoms.nonEmpty)

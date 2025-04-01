@@ -120,8 +120,7 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
       () => new iroptimize.IdentityCastElimination {},
       () => new iroptimize.AliasElimination {},
       () => new iroptimize.RemoveDuplicatedRelations {},
-      //() => new IROODLClassOptimizer(superClassMap, true, false, true),
-    ) // arith + string + data
+    ) //++ CompiledOODLUnit.optimizationPipeline :+ (() => new IROODLClassOptimizer(superClassMap, true, false, true))
 
 
 object CompiledOODLUnit:

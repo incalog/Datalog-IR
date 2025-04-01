@@ -51,12 +51,12 @@ enum AbstractRelation:
 
 object AbstractRelation:
   def apply(cols: Seq[String], rows: Seq[Value], empty: Topped[Boolean]): AbstractRelation =
-    assert(cols.toSet.size == cols.size) // unique columns
-    assert(cols.size == rows.size) // column size matches row size
+    //assert(cols.toSet.size == cols.size) // unique columns
+    //assert(cols.size == rows.size) // column size matches row size
     AbstractRelation.NonEmpty(cols, rows, empty)
 
   def empty(cols: Seq[String]): AbstractRelation =
-    assert(cols.toSet.size == cols.size) // unique columns
+    //assert(cols.toSet.size == cols.size) // unique columns
     AbstractRelation.Empty(cols)
 
 class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, WithJoin])

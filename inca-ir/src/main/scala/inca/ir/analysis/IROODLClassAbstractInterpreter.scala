@@ -85,7 +85,7 @@ class IROODLClassAbstractInterpreter(
       .view.mapValues(_.map(_._2).toSet)
       .toMap
     MapUtil.transClosure(subclasses)
-    
+
   given classOps: ClassOps[OODLClassV, Boolean] with
     override def isSubclass(cls1: OODLClassV, cls2: OODLClassV): Boolean = (cls1, cls2) match
       case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
@@ -95,8 +95,9 @@ class IROODLClassAbstractInterpreter(
 
     override def join(cls1: OODLClassV, cls2: OODLClassV): OODLClassV = (cls1, cls2) match
       case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
-        if (clsName1 == clsName2)
-          cls1
+        if (clsName1 == clsName2) cls1
+        else if (descendants(clsName2).contains(clsName1)) cls2 // cls1 is subclass of cls2
+        else if (descendants(clsName1).contains(clsName2)) cls1 // cls2 is subclass of cls1
         else
           val commonAncestors = ancestors(clsName1).intersect(ancestors(clsName2))
           // Pick the most specific (i.e., lowest in the hierarchy)

@@ -14,9 +14,12 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
   val options = OODLCompilerOptions.fromResource("objectoriented/Options.ini")
   val exec: OODLExecutor = new OODLExecutor(new Executor)
 
-  private def verfiySet[T](setSignature: Seq[ir.Type], expected: Set[T])(implicit loaded: OODLExecutor#Loaded) =
+  def setRelationName(setSignature: Seq[ir.Type]): String =
     val dollars = if (setSignature.size == 1) "$" else "$$"
-    val setRelName = s"Set$dollars${setSignature.mkString("_")}${dollars}enum"
+    s"Set$dollars${setSignature.mkString("_")}${dollars}enum"
+
+  private def verifySet[T](setSignature: Seq[ir.Type], expected: Set[T])(implicit loaded: OODLExecutor#Loaded) =
+    val setRelName = setRelationName(setSignature)
     loaded.execute("main", Seq())
     val res = loaded.engine.read(UnitRelation(setRelName))
     val arity = res.arity
@@ -27,26 +30,26 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     assertResult(expected)(actual.toSet)
 
   private def verifyIntSet_1(expected: Set[Int])(implicit loaded: OODLExecutor#Loaded) =
-    verfiySet(Seq(irarith.TInt), expected)(using loaded)
+    verifySet(Seq(irarith.TInt), expected)(using loaded)
 
   private def verifyIntSet_2(expected: Set[(Int, Int)])(implicit loaded: OODLExecutor#Loaded) =
-    verfiySet(Seq(irarith.TInt, irarith.TInt), expected)(using loaded)
+    verifySet(Seq(irarith.TInt, irarith.TInt), expected)(using loaded)
 
   private def verifyIntSet_3(expected: Set[(Int, Int, Int)])(implicit loaded: OODLExecutor#Loaded) =
-    verfiySet(Seq(irarith.TInt, irarith.TInt, irarith.TInt), expected)(using loaded)
+    verifySet(Seq(irarith.TInt, irarith.TInt, irarith.TInt), expected)(using loaded)
 
   private def verifyStringSet_1(expected: Set[String])(implicit loaded: OODLExecutor#Loaded) =
-    verfiySet(Seq(irstr.TString), expected)(using loaded)
+    verifySet(Seq(irstr.TString), expected)(using loaded)
 
   private def verifyStringSet_2(expected: Set[(String, String)])(implicit loaded: OODLExecutor#Loaded) =
-    verfiySet(Seq(irstr.TString, irstr.TString), expected)(using loaded)
+    verifySet(Seq(irstr.TString, irstr.TString), expected)(using loaded)
 
 
   private def verifyIntStringSet(expected: Set[(Int, String)])(implicit loaded: OODLExecutor#Loaded) =
-    verfiySet(Seq(irarith.TInt, irstr.TString), expected)(using loaded)
+    verifySet(Seq(irarith.TInt, irstr.TString), expected)(using loaded)
 
   private def verifyStringIntSet(expected: Set[(String, Int)])(implicit loaded: OODLExecutor#Loaded) =
-    verfiySet(Seq(irstr.TString, irarith.TInt), expected)(using loaded)
+    verifySet(Seq(irstr.TString, irarith.TInt), expected)(using loaded)
 
   test("Set") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/set/Set.oodl")
@@ -81,7 +84,10 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     compiled.setPipeline(CompiledOODLUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
-    verifyIntSet_1(Set(10, 5))(using loaded)
+    loaded.execute("main", Seq())
+    val setRelName = setRelationName(Seq(irarith.TInt))
+    val res = loaded.engine.read(UnitRelation(setRelName))
+    assertResult(res.project(0, 1).toSet)(Set(10,5))
   }
 
   test("Simple Set with Objects") {
@@ -99,7 +105,10 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     compiled.setPipeline(CompiledOODLUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
-    verifyIntStringSet(Set((1, "A"), (2, "B"), (3, "C")))(using loaded)
+    val setRelName = setRelationName(Seq(irarith.TInt, irstr.TString))
+    val res = loaded.engine.read(UnitRelation(setRelName))
+    println(res.project(0, 2).asTable)
+    assertResult(Set((1, "A"), (2, "B"), (3, "C")))(res.project(0, 2).toSet)
   }
 
   test("Set comprehension") {
