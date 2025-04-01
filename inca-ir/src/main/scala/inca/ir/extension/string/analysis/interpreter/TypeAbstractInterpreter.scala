@@ -13,3 +13,5 @@ trait TypeAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean],
     override def toString(v: Value): Value = TypeValue(TString)
     override def concat(v1: Value, v2: Value): Value = (v1, v2) match
       case (TypeValue(TString), TypeValue(TString)) => TypeValue(TString)
+    override def stringValue(v: Value): String =
+      throw IllegalStateException(s"Can not get string value of type value $v")

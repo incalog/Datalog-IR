@@ -1,6 +1,6 @@
 package inca.frontend.oodl.compile
 
-import inca.frontend.oodl.syntax.Module
+import inca.frontend.oodl.syntax.{Module, TName}
 import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledUnit, Name, Module as IRModule}
@@ -10,8 +10,9 @@ import inca.frontend.oodl.foreign
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
-import inca.ir.optimize
-import inca.ir.optimize.Optimizer
+import inca.frontend.oodl.compile.CompiledOODLUnit.createPipeline
+import inca.ir.optimize as iroptimize
+import inca.ir.optimize.{IROODLClassOptimizer, IdentityCastElimination, Optimizer}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.util.printStep
 
@@ -76,6 +77,47 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
     val module = compiler.compileModule(ssa)
     Seq(module)
 
+  val pipeline: List[() => BaseIRVisitor] = createPipeline(false)
+
+  def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
+    val classes = typed.classes
+    val noneTransitiveSubtypeTuples = classes.flatMap { c =>
+      c.parentCls.map {
+        case p: TName => (c.name.name, p.name.name)
+        case t => throw IllegalStateException(s"Unexpected parent class type $t")
+      } :+ ("Null", c.name.name)
+    }
+    val subclassMap = noneTransitiveSubtypeTuples
+      .groupBy(_._1)
+      .view.mapValues(_.map(_._2).toSet)
+      .toMap
+
+    List(
+      () => new mono.Lowering(optimizeMono = true) {},
+      () => new MonoScalaLowering {},
+      () => new ConversionElimination {},
+      () => new aggregateset.Lowering {},
+      //() => new IROODLClassOptimizer(subclassMap, true, false, false),
+      () => new set.Lowering {},
+      () => new map.Lowering {},
+      () => new bool.Lowering {},
+      () => new datamatch.Lowering {},
+      () => new not.Lowering {},
+      () => new block.Lowering {},
+      () => new impure.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      if (withDemandOutlining)
+        () => new demand.LoweringWithSupplementaries {}
+      else
+        () => new demand.Lowering {},
+      () => new tuple.Lowering {},
+      () => new iroptimize.IdentityCastElimination {},
+      () => new iroptimize.AliasElimination {},
+      () => new iroptimize.RemoveDuplicatedRelations {}
+    ) // arith + string + data
+
+
 object CompiledOODLUnit:
   // Important:
   // 1. Not before block
@@ -103,18 +145,18 @@ object CompiledOODLUnit:
         () => new demand.Lowering {},
       () => new tuple.Lowering {},
 
-      () => new optimize.IdentityCastElimination {},
-      () => new optimize.AliasElimination {},
-      () => new optimize.RemoveDuplicatedRelations {}
+      () => new iroptimize.IdentityCastElimination {},
+      () => new iroptimize.AliasElimination {},
+      () => new iroptimize.RemoveDuplicatedRelations {}
     ) // arith + string + data
 
   val optimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
-    () => new optimize.IdentityCastElimination {},
+    () => new iroptimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false),
+    () => new iroptimize.IdentityCastElimination {},
     //() => new optimize.IdentityCastElimination {},
     //() => new optimize.AliasElimination {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
-    () => new optimize.IdentityCastElimination {},
-    () => new optimize.AliasElimination {}
+    () => new iroptimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true),
+    () => new iroptimize.IdentityCastElimination {},
+    () => new iroptimize.AliasElimination {}
   )

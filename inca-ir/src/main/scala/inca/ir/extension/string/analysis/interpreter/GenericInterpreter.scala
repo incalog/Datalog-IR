@@ -11,6 +11,8 @@ trait StringOps[V]:
   def toString(v: V): V
 
   def concat(v1: V, v2: V): V
+  
+  def stringValue(v: V): String
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val stringOps: StringOps[V]

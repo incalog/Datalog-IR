@@ -9,6 +9,8 @@ import sturdy.data.MayJoin.NoJoin
 
 case object InvalidStringConcat extends BaseIRFailure
 
+case object InvalidStringValue extends BaseIRFailure
+
 case class CStringV(value: String) extends Value:
   override def toString: String = s"\"$value\""
   override def isConstant: Boolean = true
@@ -23,6 +25,9 @@ private class CStringVOps (using failure: Failure) extends StringOps[Value]:
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match
     case (CStringV(s1), CStringV(s2)) => CStringV(s1 + s2)
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
+
+  override def stringValue(v: Value): String = v match
+    case CStringV(s) => s 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val stringOps: StringOps[Value] = CStringVOps(using failure)

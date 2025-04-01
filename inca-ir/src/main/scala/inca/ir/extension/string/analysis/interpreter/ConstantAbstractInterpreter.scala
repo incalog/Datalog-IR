@@ -51,6 +51,10 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
     case (Value.Top, _) | (_, Value.Top) => Value.Top
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
+  override def stringValue(v: Value): String = v match
+    case ConstantStringV(value) => value
+    case _ => failure(InvalidStringValue, s"Value $v has no string value")
+
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   val stringOps: StringOps[Value] = ConstantStringVOps(using failure, except)
