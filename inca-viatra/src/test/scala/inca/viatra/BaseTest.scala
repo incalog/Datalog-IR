@@ -92,7 +92,7 @@ class BaseTest extends AnyFunSuiteLike:
 
     val viatraLogging = options("viatra_logging")
     viatraLogging.update("typed", false)
-    viatraLogging.update("module", true)
+    viatraLogging.update("module", false)
     viatraLogging.update("lowerings", false)
     viatraLogging.update("psystem", false)
 

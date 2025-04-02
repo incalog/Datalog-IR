@@ -2127,7 +2127,6 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
       )
     ))
     val res = interp(mod)
-    println(res("main").asTable)
     assert(res("main").size == 1)
     assert(res("main").entries.head == Map(
       "A" -> Set(1),

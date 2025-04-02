@@ -34,8 +34,9 @@ class EdbDataTest extends AnyFunSuiteLike:
   def module(dataModel: DataModel, relations: ModuleEntry*): EdbCompiledUnit =
     val typechecker = new IRTypechecker {}
     val mod = Module("M", Language(IR), relations)
-    try typechecker.checkProgram(Seq(mod))
-    finally println(mod)
+    typechecker.checkProgram(Seq(mod))
+    //try typechecker.checkProgram(Seq(mod))
+    //finally println(mod)
     new EdbCompiledUnit(mod, dataModel)
 
   test("Type enumerate") {
@@ -62,14 +63,14 @@ class EdbDataTest extends AnyFunSuiteLike:
     val edits = n.load()
     mod.engine.feed.processEditScript(edits)
 
-    edits.print()
+    //edits.print()
 
     val succs = mod.engine.read(Relation1("succs", Seq("n"), Seq()))
-    println(succs.asTable)
+    //println(succs.asTable)
     assertResult(2)(succs.size)
 
     val nats = mod.engine.read(Relation1("nats", Seq("n"), Seq()))
-    println(nats.asTable)
+    //println(nats.asTable)
     assertResult(3)(nats.size)
   }
 
@@ -92,10 +93,10 @@ class EdbDataTest extends AnyFunSuiteLike:
     val edits = n.load()
     mod.engine.feed.processEditScript(edits)
 
-    edits.print()
+    //edits.print()
 
     val preds = mod.engine.read(Relation2("preds", Seq("s", "p"), Seq()))
-    println(preds.asTable)
+    //println(preds.asTable)
     assertResult(2)(preds.size)
   }
 
@@ -125,10 +126,10 @@ class EdbDataTest extends AnyFunSuiteLike:
     val edits = n.load()
     mod.engine.feed.processEditScript(edits)
 
-    edits.print()
+    //edits.print()
 
     val preds = mod.engine.read(Relation2("preds", Seq("s", "p"), Seq()))
-    println(preds.asTable)
+    //println(preds.asTable)
     assertResult(2)(preds.size)
   }
 
@@ -158,10 +159,10 @@ class EdbDataTest extends AnyFunSuiteLike:
     val edits = n.load()
     mod.engine.feed.processEditScript(edits)
 
-    edits.print()
+    //edits.print()
 
     val preds = mod.engine.read(Relation2("preds", Seq("s", "p"), Seq()))
-    println(preds.asTable)
+    //println(preds.asTable)
     assertResult(2)(preds.size)
   }
 

@@ -60,7 +60,7 @@ class CompilerTest extends AnyFunSuite:
     val prog = Parser.parseModule(content)
     val generateIR = new GenerateIR
     val mod = generateIR.compileProgram(prog, "PointsTo")
-    println(mod)
+    //println(mod)
 
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))

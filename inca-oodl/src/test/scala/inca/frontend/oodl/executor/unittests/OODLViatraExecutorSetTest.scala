@@ -107,7 +107,6 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     val loaded = exec.loadOODL(compiled)
     loaded.execute("main", Seq())
     val setRelName = setRelationName(Seq(irarith.TInt, irstr.TString))
-    loaded.engine.readAll().map(_.asTable).foreach(println)
     val res = loaded.engine.read(UnitRelation(setRelName))
     assertResult(Set((1, "A"), (2, "B"), (3, "C")))(res.project(0, 2).toSet)
   }
