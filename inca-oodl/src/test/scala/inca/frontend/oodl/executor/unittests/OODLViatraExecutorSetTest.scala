@@ -20,7 +20,7 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
 
   private def verifySet[T](setSignature: Seq[ir.Type], expected: Set[T])(implicit loaded: OODLExecutor#Loaded) =
     val setRelName = setRelationName(setSignature)
-    loaded.execute("main", Seq())
+    loaded.execute("main", Seq()) // execute main to insert edb tuble
     val res = loaded.engine.read(UnitRelation(setRelName))
     val arity = res.arity
     // start at 1 if the set relation does not include the set object any longer
@@ -105,9 +105,10 @@ class OODLViatraExecutorSetTest extends AnyFunSuite:
     compiled.setPipeline(CompiledOODLUnit.pipeline)
     compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
+    loaded.execute("main", Seq())
     val setRelName = setRelationName(Seq(irarith.TInt, irstr.TString))
+    loaded.engine.readAll().map(_.asTable).foreach(println)
     val res = loaded.engine.read(UnitRelation(setRelName))
-    println(res.project(0, 2).asTable)
     assertResult(Set((1, "A"), (2, "B"), (3, "C")))(res.project(0, 2).toSet)
   }
 

@@ -21,7 +21,8 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
       if (argsV.size != args.size)
         None
       else
-        Some(Construct(caseDef.name, argsV))
+        val tys = caseDef.args
+        Some(Construct(caseDef.name, argsV.zip(tys).map(Cast(_, _))))
     case _ => super.valueToTermInternal(value)
 
   def deconstructBindings(args: Seq[Arg], cargs: Seq[Value]): Seq[Topped[Boolean]] = args.zip(cargs).map {
