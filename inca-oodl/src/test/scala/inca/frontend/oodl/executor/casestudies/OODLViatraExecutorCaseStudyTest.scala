@@ -2,7 +2,8 @@ package inca.frontend.oodl.executor.casestudies
 
 import inca.frontend.oodl.compile.{CompiledOODLUnit, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
-import inca.ir.execution.Relation
+import inca.ir.execution.{Relation, UnitRelation}
+import inca.ir.optimize.AbstractEdbConfig
 import inca.util.FileUtil
 import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
@@ -34,14 +35,15 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
   test("ControlFlowGraph") {
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/CfgVisitor.oodl")
     val unit = exec.compileOODL(code, options)
-    unit.setPipeline(unit.pipeline)
+    unit.setPipeline(CompiledOODLUnit.pipeline)
     unit.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(unit)
-    var res = loaded.execute("main", Seq())
+    //var res = loaded.execute("main", Seq())
+    //val setAdt = res.entries.head
+    //val query = Relation.from("Set$$TString_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
 
-    val setAdt = res.entries.head
-    val query = Relation.from("Set$$TString_TString$$enum", Seq("$set"), Seq(Seq(setAdt)))
-    res = loaded.engine.read(query).project(1, 3)
+    loaded.execute("main", Seq())
+    val res = loaded.engine.read(UnitRelation("Set$$TString_TString$$enum"))
 
     val expectedRes = Set(
       ("VarDef", "While"), ("Assign", "While"), ("While", "Assign"),
@@ -59,7 +61,9 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/FlowSensitiveSignAnalysis.oodl")
     val compiled = dRedExec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
+    // FIXME: Using AbstractEdbConfig will not replace impurity counter variables with constants.
+    //  Somehow replacing them makes the program executable slow.
+    compiled.setOptimizationPipeline(CompiledOODLUnit.createOptimizationPipeline(false, AbstractEdbConfig.default))
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = dRedExec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())

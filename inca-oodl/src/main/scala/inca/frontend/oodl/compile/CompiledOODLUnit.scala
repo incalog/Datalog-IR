@@ -12,7 +12,7 @@ import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.frontend.oodl.compile.CompiledOODLUnit.createPipeline
 import inca.ir.optimize as iroptimize
-import inca.ir.optimize.{IROODLClassOptimizer, IdentityCastElimination, Optimizer}
+import inca.ir.optimize.{AbstractEdbConfig, IROODLClassOptimizer, IdentityCastElimination, OODLEdbConfig, Optimizer}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.util.printStep
 
@@ -79,7 +79,7 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
 
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false)
 
-  def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
+  private lazy val superClassMap: Map[String, Set[String]] =
     val classes = typed.classes
     val noneTransitiveSubtypeTuples = classes.flatMap { c =>
       val directParents =
@@ -92,35 +92,19 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
           }
       directParents :+ ("Null", c.name.name)
     }.distinct :+ ("Null", "Object") :+ ("Object", "Object")
-    val superClassMap = noneTransitiveSubtypeTuples
+    noneTransitiveSubtypeTuples
       .groupBy(_._1)
       .view.mapValues(_.map(_._2).toSet)
       .toMap
+  
+  def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
+    CompiledOODLUnit.createPipeline(withDemandOutlining) 
+    //++ CompiledOODLUnit.optimizationPipeline 
+    //:+ (() => new IROODLClassOptimizer(superClassMap, false, true, OODLEdbConfig.default))
 
-    List(
-      () => new mono.Lowering(optimizeMono = true) {},
-      () => new MonoScalaLowering {},
-      () => new ConversionElimination {},
-      () => new aggregateset.Lowering {},
-      //() => new IROODLClassOptimizer(superClassMap, true, false, true),
-      () => new set.Lowering {},
-      () => new map.Lowering {},
-      () => new bool.Lowering {},
-      () => new datamatch.Lowering {},
-      () => new not.Lowering {},
-      () => new block.Lowering {},
-      () => new impure.Lowering {},
-      () => new disjunction.Lowering {},
-      () => new not.Lowering {},
-      if (withDemandOutlining)
-        () => new demand.LoweringWithSupplementaries {}
-      else
-        () => new demand.Lowering {},
-      () => new tuple.Lowering {},
-      () => new iroptimize.IdentityCastElimination {},
-      () => new iroptimize.AliasElimination {},
-      () => new iroptimize.RemoveDuplicatedRelations {},
-    ) //++ CompiledOODLUnit.optimizationPipeline :+ (() => new IROODLClassOptimizer(superClassMap, true, false, true))
+  def createOptimizationPipeline(computeControlEvents: Boolean, edbConfig: AbstractEdbConfig): List[() => BaseIRVisitor] =
+    CompiledOODLUnit.createOptimizationPipeline(computeControlEvents, edbConfig) 
+    :+ (() => new IROODLClassOptimizer(superClassMap, computeControlEvents, true, edbConfig))
 
 
 object CompiledOODLUnit:
@@ -129,6 +113,8 @@ object CompiledOODLUnit:
   // 2. Impure before Disjunction
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false)
 
+  val optimizationPipeline: List[() => Optimizer] = createOptimizationPipeline(false, OODLEdbConfig.default)
+  
   def createPipeline(withDemandOutlining: Boolean): List[() => BaseIRVisitor] =
     List(
       () => new mono.Lowering(optimizeMono = true) {},
@@ -155,13 +141,13 @@ object CompiledOODLUnit:
       () => new iroptimize.RemoveDuplicatedRelations {}
     ) // arith + string + data
 
-  val optimizationPipeline: List[() => Optimizer] = List(
+  def createOptimizationPipeline(computeControlEvents: Boolean, edbConfig: AbstractEdbConfig) : List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
-    () => new iroptimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false),
+    () => new iroptimize.IRConstantOptimizer(computeControlEvents, false, edbConfig),
     () => new iroptimize.IdentityCastElimination {},
     //() => new optimize.IdentityCastElimination {},
     //() => new optimize.AliasElimination {},
-    () => new iroptimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true),
+    () => new iroptimize.IRConstantOptimizer(computeControlEvents, true, edbConfig),
     () => new iroptimize.IdentityCastElimination {},
     () => new iroptimize.AliasElimination {}
   )

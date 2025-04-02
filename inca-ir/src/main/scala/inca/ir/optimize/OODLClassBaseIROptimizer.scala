@@ -56,18 +56,8 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, args) =
-            if (n.name == "ext_main$input")
-              params.map {
-                case p if p.name.name == "Alloc" => (p.name.name, ConstantIntV(1))
-                case p if p.name.name == "Mutation" => (p.name.name, ConstantIntV(1))
-                case p if p.name.name == "MonoImpurity" => (p.name.name, ConstantIntV(1))
-                case p => (p.name.name, Value.Top)
-              }.unzip
-            else
-              params.map(p => (p.name.name, Value.Top)).unzip
-          val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
-          abstractInterpreter.insertEDB(n.name, AbstractRelation(paramNames, args, empty))
+          val aRel = edbConfig.abstractExtensionalRelation(n, params)
+          abstractInterpreter.insertEDB(n.name, aRel)
         case _ => // nothing
       }
     }
@@ -75,9 +65,9 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
 
 class IROODLClassOptimizer(
                             val superClassMap: Map[String, Set[String]],
-                            override val assumeEdbIsNotEmpty: Boolean,
                             override val computeControlEvents: Boolean,
-                            val interRelational: Boolean = false
+                            val interRelational: Boolean = false,
+                            override val edbConfig: EdbConfig[AbstractRelation] = OODLEdbConfig.default
                          )
   extends OODLClassBaseIROptimizer(superClassMap, interRelational)
   with irdata.optimize.OODLClassOptimizer

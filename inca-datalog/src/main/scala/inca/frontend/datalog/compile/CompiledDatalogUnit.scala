@@ -64,6 +64,6 @@ object CompiledDatalogUnit:
 
   val optimizationPipeline: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+    () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
     () => new optimize.AliasElimination {}
   )

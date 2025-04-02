@@ -11,7 +11,11 @@ import sturdy.values.Topped
   We can not really optimize anything with just the type information. This class is just here
   to be a proof of concept to show how the abstract concrete results can be used in the end.
  */
-class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val computeControlEvents: Boolean) extends BaseIROptimizer[Value, AbstractRelation, Value]:
+class TypeIROptimizer(
+                       override val computeControlEvents: Boolean, 
+                       override val edbConfig: EdbConfig[AbstractRelation] = AbstractEdbConfig.default) 
+  extends BaseIROptimizer[Value, AbstractRelation, Value]:
+  
   override def name: String = "Type Optimizer"
 
   override val abstractInterpreter: IRTypeAbstractInterpreter = new IRTypeAbstractInterpreter()
@@ -31,8 +35,8 @@ class TypeIROptimizer(override val assumeEdbIsNotEmpty: Boolean, override val co
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, tys) = params.map(p => (p.name.name, TypeValue(p.ty))).unzip
-          abstractInterpreter.insertEDB(n.name, AbstractRelation(paramNames, tys, Topped.Top))
+          val aRel = edbConfig.abstractExtensionalRelation(n, params)
+          abstractInterpreter.insertEDB(n.name, aRel)
         case _ => // nothing
       }
     }

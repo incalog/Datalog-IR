@@ -81,8 +81,7 @@ object CompiledFunctionalUnit:
     List(
       () => new typeparam.Lowering {},
       () => new aggregateset.Lowering {},
-      //() => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
-      () => new IRDataKindOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+      () => new IRDataKindOptimizer(computeControlEvents = false, interRelational = true) {},
       () => new set.SyntacticOptimizer {},
       () => new set.Lowering {},
       () => new map.Lowering {},
@@ -103,9 +102,9 @@ object CompiledFunctionalUnit:
 
   val optimizationPipeline: List[() => Optimizer] = List(
     () => new optimize.RemoveDuplicatedRelations {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = false) {},
+    () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},
-    () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false, interRelational = true) {},
+    () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
     () => new optimize.IdentityCastElimination {},
     () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
     () => new optimize.RemoveDuplicatedRelations {},

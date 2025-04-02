@@ -36,8 +36,8 @@ class CompiledHazelUnit(val ir: Module) extends CompiledUnit:
 
   val optimizations: List[() => Optimizer] = List(
     //() => new optimize.TypeIROptimizer {},
-    () => new IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false) {},
-    () => new IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true) {},
+    () => new IRConstantOptimizer(computeControlEvents = false) {},
+    () => new IRConstantOptimizer(computeControlEvents = true) {},
     () => new AliasElimination {}
   )
   setOptimizationPipeline(optimizations)

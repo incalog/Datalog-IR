@@ -2,7 +2,7 @@ package inca.frontend.oodl.executor.unittests
 
 import inca.frontend.oodl.compile.{CompiledOODLUnit, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
-import inca.ir.execution.Relation
+import inca.ir.execution.{Relation, UnitRelation}
 import inca.util.FileUtil
 import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
@@ -42,10 +42,12 @@ class OODLViatraExecutorMonoTest extends AnyFunSuite:
     // Important: Include post processing pipeline for custom mono type
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = exec.loadOODL(compiled)
-    var res = loaded.execute("main", Seq())
-    val setAdt = res.entries.head
-    val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
-    res = loaded.engine.read(query).project(1, 2)
+    //var res = loaded.execute("main", Seq())
+    //val setAdt = res.entries.head
+    //val query = Relation.from("Set$TInt$enum", Seq("$set"), Seq(Seq(setAdt)))
+    //res = loaded.engine.read(query).project(1, 2)
+    loaded.execute("main", Seq())
+    val res = loaded.engine.read(UnitRelation("Set$TInt$enum"))
     assertResult(Set(1, 2))(res.toSet)
   }
 

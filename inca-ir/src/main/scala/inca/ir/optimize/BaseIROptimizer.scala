@@ -18,8 +18,8 @@ extension [T](topped: Topped[T])
 trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
   // Configure
   val computeControlEvents: Boolean
-  val assumeEdbIsNotEmpty: Boolean
-
+  val edbConfig: EdbConfig[RV]
+  
   val abstractInterpreter: BaseGenericInterpreter[V, ?, RV, ?, ?]
 
   def getTermResult(term: Term): Set[TV]

@@ -15,7 +15,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
   test("Add") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/Add.oodl")
     val unit = exec.compileOODL(code, options)
-    unit.setPipeline(unit.pipeline)
+    unit.setPipeline(CompiledOODLUnit.pipeline)
     unit.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     val loaded = exec.loadOODL(unit)
     val res = loaded.execute("main", Seq())
@@ -85,7 +85,9 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     assertResult(55)(res.entries.head)
   }
 
-  test("Fix method") {
+  // This test doesn't make sense anymore, since a constant analysis will just rewrite it to:
+  //  main() :- ext ext_main$input(1, 1, 1).
+  /*test("Fix method") {
     val code = FileUtil.readFileFromResource("objectoriented/unittests/FixMethod.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
@@ -94,7 +96,7 @@ class OODLViatraExecutorTest extends AnyFunSuite:
     val res = loaded.execute("main", Seq())
     val fixMethodRel = loaded.engine.read(UnitRelation("fixMethod$Tuple_"))
     assertResult(true)(fixMethodRel.entries.nonEmpty)
-  }
+  }*/
 
   // We need more optimizations to execute the full program
   //  + Disjunction lowering is way to slow on this (is there an endless loop?)

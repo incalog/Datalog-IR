@@ -20,7 +20,7 @@ class DependencyAnalysisTest extends AnyFunSuite:
     //checker.typecheck(module)
     //checker.printTypeIO()
     val unit = CompiledOODLUnit(module, options)
-    unit.setPipeline(unit.pipeline)
+    unit.setPipeline(CompiledOODLUnit.pipeline)
     unit.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
     unit.compiled
 

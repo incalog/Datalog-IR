@@ -27,8 +27,8 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
   setOptimizationPipeline(
     List(
       //() => new optimize.TypeIROptimizer {},
-      () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = false) {},
-      () => new optimize.IRConstantOptimizer(assumeEdbIsNotEmpty = true, computeControlEvents = true) {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false) {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = true) {},
       () => new optimize.AliasElimination {}
     )
   )

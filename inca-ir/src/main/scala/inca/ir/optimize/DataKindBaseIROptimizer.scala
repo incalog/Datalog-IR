@@ -62,18 +62,17 @@ trait DataKindBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, args) = params.map(p => (p.name.name, Value.Top)).unzip
-          val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
-          abstractInterpreter.insertEDB(n.name, AbstractRelation(paramNames, args, empty))
+          val aRel = edbConfig.abstractExtensionalRelation(n, params)
+          abstractInterpreter.insertEDB(n.name, aRel)
         case _ => // nothing
       }
     }
     super.analyzeProgram(modules)
 
 class IRDataKindOptimizer(
-                           override val assumeEdbIsNotEmpty: Boolean,
                            override val computeControlEvents: Boolean,
-                           override val interRelational: Boolean = false
+                           override val interRelational: Boolean = false,
+                           override val edbConfig: EdbConfig[AbstractRelation] = AbstractEdbConfig.default
                          )
   extends DataKindBaseIROptimizer(interRelational)
   with irdatamatch.optimize.DataKindOptimizer

@@ -20,6 +20,7 @@ import inca.ir.extension.map as irmap
 import inca.ir.extension.disjunction as irdisjunction
 import sturdy.values.Topped
 
+
 trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimizer[Value, AbstractRelation, Value]:
   override def name: String =
     if (interRelational)
@@ -71,19 +72,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     modules.foreach { m =>
       m.entries.foreach {
         case (_, ExtensionalRelation(n, params)) =>
-          val (paramNames, args) =
-            if (n.name == "ext_main$input")
-              // OODL specific
-              params.map {
-                case p if p.name.name == "Alloc" => (p.name.name, ConstantIntV(1))
-                case p if p.name.name == "Mutation" => (p.name.name, ConstantIntV(1))
-                case p if p.name.name == "MonoImpurity" => (p.name.name, ConstantIntV(1))
-                case p => (p.name.name, Value.Top)
-              }.unzip
-            else
-              params.map(p => (p.name.name, Value.Top)).unzip
-          val empty = if (assumeEdbIsNotEmpty) Topped.Actual(false) else Topped.Top
-          abstractInterpreter.insertEDB(n.name, AbstractRelation(paramNames, args, empty))
+          val aRel = edbConfig.abstractExtensionalRelation(n, params)
+          abstractInterpreter.insertEDB(n.name, aRel)
         case _ => // nothing
       }
     }
@@ -275,9 +265,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
 
 
 class IRConstantOptimizer(
-                           override val assumeEdbIsNotEmpty: Boolean,
                            override val computeControlEvents: Boolean,
-                           override val interRelational: Boolean = false
+                           override val interRelational: Boolean = false,
+                           override val edbConfig: EdbConfig[AbstractRelation] = AbstractEdbConfig.default
                          )
   extends ConstantBaseIROptimizer(interRelational)
     with irarith.optimize.ConstantOptimizer
