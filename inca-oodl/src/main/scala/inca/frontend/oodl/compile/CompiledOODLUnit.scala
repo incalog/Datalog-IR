@@ -10,7 +10,7 @@ import inca.frontend.oodl.foreign
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
-import inca.frontend.oodl.compile.CompiledOODLUnit.createPipeline
+import inca.frontend.oodl.compile.CompiledOODLUnit.{createOptimizationPipeline, createPipeline}
 import inca.ir.optimize as iroptimize
 import inca.ir.optimize.{AbstractEdbConfig, IROODLClassOptimizer, IdentityCastElimination, OODLEdbConfig, Optimizer}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
@@ -26,7 +26,7 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
 
   override def typechecker: BaseIRTypechecker = new OODLTypeChecker()
 
-  val oodlLogging = compilerOptions.oodlLogging
+  val oodlLogging: OODLLoggingSection = compilerOptions.oodlLogging
   val logTyped: Boolean = oodlLogging.logTypeInformation
 
   lazy val viatraPostProcessingPipeline: List[() => BaseIRVisitor] = List(
@@ -79,6 +79,8 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
 
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false)
 
+  val optimizationPipeline: List[() => Optimizer] = createOptimizationPipeline(false, OODLEdbConfig.default)
+
   private lazy val superClassMap: Map[String, Set[String]] =
     val classes = typed.classes
     val noneTransitiveSubtypeTuples = classes.flatMap { c =>
@@ -102,7 +104,7 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
     //++ CompiledOODLUnit.optimizationPipeline 
     //:+ (() => new IROODLClassOptimizer(superClassMap, false, true, OODLEdbConfig.default))
 
-  def createOptimizationPipeline(computeControlEvents: Boolean, edbConfig: AbstractEdbConfig): List[() => BaseIRVisitor] =
+  def createOptimizationPipeline(computeControlEvents: Boolean, edbConfig: AbstractEdbConfig): List[() => Optimizer] =
     CompiledOODLUnit.createOptimizationPipeline(computeControlEvents, edbConfig) 
     :+ (() => new IROODLClassOptimizer(superClassMap, computeControlEvents, true, edbConfig))
 
