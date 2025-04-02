@@ -17,7 +17,7 @@ import sturdy.effect.except.Except
 import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
 case class ConstantStringV(value: String) extends Value:
-  override def toString: String = value
+  override def toString: String = s"\"$value\""
   override def isConstant: Boolean = true
 
 trait ConstantEqOps extends BaseEqOps:
@@ -44,6 +44,7 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
 
   override def toString(v: Value): Value = v match
     case Value.Top => Value.Top
+    case _: ConstantStringV => v
     case _ => ConstantStringV(v.toString)
 
   override def concat(v1: Value, v2: Value): Value = (v1, v2) match

@@ -19,5 +19,5 @@ trait OODLClassMeetV extends BaseMeetV
 
 trait OODLClassAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   def provideValueForDemandedParam(param: ir.Param): Value = param.ty match
-    case irdata.TData(ref) if ref.name.name == "OID" || ref.name.name == "SID" => OODLClassV.Base
+    case irdata.TData(ref) if ref.name.name == "ID" => OODLClassV.Base
     case _ => Value.Top

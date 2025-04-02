@@ -88,16 +88,19 @@ class IROODLClassAbstractInterpreter(
 
   given classOps: ClassOps[OODLClassV, Boolean] with
     override def isSubclass(cls1: OODLClassV, cls2: OODLClassV): Boolean = (cls1, cls2) match
-      case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
+      case (OODLClassV(clsName1, _), OODLClassV(clsName2, _)) =>
         if (clsName1 == clsName2) true
         else if (descendants.getOrElse(clsName2, Set()).contains(clsName1)) true
         else false
 
     override def join(cls1: OODLClassV, cls2: OODLClassV): OODLClassV = (cls1, cls2) match
-      case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
-        if (clsName1 == clsName2) cls1
-        else if (descendants.getOrElse(clsName2, Set()).contains(clsName1)) cls2 // cls1 is subclass of cls2
-        else if (descendants.getOrElse(clsName1, Set()).contains(clsName2)) cls1 // cls2 is subclass of cls1
+      case (OODLClassV(clsName1, isRuntimeType1), OODLClassV(clsName2, isRuntimeType2)) =>
+        if (clsName1 == clsName2)
+          OODLClassV(clsName1, isRuntimeType1 && isRuntimeType2)
+        else if (descendants.getOrElse(clsName2, Set()).contains(clsName1))
+          OODLClassV(clsName2, false) // cls1 is subclass of cls2
+        else if (descendants.getOrElse(clsName1, Set()).contains(clsName2))
+          OODLClassV(clsName1, false) // cls2 is subclass of cls1
         else
           val commonAncestors = ancestors(clsName1).intersect(ancestors(clsName2))
           // Pick the most specific (i.e., lowest in the hierarchy)
@@ -106,13 +109,16 @@ class IROODLClassAbstractInterpreter(
               other != candidate && ancestors(other).contains(candidate)
             }
           }.get
-          OODLClassV(lub)
+          OODLClassV(lub, false)
 
     override def meet(cls1: OODLClassV, cls2: OODLClassV): OODLClassV = (cls1, cls2) match
-      case (OODLClassV(clsName1), OODLClassV(clsName2)) =>
-        if (clsName1 == clsName2) cls1
-        else if (descendants.getOrElse(clsName2, Set()).contains(clsName1)) cls1 // cls1 is subclass of cls2
-        else if (descendants.getOrElse(clsName1, Set()).contains(clsName2)) cls2 // cls2 is subclass of cls1
+      case (OODLClassV(clsName1, isRuntimeType1), OODLClassV(clsName2, isRuntimeType2)) =>
+        if (clsName1 == clsName2)
+          OODLClassV(clsName1, isRuntimeType1 || isRuntimeType2)
+        else if (descendants.getOrElse(clsName2, Set()).contains(clsName1))
+          OODLClassV(clsName1, true) // cls1 is subclass of cls2
+        else if (descendants.getOrElse(clsName1, Set()).contains(clsName2))
+          OODLClassV(clsName2, true)// cls2 is subclass of cls1
         else OODLClassV.Null
 
 
