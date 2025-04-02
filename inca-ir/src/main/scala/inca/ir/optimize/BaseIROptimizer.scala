@@ -56,7 +56,7 @@ trait BaseIROptimizer[V, RV, TV] extends IRVisitor with Optimizer:
       case _ => // nothing
     }
 
-    println(new IRDebugPrinter{}.prettyPrint(modules))
+    //println(new IRDebugPrinter{}.prettyPrint(modules))
     //System.exit(1)
 
   override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
