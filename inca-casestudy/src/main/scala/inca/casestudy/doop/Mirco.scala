@@ -32,10 +32,10 @@ object Mirco:
     ))
 
     compiled.setOptimizationPipeline(List(
-      () => new IRConstantOptimizer(true, false, false),
+      () => new IRConstantOptimizer(false, false),
       () => new IdentityCastElimination {},
       () => new AliasElimination {},
-      () => new IRConstantOptimizer(true, false, true),
+      () => new IRConstantOptimizer(false, false),
       () => new IdentityCastElimination {},
       () => new AliasElimination {},
     ))
