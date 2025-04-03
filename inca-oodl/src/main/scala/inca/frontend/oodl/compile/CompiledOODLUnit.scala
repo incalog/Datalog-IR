@@ -105,8 +105,18 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
     //:+ (() => new IROODLClassOptimizer(superClassMap, false, true, OODLEdbConfig.default))
 
   def createOptimizationPipeline(computeControlEvents: Boolean, edbConfig: AbstractEdbConfig): List[() => Optimizer] =
-    CompiledOODLUnit.createOptimizationPipeline(computeControlEvents, edbConfig) 
-    :+ (() => new IROODLClassOptimizer(superClassMap, computeControlEvents, true, edbConfig))
+    List(
+      //() => new optimize.TypeIROptimizer {},
+      () => new iroptimize.IRConstantOptimizer(computeControlEvents, false, edbConfig),
+      () => new iroptimize.IdentityCastElimination {},
+      () => new IROODLClassOptimizer(superClassMap, computeControlEvents, true, edbConfig),
+      //() => new optimize.IdentityCastElimination {},
+      //() => new optimize.AliasElimination {},
+      () => new iroptimize.IRConstantOptimizer(computeControlEvents, true, edbConfig),
+      //() => new iroptimize.IRConstantOptimizer(computeControlEvents, false, edbConfig),
+      () => new iroptimize.IdentityCastElimination {},
+      () => new iroptimize.AliasElimination {}
+    )
 
 
 object CompiledOODLUnit:

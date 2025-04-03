@@ -144,7 +144,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       val eqAts = eqsToBindConstantParams(body)
       logOptimizationStat("constant equation", 1, _ - eqAts.size)
       super.visitBody(body)
-        .map(b => Body(eqAts ++ b.atoms)) // .diff(b.atoms)
+        .map(b => Body(eqAts ++ b.atoms.diff(eqAts)))
         .filter(_.atoms.nonEmpty)
     }
   }
@@ -158,8 +158,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     true
 
   protected def mayEliminate(t: Term): Boolean = t match
-    case Var(ref) => isConstant(t)
-    case Cast(tt, _) => isConstant(t) && mayEliminate(tt)
+    case Var(ref) => true // we may always eliminate variables
+    case Cast(tt, _) => mayEliminate(tt)
 
   protected def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
     case TermArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)

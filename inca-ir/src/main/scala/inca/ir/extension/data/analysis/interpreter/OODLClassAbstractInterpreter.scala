@@ -18,7 +18,7 @@ trait ClassOps[V, B]:
   def meet(v1: V, v2: V): V
 
 case class OODLClassV(clsName: String, isRuntimeType: Boolean) extends Value:
-  override def toString: String = if (isRuntimeType) s"$$$$$clsName" else s"$$$clsName"
+  override def toString: String = if (isRuntimeType) s"!$clsName" else s"?$clsName"
   override def isConstant: Boolean = false
 
 object OODLClassV:

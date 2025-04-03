@@ -76,10 +76,10 @@ class IROODLClassAbstractInterpreter(
   type RV = AbstractRelation
 
   // all ancestors for a given class
-  private lazy val ancestors: Map[String, Set[String]] =
+  lazy val ancestors: Map[String, Set[String]] =
     MapUtil.transClosure(superClassMap)
 
-  private lazy val descendants: Map[String, Set[String]] =
+  lazy val descendants: Map[String, Set[String]] =
     val subclasses = superClassMap.toSeq.flatMap((k, vs) => vs.toSeq.map(_ -> k))
       .groupBy(_._1)
       .view.mapValues(_.map(_._2).toSet)
@@ -116,9 +116,9 @@ class IROODLClassAbstractInterpreter(
         if (clsName1 == clsName2)
           OODLClassV(clsName1, isRuntimeType1 || isRuntimeType2)
         else if (descendants.getOrElse(clsName2, Set()).contains(clsName1))
-          OODLClassV(clsName1, true) // cls1 is subclass of cls2
+          cls1 // cls1 is subclass of cls2
         else if (descendants.getOrElse(clsName1, Set()).contains(clsName2))
-          OODLClassV(clsName2, true)// cls2 is subclass of cls1
+          cls2 // cls2 is subclass of cls1
         else OODLClassV.Null
 
 
