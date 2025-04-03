@@ -19,10 +19,10 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val step = 10
 
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/DependencyAnalysis.oodl")
-    val compiled = exec.compileOODL(code, options)
-    compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
-    val loaded = exec.loadOODL(compiled)
+    val unit = exec.compileOODL(code, options)
+    unit.setPipeline(CompiledOODLUnit.pipeline)
+    unit.setOptimizationPipeline(unit.optimizationPipeline)
+    val loaded = exec.loadOODL(unit)
     var res = loaded.execute("main", Seq(endNode, step))
 
     val setAdt = res.entries.head
@@ -62,8 +62,9 @@ class OODLViatraExecutorCaseStudyTest extends AnyFunSuite:
     val compiled = dRedExec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
     // FIXME: Using AbstractEdbConfig will not replace impurity counter variables with constants.
-    //  Somehow replacing them makes the program executable slow.
-    compiled.setOptimizationPipeline(CompiledOODLUnit.createOptimizationPipeline(false, AbstractEdbConfig.default))
+    //  Somehow replacing them makes the program unexecutable slow. Maybe because some sets that
+    //  contain objects are also constant now?
+    compiled.setOptimizationPipeline(compiled.createOptimizationPipeline(false, AbstractEdbConfig.default))
     compiled.setPostProcessingPipeline(compiled.viatraPostProcessingPipeline)
     val loaded = dRedExec.loadOODL(compiled)
     var res = loaded.execute("main", Seq())

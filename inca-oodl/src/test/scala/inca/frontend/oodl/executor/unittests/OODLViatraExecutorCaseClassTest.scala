@@ -17,7 +17,7 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/CaseClass.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
+    compiled.setOptimizationPipeline(compiled.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
     val res = loaded.execute("main", Seq())
     assertResult(15)(res.entries.head)
@@ -27,7 +27,7 @@ class OODLViatraExecutorCaseClassTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("objectoriented/unittests/caseclass/TransitiveClosure.oodl")
     val compiled = exec.compileOODL(code, options)
     compiled.setPipeline(CompiledOODLUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledOODLUnit.optimizationPipeline)
+    compiled.setOptimizationPipeline(compiled.optimizationPipeline)
     val loaded = exec.loadOODL(compiled)
 
     //var res = loaded.execute("main", Seq())
