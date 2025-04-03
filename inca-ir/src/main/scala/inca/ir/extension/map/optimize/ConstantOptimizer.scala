@@ -28,11 +28,19 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   override def mayEliminate(t: Term): Boolean = t match
     case irmap.MapComprehension(k, v, ats) => isConstant(t) && ats.flatMap(visitAtom).isEmpty
-    case irmap.MapFun(_, valTerm) => isConstant(t) && mayEliminate(valTerm)
-    case irmap.MapPlus(map, key, value) => isConstant(t) && mayEliminate(map) && mayEliminate(key) && mayEliminate(value)
-    case irmap.MapUnion(t1, t2) => isConstant(t) && mayEliminate(t1) && mayEliminate(t2)
-    case irmap.MapConcat(t1, t2) => isConstant(t) && mayEliminate(t1) && mayEliminate(t2)
-    case irmap.MapLookUp(map, key) => isConstant(t) && mayEliminate(map) && mayEliminate(key)
+    case irmap.MapFun(_, valTerm) => isConstant(t) && isConstant(valTerm) && mayEliminate(valTerm)
+    case irmap.MapPlus(map, key, value) =>
+      isConstant(t) && isConstant(key) && isConstant(value)
+      && mayEliminate(map) && mayEliminate(key) && mayEliminate(value)
+    case irmap.MapUnion(t1, t2) =>
+      isConstant(t) && isConstant(t1) && isConstant(t2)
+      && mayEliminate(t1) && mayEliminate(t2)
+    case irmap.MapConcat(t1, t2) =>
+      isConstant(t) && isConstant(t1) && isConstant(t2)
+      && mayEliminate(t1) && mayEliminate(t2)
+    case irmap.MapLookUp(map, key) =>
+      isConstant(t) && isConstant(key)
+      && mayEliminate(map) && mayEliminate(key)
     case v: Var if v.typ.exists(tty => tty.ty.isInstanceOf[TMap] && tty.mode.isBinding) => false
     case _ => super.mayEliminate(t)
 

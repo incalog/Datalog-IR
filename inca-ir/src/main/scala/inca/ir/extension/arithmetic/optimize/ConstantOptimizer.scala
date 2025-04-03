@@ -17,7 +17,9 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   override def mayEliminate(t: Term): Boolean = t match
     case irarith.IntNum(_) | irarith.DoubleNum(_) => isConstant(t)
-    case irarith.BinOp(lhs, rhs, _) => isConstant(t) && mayEliminate(lhs) && mayEliminate(rhs)
+    case irarith.BinOp(lhs, rhs, _) => 
+      isConstant(t) && isConstant(lhs) && isConstant(rhs)
+      && mayEliminate(lhs) && mayEliminate(rhs)
     case _ => super.mayEliminate(t)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match

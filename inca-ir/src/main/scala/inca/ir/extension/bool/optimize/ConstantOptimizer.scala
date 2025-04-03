@@ -13,9 +13,13 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
   override def mayEliminate(term: Term): Boolean = term match
     case AtomAsBool(at) => isConstant(term) && visitAtom(at).isEmpty
     case BoolTrue | BoolFalse => isConstant(term)
-    case BoolAnd(lhs, rhs) => isConstant(term) && mayEliminate(lhs) && mayEliminate(rhs)
-    case BoolOr(lhs, rhs) => isConstant(term) && mayEliminate(lhs) && mayEliminate(rhs)
-    case BoolNot(tt) => isConstant(term) && mayEliminate(tt)
+    case BoolAnd(lhs, rhs) => 
+      isConstant(term) && isConstant(lhs) && isConstant(rhs)
+      && mayEliminate(lhs) && mayEliminate(rhs)
+    case BoolOr(lhs, rhs) => 
+      isConstant(term) && isConstant(lhs) && isConstant(rhs)
+      && mayEliminate(lhs) && mayEliminate(rhs)
+    case BoolNot(tt) => isConstant(term) && isConstant(tt) && mayEliminate(tt)
     case _ => super.mayEliminate(term)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match

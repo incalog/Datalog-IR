@@ -31,9 +31,11 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
   override def mayEliminate(t: Term): Boolean = t match
     case irset.SetComprehension(tt, ats) => isConstant(t) && ats.flatMap(visitAtom).isEmpty
     case irset.SetFrom(_) => isConstant(t)
-    case irset.SetLit(ts) => isConstant(t) && ts.forall(mayEliminate)
-    case irset.SetUnion(ts) => isConstant(t) && ts.forall(mayEliminate)
-    case irset.SetIntersection(t1, t2) => isConstant(t) && mayEliminate(t1) && mayEliminate(t2)
+    case irset.SetLit(ts) => isConstant(t) && ts.forall(isConstant) && ts.forall(mayEliminate)
+    case irset.SetUnion(ts) => isConstant(t) && ts.forall(isConstant) && ts.forall(mayEliminate)
+    case irset.SetIntersection(t1, t2) => 
+      isConstant(t) && isConstant(t1) && isConstant(t2)
+      && mayEliminate(t1) && mayEliminate(t2)
     case v: Var if v.typ.exists(tty => tty.ty.isInstanceOf[TSet] && tty.mode.isBinding) => false
     case _ => super.mayEliminate(t)
 

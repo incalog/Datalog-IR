@@ -11,8 +11,11 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   override def mayEliminate(t: Term): Boolean = t match
     case irstr.StringLit(_) => isConstant(t)
-    case irstr.StringConcat(lhs, rhs) => isConstant(t) && mayEliminate(lhs) && mayEliminate(rhs)
-    case irstr.ToString(tt) => isConstant(t) && mayEliminate(tt)
+    case irstr.StringConcat(lhs, rhs) =>
+      isConstant(t) && isConstant(lhs) && isConstant(rhs)
+      && mayEliminate(lhs) && mayEliminate(rhs)
+    case irstr.ToString(tt) =>
+      isConstant(t) && isConstant(tt) && mayEliminate(tt)
     case _ => super.mayEliminate(t)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match

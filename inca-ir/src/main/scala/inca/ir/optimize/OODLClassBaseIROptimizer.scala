@@ -70,15 +70,17 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
     }
     super.analyzeProgram(modules)
 
+  private def lookupDispatchTarget(dispatchRel: Relation, src: String): String =
+    ???
 
-  /*private var variableRemapping: Map[Name, Term] = uninitialized
+  private var runtimeTypeMapping: Map[Term, Term] = uninitialized
 
   override def visitRelation(relation: Relation): Seq[Relation] =
     params = relation.params.map(p => RefByName(p.name) -> p.ty).toMap
     Seq(Relation(relation.name, relation.params.flatMap(visitParam), relation.bodies.flatMap { b =>
-      variableRemapping = Map()
+      runtimeTypeMapping = Map()
       visitBody(b)
-    }))*/
+    }))
 
   override def visitAtom(atom: Atom): Seq[Atom] =
     atom match
@@ -92,11 +94,14 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
             getClass(oid) match
               case Some(OODLClassV(cls, true)) =>
                 logOptimizationStat("constant runtimeType$", 1,_+1)
-                //variableRemapping += clsVar.ref.name -> irstring.StringLit(cls)
+                runtimeTypeMapping += clsTerm -> irstring.StringLit(cls)
                 Seq(Eq(clsTerm, irstring.StringLit(cls)))
               case _ => super.visitAtom(atom)
           case _ => super.visitAtom(atom)
-
+      // Dispatch calls dynamically lookup which implementation of a method to call based
+      // on the runtime type.
+      // If we know the runtime type, we can figure out the dispatch target.
+      //case Call(ref, args, neg) if ref.name.name.startsWith("dispatch$") => 
         
       case _ => super.visitAtom(atom)
 
