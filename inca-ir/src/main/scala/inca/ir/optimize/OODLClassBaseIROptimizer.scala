@@ -171,7 +171,7 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
       // runtimeType$ is a reserved OODL method. It destructs an OID to get
       // the contained runtime class. Calls to this method can not fail.
       // If we know the precise class, we can eliminate the whole call.
-      case Call(ref, args, neg) if ref.name.name == "runtimeType$" && args.size == 2 =>
+      case Call(ref, args, false) if ref.name.name == "runtimeType$" && args.size == 2 =>
         (args.head, args.last) match
           case (TermArg(oid), TermArg(clsTerm)) =>
             getClass(oid) match
@@ -186,7 +186,7 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
       // implementation of a method to call based on the runtime type.
       // If we know the runtime type we can figure out the dispatch target.
       // Calls to this method can not fail.
-      case Call(ref, args, neg) if ref.name.name.startsWith("dispatch$") && args.size == 2 =>
+      case Call(ref, args, false) if ref.name.name.startsWith("dispatch$") && args.size == 2 =>
         val rel = ref.target.get match
           case r: Relation => r
           case _ => throw IllegalStateException("Expected dispatch idb relation!")
@@ -197,7 +197,7 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
               case _ =>
                 // to prevent a second pass of this optimization
                 // Note: This relies on the order, that means runtimeType$
-                // is called before dispatch$
+                // needs to be called before dispatch$
                 runtimeTypeMapping.get(srcTerm)
             srcClsOption match
               case Some(srcCls) =>
@@ -210,9 +210,34 @@ trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val
               case _ => super.visitAtom(atom)
           case _ => super.visitAtom(atom)
 
+      // The subtype relation holds if the first argument is a subtype of the second.
+      // If we statically know the subtype, we can optimize them away or decide if the
+      // call fails.
+      case Call(ref, args, neg) if ref.name.name == "subtype$" && args.size == 2 =>
+        val rel = ref.target.get match
+          case r: Relation => r
+          case _ => throw IllegalStateException("Expected dispatch idb relation!")
+        (args.head, args.last) match
+          case (TermArg(subTerm), TermArg(superTerm)) =>
+            val subClsOption = getTermResult(subTerm).headOption match
+              case Some(ConstantStringV(sub)) => Some(sub)
+              case _ => runtimeTypeMapping.get(subTerm)
+            val superClsOption = getTermResult(superTerm).headOption match
+              case Some(ConstantStringV(sup)) => Some(sup)
+              case _ => runtimeTypeMapping.get(superTerm)
+            (subClsOption, superClsOption) match
+              case (Some(subCls), Some(superCls)) =>
+                logOptimizationStat("constant subtype", 1,_+1)
+                val isSubtype = (subCls == superCls) || ancestors.getOrElse(subCls, Set()).contains(superCls)
+                if ((neg && !isSubtype) || (!neg && isSubtype))
+                  Seq()
+                else
+                  throw FailedBody
+              case _ => super.visitAtom(atom)
+          case _ => super.visitAtom(atom)
+
       case _ =>
         super.visitAtom(atom)
-
 
 class IROODLClassOptimizer(
                             val superClassMap: Map[String, Set[String]],
