@@ -67,7 +67,7 @@ trait OODLClassAbstractInterpreter
         matching(stringOps.stringLit(cls) +: caseDef.args.tail.map(_ => Value.Top))
       case OODLClassV(cls, false) if caseDef.data.ref.name.name == "ID" =>
         // Because of join operations that go up the class hierarchy we just know that
-        // the matching is some string value.
+        // the matching class is some string value.
         matching(caseDef.args.map(_ => Value.Top))
       case Value.Top =>
         // Could or could not match
