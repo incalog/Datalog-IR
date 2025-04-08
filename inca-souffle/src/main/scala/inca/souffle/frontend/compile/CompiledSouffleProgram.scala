@@ -9,29 +9,21 @@ import inca.souffle.syntax.{DirectiveValue, Parser, Program}
 import inca.util.compileroptions.CompilerOptions
 import inca.ir.execution.{UnitRelation, Relation as ExecutionRelation}
 import inca.ir.extension.arithmetic.{TDouble, TInt}
+import inca.ir.optimize.Optimizer
 
 import scala.io.Source
 
-case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions: CompilerOptions = CompilerOptions.default) extends CompiledProgram {
+case class CompiledSouffleProgram(
+  name: Name,
+  program: Program,
+  compilerOptions: CompilerOptions,
+  pipeline: List[() => BaseIRVisitor],
+  optimizationPipeline: List[() => Optimizer]
+ ) extends CompiledProgram {
 
-  setPipeline(
-    List(
-      () => new bool.Lowering {},
-      () => new block.Lowering {},
-      () => new disjunction.Lowering {},
-      () => new not.Lowering {},
-      () => new module.Lowering {}
-    )
-  )
+  setPipeline(pipeline)
 
-  setOptimizationPipeline(
-    List(
-      //() => new optimize.TypeIROptimizer {},
-      () => new optimize.IRConstantOptimizer(computeControlEvents = false) {},
-      () => new optimize.IRConstantOptimizer(computeControlEvents = true) {},
-      () => new optimize.AliasElimination {}
-    )
-  )
+  setOptimizationPipeline(optimizationPipeline)
 
   def createCompiledUnit(modules: Seq[Module], otherUnits: Seq[CompiledUnit], isClosedWorld: Boolean): CompiledUnit =
     CompiledSouffleUnit(modules.head.name, modules, otherUnits, isClosedWorld, compilerOptions)
@@ -108,11 +100,35 @@ case class CompiledSouffleProgram(name: Name, program: Program, compilerOptions:
 }
 
 object CompiledSouffleProgram:
-  def fromSource(name: Name, source: Source, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleProgram =
+  val pipeline: List[() => BaseIRVisitor] =
+    List(
+      () => new bool.Lowering {},
+      () => new block.Lowering {},
+      () => new disjunction.Lowering {},
+      () => new not.Lowering {},
+      () => new module.Lowering {}
+    )
+
+  val optimizationPipeline: List[() => Optimizer] =
+    List(
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
+      () => new optimize.AliasElimination {}
+    )
+
+  def fromSource(name: Name,
+                 source: Source,
+                 compilerOptions: CompilerOptions = CompilerOptions.default,
+                 pipeline: List[() => BaseIRVisitor] = CompiledSouffleProgram.pipeline,
+                 optimizationPipeline: List[() => Optimizer] = CompiledSouffleProgram.optimizationPipeline): CompiledSouffleProgram =
     val content = source.getLines().mkString("\n")
     source.close()
-    fromSourceCode(name, content, compilerOptions)
+    fromSourceCode(name, content, compilerOptions, pipeline, optimizationPipeline)
 
-  def fromSourceCode(name: Name, source: String, compilerOptions: CompilerOptions = CompilerOptions.default): CompiledSouffleProgram =
+  def fromSourceCode(name: Name,
+                     source: String,
+                     compilerOptions: CompilerOptions = CompilerOptions.default,
+                     pipeline: List[() => BaseIRVisitor] = CompiledSouffleProgram.pipeline,
+                     optimizationPipeline: List[() => Optimizer] = CompiledSouffleProgram.optimizationPipeline): CompiledSouffleProgram =
     val program: Program = Parser.parseSouffle(source)
-    new CompiledSouffleProgram(name, program, compilerOptions)
+    new CompiledSouffleProgram(name, program, compilerOptions, pipeline, optimizationPipeline)

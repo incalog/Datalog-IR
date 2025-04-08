@@ -19,26 +19,28 @@ object Mirco:
     val baseDir = "doop/"
     val source = Source.fromResource(baseDir + file)
     val options = CompilerOptions.default
-    options.irLogging.logOptimizationStats = true
+    options.irLogging.logOptimizationStats = false
+    options.irLogging.logStatsBeforeOptimizations = true
+    options.irLogging.logStatsAfterOptimizations = true
     //options.irLogging.logLowerings = true
-    val compiled = CompiledSouffleProgram.fromSource("micro", source, options)
-    compiled.setPipeline(List(
-      () => new bool.Lowering {},
-      () => new block.Lowering {},
-      () => new disjunction.Lowering {},
-      () => new not.Lowering {},
-      () => new AliasElimination {},
-      () => new module.Lowering {}
-    ))
-
-    compiled.setOptimizationPipeline(List(
-      () => new IRConstantOptimizer(false, false),
-      () => new IdentityCastElimination {},
-      () => new AliasElimination {},
-      () => new IRConstantOptimizer(false, false),
-      () => new IdentityCastElimination {},
-      () => new AliasElimination {},
-    ))
+    val compiled = CompiledSouffleProgram.fromSource("micro", source, options,
+      pipeline = List(
+        () => new bool.Lowering {},
+        () => new block.Lowering {},
+        () => new disjunction.Lowering {},
+        () => new not.Lowering {},
+        () => new AliasElimination {},
+        () => new module.Lowering {}
+      ),
+      optimizationPipeline = List(
+        () => new IRConstantOptimizer(false, false),
+        () => new IdentityCastElimination {},
+        () => new AliasElimination {},
+        () => new IRConstantOptimizer(false, true),
+        () => new IdentityCastElimination {},
+        () => new AliasElimination {},
+      )
+    )
 
     println("Load edb from files...")
     val edbFacts = compiled.loadEdbInputs(baseDir + "minijavac")

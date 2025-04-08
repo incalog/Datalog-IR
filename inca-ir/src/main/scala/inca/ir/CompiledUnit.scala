@@ -137,6 +137,7 @@ trait CompiledUnit(using implicit val printer: GenericPrinter = DEFAULT_PRINTER)
       var stats: SortedMap[String, Any] = SortedMap()
 
       val optimFun = optimizer()
+      optimFun.isClosedWorld = isClosedWorld
 
       // log analysis phase
       val anStart = System.currentTimeMillis()

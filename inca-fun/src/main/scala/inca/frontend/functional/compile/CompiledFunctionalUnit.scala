@@ -99,7 +99,7 @@ object CompiledFunctionalUnit:
     ) // arith + string + data
 
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false) // arith + string + data
-
+  
   val optimizationPipeline: List[() => Optimizer] = List(
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},

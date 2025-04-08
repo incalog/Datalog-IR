@@ -8,7 +8,6 @@ import inca.frontend.oodl.util.ParseUtil
 import inca.ir
 import inca.ir.{Arg, ExtensionalRelation, Language, MainHint, Name, RefByName, Term, TermArg, WildcardArg, name2string, optimize, string2name}
 import inca.ir.extension.aggregate as iragg
-import inca.ir.extension.aggregate.AggregateColumnArg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.block

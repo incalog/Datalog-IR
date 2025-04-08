@@ -4,6 +4,7 @@ import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompi
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.frontend.functional.util.{FunctionalBenchmark, FunctionalBenchmarkConfig}
 import inca.ir.execution.ThreadCount.Fixed
+import inca.ir.optimize
 import inca.util.FileUtil
 import inca.{ascent, souffle, viatra}
 
@@ -159,3 +160,99 @@ object ControlflowBenchmark:
     println(sizeDs.toTable)
     println(optimDs.toTable)
     println(perfDs.toTable)
+
+  @main
+  def measureIntervalIntraVsIntra(): Unit =
+    def interRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    def intraRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+
+    val code = FileUtil.readFileFromResource("functional/controlflow/Interval.finca")
+    val options = FunctionalCompilerOptions.default
+    val prog = nestedWhileProgram(5, 20)
+
+    // Measure statistics exactly once
+    val statConfigs = Seq(
+      FunctionalBenchmarkConfig("intra", "", code, FunctionalExecutor(viatra.backend.Executor()), options,
+        optimizationPipeline = intraRelationalOptimizationPipeline,
+        postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+      ),
+      FunctionalBenchmarkConfig("inter", "", code, FunctionalExecutor(viatra.backend.Executor()), options,
+        optimizationPipeline = interRelationalOptimizationPipeline,
+        postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+      )
+    )
+    val statBenchmark = FunctionalBenchmark("Interval", statConfigs, "mainFinalVar", Seq(prog), outDir)
+
+    val statsDs = statBenchmark.measureStatistics()
+    val optimDs = statBenchmark.measureOptimizations()
+    val sizeDs = statBenchmark.measureRelationStatistics()
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
+
+  @main
+  def measureControlFlowIntraVsIntra(): Unit =
+    def interRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    def intraRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+
+    val code = FileUtil.readFileFromResource("functional/controlflow/CFlow.finca")
+    val options = FunctionalCompilerOptions.default
+    val prog = nestedWhileProgram(5, 20)
+
+    // Measure statistics exactly once
+    val statConfigs = Seq(
+      FunctionalBenchmarkConfig("intra", "", code, FunctionalExecutor(viatra.backend.Executor()), options,
+        optimizationPipeline = intraRelationalOptimizationPipeline,
+        postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+      ),
+      FunctionalBenchmarkConfig("inter", "", code, FunctionalExecutor(viatra.backend.Executor()), options,
+        optimizationPipeline = interRelationalOptimizationPipeline,
+        postProcessingPipeline = CompiledFunctionalUnit.viatraPostProcessingPipeline
+      )
+    )
+    val statBenchmark = FunctionalBenchmark("ControlFlow", statConfigs, "mainTransitiveFlow", Seq(prog), outDir)
+
+    val statsDs = statBenchmark.measureStatistics()
+    val optimDs = statBenchmark.measureOptimizations()
+    val sizeDs = statBenchmark.measureRelationStatistics()
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
