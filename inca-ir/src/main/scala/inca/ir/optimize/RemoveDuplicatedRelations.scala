@@ -44,19 +44,26 @@ trait RemoveDuplicatedRelations extends IRVisitor, Optimizer:
       val Module(name, lang, contents) = super.visitModule(optimized)
 
       // Insert one relation for each collision
-      val newRelations = collisionMap.map {
-        case (bodies, Seq(rel)) => preserveHints(rel) {
+      val newRelations: Iterable[ModuleEntry] = collisionMap.flatMap {
+        case (bodies, Seq(rel)) => Seq(preserveHints(rel) {
           Relation(rel.name, rel.params, bodies.toSeq)
-        }
-        case (bodies, rels) => preserveHints(rels) {
+        })
+        case (bodies, rels) =>
           val newRelName = rels.head.name
           val allParams = rels.flatMap(_.params).distinct
-          rewritingMap ++= rels.map { rel =>
-            val paramReordering = allParams.map(rel.params.indexOf)
-            rel.name -> (newRelName, paramReordering)
-          }.toMap
-          Relation(newRelName, allParams, bodies.toSeq)
-        }
+          val hasCollidingParamsWithDifferentTypes = allParams.map(_.name).toSet.size != allParams.size
+          if (hasCollidingParamsWithDifferentTypes)
+            rels.map { rel => preserveHints(rel) {
+              Relation(rel.name, rel.params, bodies.toSeq)
+            }}
+          else
+            rewritingMap ++= rels.map { rel =>
+              val paramReordering = allParams.map(rel.params.indexOf)
+              rel.name -> (newRelName, paramReordering)
+            }.toMap
+            Seq(preserveHints(rels) {
+              Relation(newRelName, allParams, bodies.toSeq)
+            })
       }
 
       // Rewrite all calls, aggregate calls etc.
@@ -74,10 +81,10 @@ trait RemoveDuplicatedRelations extends IRVisitor, Optimizer:
     case Phase.CollectCollisions =>
       val bodies = relation.bodies.toSet
         collisionMap.get(bodies) match
-        case None => collisionMap += bodies -> Seq(relation)
-        case Some(rels) =>
-          logOptimizationStat("duplicate relation", 1, _+1)
-          collisionMap += bodies -> (rels :+ relation)
+          case None => collisionMap += bodies -> Seq(relation)
+          case Some(rels) =>
+            logOptimizationStat("duplicate relation", 1, _+1)
+            collisionMap += bodies -> (rels :+ relation)
       Seq()
     case Phase.RewriteCalls =>
       super.visitRelation(relation)

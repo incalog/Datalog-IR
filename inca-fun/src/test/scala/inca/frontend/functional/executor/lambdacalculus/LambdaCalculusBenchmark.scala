@@ -8,6 +8,7 @@ import inca.frontend.functional.executor.FunctionalExecutor
 import inca.ir.execution.ThreadCount.Fixed
 import inca.souffle
 import inca.viatra
+import inca.ir.optimize
 
 import java.io.File
 
@@ -47,6 +48,47 @@ object LambdaCalculusBenchmark:
     val benchmark = FunctionalBenchmark("LambdaCalculus", configs, "main", Seq(prog), outDir)
     val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)
+
+  @main
+  def measureLambdaCalculusIntraVsInter(): Unit =
+    def interRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    def intraRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    val code = FileUtil.readFileFromResource("functional/lambdacalculus/LambdaCalculus.finca")
+    val options = FunctionalCompilerOptions.default
+    val prog = generateTypedProg(50)
+
+    // Measure statistics exactly once
+    val statConfigs = Seq(
+      FunctionalBenchmarkConfig("intra", "", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = intraRelationalOptimizationPipeline),
+      FunctionalBenchmarkConfig("inter", "", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = interRelationalOptimizationPipeline)
+    )
+    val statBenchmark = FunctionalBenchmark("LambdaCalculus", statConfigs, "main", Seq(prog), outDir)
+
+    val statsDs = statBenchmark.measureStatistics()
+    val optimDs = statBenchmark.measureOptimizations()
+    val sizeDs = statBenchmark.measureRelationStatistics()
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
 
   @main
   def measureLambdaCalculusDemandStrategies(): Unit =

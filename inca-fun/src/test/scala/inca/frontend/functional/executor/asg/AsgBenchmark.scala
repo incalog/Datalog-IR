@@ -6,6 +6,7 @@ import inca.frontend.functional.util.{FunctionalBenchmark, FunctionalBenchmarkCo
 import inca.ir.execution.ThreadCount.Fixed
 import inca.util.FileUtil
 import inca.{ascent, souffle, viatra}
+import inca.ir.optimize
 
 import java.io.File
 
@@ -45,6 +46,47 @@ object AsgBenchmark:
     val benchmark = FunctionalBenchmark("ASG", configs, "main", Seq(prog), outDir)
     val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)
+
+  @main
+  def measureAsgIntraVsInter(): Unit =
+      def interRelationalOptimizationPipeline = List(
+        () => new optimize.RemoveDuplicatedRelations {},
+        () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+        () => new optimize.IdentityCastElimination {},
+        () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
+        () => new optimize.IdentityCastElimination {},
+        () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+        () => new optimize.RemoveDuplicatedRelations {},
+        () => new optimize.AliasElimination {}
+      )
+
+      def intraRelationalOptimizationPipeline = List(
+        () => new optimize.RemoveDuplicatedRelations {},
+        () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+        () => new optimize.IdentityCastElimination {},
+        () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+        () => new optimize.RemoveDuplicatedRelations {},
+        () => new optimize.AliasElimination {}
+      )
+
+      val code = FileUtil.readFileFromResource("functional/asg/DependencyAnalysis.finca")
+      val options = FunctionalCompilerOptions.default
+      val prog = generateProgram(50, 10)
+
+      // Measure statistics exactly once
+      val statConfigs = Seq(
+        FunctionalBenchmarkConfig("intra", "", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = intraRelationalOptimizationPipeline),
+        FunctionalBenchmarkConfig("inter", "", code, FunctionalExecutor(viatra.backend.Executor()), options, optimizationPipeline = interRelationalOptimizationPipeline)
+      )
+      val statBenchmark = FunctionalBenchmark("ASG", statConfigs, "main", Seq(prog), outDir)
+
+      val statsDs = statBenchmark.measureStatistics()
+      val optimDs = statBenchmark.measureOptimizations()
+      val sizeDs = statBenchmark.measureRelationStatistics()
+
+      println(statsDs.toTable)
+      println(sizeDs.toTable)
+      println(optimDs.toTable)
 
   @main
   def measureAsgDemandStrategies(): Unit =

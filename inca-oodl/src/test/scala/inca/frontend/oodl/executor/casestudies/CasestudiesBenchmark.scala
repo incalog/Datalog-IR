@@ -4,6 +4,7 @@ import inca.frontend.oodl.compile.{CompiledOODLUnit, OODLCompilerOptions}
 import inca.frontend.oodl.executor.OODLExecutor
 import inca.frontend.oodl.util.{OODLBenchmark, OODLBenchmarkConfig}
 import inca.ir.execution.ThreadCount.Fixed
+import inca.ir.optimize
 import inca.util.FileUtil
 import inca.viatra
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
@@ -48,6 +49,49 @@ object CasestudiesBenchmark:
     println(perfDs.toTable)
 
   @main
+  def measureDependencyAnalysisIntraVsInter(): Unit =
+    def interRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    def intraRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    val endNode = 100
+    val step = 10
+
+    val code = FileUtil.readFileFromResource("objectoriented/casestudies/DependencyAnalysis.oodl")
+    val options = OODLCompilerOptions.default
+
+    // Measure statistics exactly once
+    val statConfigs = Seq(
+      OODLBenchmarkConfig("intra", "", code, OODLExecutor(viatra.backend.Executor()), options, optimizationPipeline = intraRelationalOptimizationPipeline),
+      OODLBenchmarkConfig("inter", "", code, OODLExecutor(viatra.backend.Executor()), options, optimizationPipeline = interRelationalOptimizationPipeline)
+    )
+    val statBenchmark = OODLBenchmark("DependencyAnalysis", statConfigs, "main", Seq(endNode, step), outDir)
+
+    val statsDs = statBenchmark.measureStatistics()
+    val optimDs = statBenchmark.measureOptimizations()
+    val sizeDs = statBenchmark.measureRelationStatistics()
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
+
+  @main
   def measureControlFlow(): Unit =
     val code = FileUtil.readFileFromResource("objectoriented/casestudies/CfgVisitor.oodl")
     val options = OODLCompilerOptions.default
@@ -77,6 +121,48 @@ object CasestudiesBenchmark:
     val benchmark = OODLBenchmark("CfgVisitor", configs, "main", Seq(), outDir)
     val (perfDs, _) = benchmark.measureAndPlotPerformance(runs = 10, warmups = 5, xLabel = Some("Engine"))
     println(perfDs.toTable)
+
+  @main
+  def measureControlFlowIntraVsInter(): Unit =
+    def interRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    def intraRelationalOptimizationPipeline = List(
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
+      () => new optimize.IdentityCastElimination {},
+      () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
+      () => new optimize.RemoveDuplicatedRelations {},
+      () => new optimize.AliasElimination {}
+    )
+
+    val code = FileUtil.readFileFromResource("objectoriented/casestudies/CfgVisitor.oodl")
+    val options = OODLCompilerOptions.default
+    //options.irLogging.logTypeInformation = true
+    //options.irLogging.logOptimizations = true
+
+    // Measure statistics exactly once
+    val statConfigs = Seq(
+      OODLBenchmarkConfig("intra", "", code, OODLExecutor(viatra.backend.Executor()), options, optimizationPipeline = intraRelationalOptimizationPipeline),
+      OODLBenchmarkConfig("inter", "", code, OODLExecutor(viatra.backend.Executor()), options, optimizationPipeline = interRelationalOptimizationPipeline)
+    )
+    val statBenchmark = OODLBenchmark("CfgVisitor", statConfigs, "main", Seq(), outDir )
+
+    val statsDs = statBenchmark.measureStatistics()
+    val optimDs = statBenchmark.measureOptimizations()
+    val sizeDs = statBenchmark.measureRelationStatistics()
+
+    println(statsDs.toTable)
+    println(sizeDs.toTable)
+    println(optimDs.toTable)
 
   @main
   def measureSignAnalysis(): Unit =
