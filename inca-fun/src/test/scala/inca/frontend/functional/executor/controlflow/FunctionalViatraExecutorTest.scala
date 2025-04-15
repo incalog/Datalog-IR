@@ -46,3 +46,34 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
       res.entries.toSet.map(_.toString)
     )
   }
+
+  test("Available Expression") {
+    val code = FileUtil.readFileFromResource("functional/controlflow/AvailableExpressions.finca")
+    val compiled = exec.compileFunction(code, options)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+
+    val loaded = exec.loadFunction(compiled)
+    loaded.execute("mainFreevarsStm", Seq(prog1))
+    loaded.engine.readAll().foreach(r => println(r.asTable))
+
+    /*val setAdt = loaded.execute("freevarsStm", Seq(prog1)).entries.head
+    val query = Relation.from("Set$$Stm_Stm$$enum", Seq("$set", "$elem$0", "$elem$1"), Seq(Seq(setAdt, null, null)))
+    val res = loaded.engine.read(query).project(1)
+    assertResult(
+      Set("(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2))))", "(Assign(x,Add(Var(x),Num(2))),Assign(x,Add(Var(x),Num(2))))", "(Assign(x,Num(2)),Assign(z,Num(12)))", "(Assign(x,Add(Var(x),Num(2))),While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))))", "(Assign(x,Add(Var(x),Num(2))),Assign(y,Add(Var(x),Var(y))))", "(While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))),Assign(x,Add(Var(x),Num(2))))", "(Assign(y,Add(Var(x),Var(y))),While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))))", "(Assign(y,Add(Var(x),Var(y))),Assign(z,Num(12)))", "(While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))),While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))))", "(Assign(y,Add(Var(x),Var(y))),Assign(y,Add(Var(x),Var(y))))", "(Assign(y,Num(2)),While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))))", "(Assign(z,Num(12)),While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))))", "(Assign(y,Add(Var(x),Var(y))),Assign(x,Add(Var(x),Num(2))))", "(Assign(y,Num(2)),Assign(z,Num(12)))", "(Assign(x,Num(2)),Assign(y,Add(Var(x),Var(y))))", "(Assign(x,Num(2)),While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))))", "(Assign(x,Add(Var(x),Num(2))),Assign(z,Num(12)))", "(Assign(y,Num(2)),Assign(y,Add(Var(x),Var(y))))", "(Assign(z,Num(12)),Assign(y,Add(Var(x),Var(y))))", "(Assign(z,Num(12)),Assign(z,Num(12)))", "(Assign(x,Num(2)),Assign(y,Num(2)))", "(Assign(x,Num(2)),Assign(x,Add(Var(x),Num(2))))", "(While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))),Assign(y,Add(Var(x),Var(y))))", "(Assign(y,Num(2)),Assign(x,Add(Var(x),Num(2))))", "(While(GreaterThan(Var(x),Num(1)),Sequence(Assign(y,Add(Var(x),Var(y))),Sequence(Assign(z,Num(12)),Assign(x,Add(Var(x),Num(2)))))),Assign(z,Num(12)))")
+    )(
+      res.entries.toSet.map(_.toString)
+    )*/
+  }
+
+  /*test("Available Expression") {
+    val code = FileUtil.readFileFromResource("functional/controlflow/Desugar.finca")
+    val compiled = exec.compileFunction(code, options)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+
+    val loaded = exec.loadFunction(compiled)
+    loaded.execute("main", Seq(prog1))
+    loaded.engine.readAll().foreach(r => println(r.asTable))
+  }*/

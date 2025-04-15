@@ -71,6 +71,9 @@ case class UndefEdbFieldInverse(srcTy: EdbType, link: Link, trg: Term) extends A
   override def commonVars: Set[Var] = trg.commonVars
   override def toString: String = s"undef $trg.$link^⁻¹"
 
+// Deprecated please don't use this.
+// This method needs to cast in the future and must not reuse a.
+// We should introduce an atom here and provide a lowering that visits a.
 def EdbDeconstruct(t: Term, node: Name, fields: (String, Term)*): Seq[Atom] =
   Eq(Cast(t, TEdbNode(node)), LookupEdbType(TEdbNode(node))) +:
   fields.map((field, a) =>

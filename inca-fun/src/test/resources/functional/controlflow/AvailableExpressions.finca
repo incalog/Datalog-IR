@@ -1,7 +1,7 @@
 module AvailableExpressions
 
 // TODO: Not working, Datalog typechecker fails
-/*
+
 data Exp = Var(String) |
            Num(Int) |
            GreaterThan(Exp, Exp) |
@@ -10,7 +10,48 @@ data Exp = Var(String) |
            Sub(Exp, Exp)
 data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
 
-def init(stm: Stm): Stm = stm match {
+def findExps(exp: Exp, f: Exp => Boolean): Set[Exp] = (exp match {
+  case Var(s) => {}
+  case Num(i) => {}
+  case GreaterThan(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+  case Mul(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+  case Add(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+  case Sub(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+}) ++ (if (f(exp)) {exp} else {})
+
+def isVar(exp: Exp): Boolean = exp match {
+  case Var(s) => true
+  case Num(i) => false
+  case GreaterThan(e1, e2) => false
+  case Mul(e1, e2) => false
+  case Add(e1, e2) => false
+  case Sub(e1, e2) => false
+}
+
+def varName(exp: Exp): String = exp match {
+  case Var(s) => s
+  case Num(i) => ""
+  case GreaterThan(e1, e2) => ""
+  case Mul(e1, e2) => ""
+  case Add(e1, e2) => ""
+  case Sub(e1, e2) => ""
+}
+
+def freevars(exp: Exp): Set[String] =
+  {varName(e) | e in findExps(exp, isVar)}
+
+def freevarsStm(stm: Stm): Set[String] = stm match {
+  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
+  case Skip() => {}
+  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
+  case If(c, s1, s2) => freevars(c) ++ freevarsStm(s1) ++ freevarsStm(s2)
+  case While(c, s) => freevars(c) ++ freevarsStm(s)
+}
+
+@main def mainFreevarsStm(stm: Stm): Set[String] = freevarsStm(stm)
+
+
+/*def init(stm: Stm): Stm = stm match {
   case Assign(x, a) => stm
   case Skip() => stm
   case Sequence(s1, s2) => init(s1)
@@ -49,36 +90,6 @@ def transitive(cfg: () => Set[(Stm, Stm)]): Set[(Stm, Stm)] =
   let cfg = () => flow(prog)
   in transitive(cfg)
 
-def findExps(exp: Exp, f: Exp => Boolean): Set[Exp] = (exp match {
-  case Var(s) => {}
-  case Num(i) => {}
-  case GreaterThan(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
-  case Mul(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
-  case Add(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
-  case Sub(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
-}) ++ (if (f(exp)) {exp} else {})
-
-def isVar(exp: Exp): Boolean = exp match {
-  case Var(s) => true
-  case Num(i) => false
-  case GreaterThan(e1, e2) => false
-  case Mul(e1, e2) => false
-  case Add(e1, e2) => false
-  case Sub(e1, e2) => false
-}
-
-def varName(exp: Exp): String = exp match {
-  case Var(s) => s
-  case Num(i) => ""
-  case GreaterThan(e1, e2) => ""
-  case Mul(e1, e2) => ""
-  case Add(e1, e2) => ""
-  case Sub(e1, e2) => ""
-}
-
-def freevars(exp: Exp): Set[String] =
-  {varName(e) | e in findExps(exp, isVar)}
-
 def notFreeIn(x: String, exp: Exp): Boolean = exp match {
   case Var(s) => x != s
   case Num(i) => true
@@ -87,13 +98,7 @@ def notFreeIn(x: String, exp: Exp): Boolean = exp match {
   case Add(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
   case Sub(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
 }
-@main def freevarsStm(stm: Stm): Set[String] = stm match {
-  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
-  case Skip() => {}
-  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
-  case If(c, s1, s2) => freevars(c) ++ freevarsStm(s1) ++ freevarsStm(s2)
-  case While(c, s) => freevars(c) ++ freevarsStm(s)
-}
+
 def availableExps(exp: Exp): Set[Exp] = findExps(exp, (e: Exp) => e match {
   case Var(s) => false
   case Num(i) => false

@@ -29,8 +29,8 @@ trait Lowering extends not.Lowering:
       val x = freshName()
       Seq(
         block.Block(Seq(Disjunction(Seq(
-          DisjunctionAlternative(a, Eq(Var(x), TrueNum)),
-          DisjunctionAlternative(WeakNot(a), Eq(Var(x), FalseNum))
+          DisjunctionAlternative(visitAtom(a) :+ Eq(Var(x), TrueNum)),
+          DisjunctionAlternative(visitAtom(a).map(WeakNot.apply) :+ Eq(Var(x), FalseNum))
         ))), Var(x)))
     case BoolAnd(t1, t2) =>
       visitTerm(t1).zip(visitTerm(t2)).map(Min.apply)

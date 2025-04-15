@@ -1,0 +1,108 @@
+module Desugar
+
+data Value = VNum(Int) | VBool(Boolean) | VErr(String)
+
+data Exp = True() |
+           False() |
+           And(Exp, Exp) |
+           Not(Exp) |
+           If(Exp, Exp, Exp) |
+           Num(Int) |
+           Plus(Exp, Exp) |
+           Mult(Exp, Exp) |
+           // These are syntactic sugar – we desugar them into core terms
+           Or(Exp, Exp) |
+           BiImplication(Exp, Exp) |
+           Implication(Exp, Exp)
+
+def desugar(expr: Exp): Exp = expr match {
+  case True() => True()
+  case False() => False()
+  case Not(e) => Not(desugar(e))
+  case And(lhs, rhs) => And(desugar(lhs), desugar(rhs))
+  case Or(lhs, rhs) =>
+    //  De Morgan's laws
+    Not(And(Not(desugar(lhs)), Not(desugar(rhs))))
+  case If(cond, thenExpr, elseExpr) =>
+    If(desugar(cond), desugar(thenExpr), desugar(elseExpr))
+  case Num(n) => Num(n)
+  case Plus(lhs, rhs) => Plus(desugar(lhs), desugar(rhs))
+  case Mult(lhs, rhs) => Mult(desugar(lhs), desugar(rhs))
+  case Implication(lhs, rhs) =>
+    desugar(Or(Not(desugar(lhs)), desugar(rhs)))
+  case BiImplication(lhs, rhs) =>
+    desugar(Or(And(Not(desugar(lhs)), Not(desugar(rhs))), And(desugar(lhs), desugar(rhs))))
+}
+
+// Support interpreting the full Exp syntax
+def interp(expr: Exp): Value = expr match {
+  case Num(n) => VNum(n)
+  case True() => VBool(true)
+  case False() => VBool(false)
+  case Not(e) => interp(e) match {
+    case VBool(b) => VBool(!b)
+    case VNum(i) => VErr("Expected a boolean!")
+    case VErr(msg) => VErr(msg)
+  }
+  case And(lhs, rhs) => interp(lhs) match {
+    case VBool(lhv) =>
+        if (lhv == false) VBool(false)
+        else interp(rhs)
+    case VNum(i) => VErr("Expected a boolean!")
+    case VErr(msg) => VErr(msg)
+  }
+  case Or(lhs, rhs) => interp(lhs) match {
+    case VBool(lhv) =>
+        if (lhv == true) VBool(true)
+        else interp(rhs)
+    case VNum(i) => VErr("Expected a boolean!")
+    case VErr(msg) => VErr(msg)
+  }
+  case If(cond, thenExpr, elseExpr) => interp(cond) match {
+    case VBool(c) =>
+        if (c) interp(thenExpr)
+        else interp(elseExpr)
+    case VNum(i) => VErr("Expected a boolean!")
+    case VErr(msg) => VErr(msg)
+  }
+  case Plus(lhs, rhs) => interp(lhs) match {
+    case VNum(lhv) => interp(rhs) match {
+      case VNum(rhv) => VNum(lhv + rhv)
+      case VBool(b) => VErr("Expected a number!")
+      case VErr(msg) => VErr(msg)
+    }
+    case VBool(b) => VErr("Expected a number!")
+    case VErr(msg) => VErr(msg)
+  }
+  case Mult(lhs, rhs) => interp(lhs) match {
+    case VNum(lhv) => interp(rhs) match {
+      case VNum(rhv) => VNum(lhv * rhv)
+      case VBool(b) => VErr("Expected a number!")
+      case VErr(msg) => VErr(msg)
+    }
+    case VBool(b) => VErr("Expected a number!")
+    case VErr(msg) => VErr(msg)
+  }
+  case Implication(lhs, rhs) => interp(lhs) match {
+    case VBool(lhv) => interp(rhs) match {
+        case VBool(rhv) => VBool(!lhv || rhv)
+        case VNum(i) => VErr("Expected a boolean!")
+        case VErr(msg) => VErr(msg)
+    }
+    case VNum(i) => VErr("Expected a boolean!")
+    case VErr(msg) => VErr(msg)
+  }
+  case BiImplication(lhs, rhs) => interp(lhs) match {
+    case VBool(lhv) => interp(rhs) match {
+        case VBool(rhv) => VBool((!lhv && !rhv) || (lhv && rhv))
+        case VNum(i) => VErr("Expected a boolean!")
+        case VErr(msg) => VErr(msg)
+    }
+    case VNum(i) => VErr("Expected a boolean!")
+    case VErr(msg) => VErr(msg)
+  }
+}
+
+@main def main(prog: Exp): Value =
+    let desugared = desugar(prog) in
+        interp(desugared)
