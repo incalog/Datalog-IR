@@ -5,6 +5,7 @@ import inca.ir.*
 import inca.ir.extension.impure.{Impure, ImpurityKind}
 import inca.ir.analysis.base.interpreter.{Adornment, BaseGenericInterpreter, SupColumn}
 import inca.ir.extension.impure.util.CollectImpurityAffectedRelations
+import inca.ir.hints.MainHint
 import inca.util.Gensym
 import sturdy.data.MayJoin
 

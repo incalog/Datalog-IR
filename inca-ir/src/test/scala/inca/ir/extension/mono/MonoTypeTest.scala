@@ -11,6 +11,7 @@ import inca.ir.extension.demand.{Lowering, TDemand}
 import inca.ir.extension.demand
 import inca.ir.extension.impure
 import inca.ir.extension.data
+import inca.ir.hints.MainHint
 import inca.ir.typing.{IRTypechecker, TypeErrorException}
 import org.scalatest.funsuite.AnyFunSuiteLike
 

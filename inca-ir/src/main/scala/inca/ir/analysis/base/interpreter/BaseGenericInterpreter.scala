@@ -4,7 +4,8 @@ import inca.ir
 import inca.ir.analysis.base.effect.*
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
 import inca.ir.analysis.base.effect
-import inca.ir.{Atom, MainHint, ModuleEntry}
+import inca.ir.hints.MainHint
+import inca.ir.{Atom, ModuleEntry}
 import inca.util.Gensym
 import sturdy.data.MayJoin.WithJoin
 import sturdy.data.{MakeJoined, MayJoin, mapJoin, noJoin}

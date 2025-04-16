@@ -1,6 +1,6 @@
 package inca.casestudy.demand
 
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, FunctionalDependencyHint, MainHint, Module, Name, Param, Relation, Var, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, FunctionalDependencyHint, Module, Name, Param, Relation, Var, execution, string2name, term2Arg, termList2ArgList}
 import inca.ir.execution.{IRExecutor, UnitRelation}
 import inca.ir.extension.arithmetic.{Add, IntNum, Sub, TInt, Mul}
 import inca.ir.extension.arithmetic.IR as arithIR
@@ -8,6 +8,7 @@ import inca.ir.extension.demand.IR as demandIR
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.{arithmetic, block, bool, demand, disjunction, string, tuple}
+import inca.ir.hints.MainHint
 import inca.ir.optimize.{AliasElimination, DisjointRuleAnalysis}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions

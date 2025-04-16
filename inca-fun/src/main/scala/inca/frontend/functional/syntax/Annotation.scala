@@ -46,3 +46,12 @@ case class FunctionalDependencyAnno(values: Seq[Name], determine: Seq[Name]) ext
 
   override def toString: String = s"@FunctionalDependency(${values.mkString(",")} -> ${determine.mkString(",")})"
 }
+
+object FoldFunctionAnno:
+  val KEY: Annotation.Key = "FOLD_DEPENDENCY"
+
+case class FoldFunctionAnno() extends Annotation {
+  override def key: Annotation.Key = FoldFunctionAnno.KEY
+
+  override def toString: String = s"@Fold"
+}

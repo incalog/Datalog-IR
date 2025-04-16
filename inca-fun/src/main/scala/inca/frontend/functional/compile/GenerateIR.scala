@@ -4,7 +4,7 @@ import inca.frontend.functional.compile.GenerateIR.extensionalRelationName
 import inca.frontend.functional.foreign.FunctionalIncaAggregationOperator
 import inca.frontend.functional.syntax.*
 import inca.ir
-import inca.ir.{ExtensionalRelation, FunctionalDependencyHint, Language, MainHint, Name, RefByName, TermArg, name2string, string2name}
+import inca.ir.{ExtensionalRelation, Hint, Hints, Language, Name, RefByName, TermArg, name2string, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -24,6 +24,7 @@ import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.extension.typeparam
 import inca.ir.extension.typeparam.{ParametricModuleEntry, TypeApplication, TypeVar}
+import inca.ir.hints.{FoldHint, FunctionalDependencyHint, MainHint}
 import inca.util.Gensym
 
 object GenerateIR:
@@ -91,13 +92,17 @@ class GenerateIR {
     val rel = ir.Relation(f.name, params, Seq(ir.Body(
       Seq(ir.Eq(ir.Var(Name(result)), compileExp(f.body))))
     ))
-    f.getAnnotation(FunctionalDependencyAnno.KEY) match
-      case Some(FunctionalDependencyAnno(values, determine)) =>
+
+    var hints: Seq[Hint] = Seq()
+    hints ++= f.getAnnotation(FunctionalDependencyAnno.KEY).map {
+      case FunctionalDependencyAnno(values, determine) =>
         val newVals = values.map { case Name("Result") => Name(result); case v => v }
         val newDetermine = determine.map { case Name("Result") => Name(result); case v => v }
-        parametric(f.tyVars, rel).addHint(FunctionalDependencyHint(newVals, newDetermine))
-      case _ =>
-        parametric(f.tyVars, rel)
+        FunctionalDependencyHint(newVals, newDetermine)
+    }
+    hints ++= f.getAnnotation(FoldFunctionAnno.KEY).map(_ => FoldHint(Name(result)))
+
+    parametric(f.tyVars, rel).addHint(hints:_*)
 
   private def parametric(tyVars: Seq[ParametricType], entry: ir.ModuleEntry): ir.ModuleEntry =
     if (tyVars.isEmpty)

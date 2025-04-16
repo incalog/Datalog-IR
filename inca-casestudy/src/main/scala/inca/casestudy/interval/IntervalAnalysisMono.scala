@@ -34,6 +34,7 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.edbdata.Link.Parent
 import inca.ir.extension.impure.Impure
+import inca.ir.hints.MainHint
 import inca.util.CSVUtil.csvToString
 import inca.util.FileUtil
 import inca.viatra.backend.Executor

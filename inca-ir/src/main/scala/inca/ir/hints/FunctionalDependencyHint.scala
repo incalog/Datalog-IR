@@ -1,7 +1,7 @@
-package inca.ir
+package inca.ir.hints
 
 import inca.ir.Hint.Key
-import inca.ir.{Hint, Var}
+import inca.ir.{Hint, Name}
 
 case class FunctionalDependencyHint(values: Seq[Name], determine: Seq[Name]) extends Hint:
   override def key: Key = FunctionalDependencyHint

@@ -7,11 +7,12 @@ import inca.ir.analysis.IROODLClassAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
 import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
-import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Name, Param, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
+import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, ModuleEntry, Name, Param, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
 import inca.ir.extension.data as irdata
 import inca.ir.extension.string as irstring
 import inca.ir.extension.data.analysis.interpreter.OODLClassV
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
+import inca.ir.hints.MainHint
 import inca.ir.visitors.IRVisitor
 
 import scala.compiletime.uninitialized

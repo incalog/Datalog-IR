@@ -18,9 +18,10 @@ import inca.ir.extension.set.{SetComprehension, SetFrom, SetIntersection, SetLit
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.extension.impure.{Impure, ImpurityKind, IR as impureIR}
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
+import inca.ir.hints.MainHint
 import inca.ir.typing.IRTypechecker
 import inca.ir.util.SourceLocation
-import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, RefByName, Relation, TNothing, Type, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
+import inca.ir.{Arg, BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, TNothing, Type, Var, WildcardArg, execution, string2name, term2Arg, termList2ArgList}
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuiteLike
 

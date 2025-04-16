@@ -14,10 +14,11 @@ import inca.ir.extension.set.*
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
 import inca.ir.extension.{aggregate, block, demand, disjunction, impure, mono, arithmetic as incaArithmetic, bool as incaBool, data as incaData, set as incaSet, string as incaString, tuple as incaTuple}
+import inca.ir.hints.MainHint
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuiteLike

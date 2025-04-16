@@ -15,10 +15,11 @@ import inca.ir.extension.set.{IR, *}
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{TTuple, TupleLit, IR as tupleIR}
 import inca.ir.extension.{block, bool, demand, disjunction, foreign, impure, map, mono, not, tuple, arithmetic as incaArithmetic, data as incaData, set as irSet, string as incaString}
+import inca.ir.hints.MainHint
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.ir.visitors.BaseIRVisitor
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, Var, string2name}
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory

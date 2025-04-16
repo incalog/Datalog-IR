@@ -1,4 +1,4 @@
-package inca.ir
+package inca.ir.hints
 
 import inca.ir.Hint.Key
 import inca.ir.{Hint, Var}

@@ -17,9 +17,10 @@ import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
 import inca.ir.extension.tuple.analysis.interpreter.ConstantTupleV
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
+import inca.ir.hints.MainHint
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.typing.IRTypechecker
-import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Param, RefByName, Relation, TNothing, Var, WildcardArg, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, RefByName, Relation, TNothing, Var, WildcardArg, string2name, term2Arg, termList2ArgList}
 import org.scalatest.funsuite.AnyFunSuiteLike
 import sturdy.values.Topped
 
@@ -32,7 +33,7 @@ class DataKindAnalysisTest extends AnyFunSuiteLike:
     result match
       case BoundedSetV.Empty => assertResult(expectedDataKinds)(Set())
       case BoundedSetV.NonEmpty(bound) => verifyResult(bound, expectedDataKinds)
-      case DataKindV(caseDefs) => assertResult(expectedDataKinds)(caseDefs.map(_.name.name))
+      case DataKindV(caseDefs, _) => assertResult(expectedDataKinds)(caseDefs.map(_.name.name))
       case _ => assert(false)
 
   def interp(mod: Module, edb: Map[String, AbstractRelation] = Map()): Map[String, AbstractRelation] =

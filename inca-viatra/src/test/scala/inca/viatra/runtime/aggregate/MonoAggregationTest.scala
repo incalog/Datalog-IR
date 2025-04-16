@@ -12,11 +12,12 @@ import inca.ir.extension.impure.Impure
 import inca.ir.extension.map.TMap
 import inca.ir.extension.mono.ArithmeticMonoDefinition.{Count, CountFrom, MaxInt, SumInt}
 import inca.ir.extension.string.{StringLit, TString}
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, string2name, term2Arg, termList2ArgList}
 import inca.ir.extension.{aggregate, arithmetic, block, bool, data, demand, disjunction, impure, map, mono, not, set, string, tuple}
 import inca.ir.extension.mono.{MonoImpurityKind, MonoTypes, NewMono, ReadMono, StringConcatMonoDefinition, TMono, WriteMono}
 import inca.ir.extension.set.TSet
 import inca.ir.extension.tuple.TTuple
+import inca.ir.hints.MainHint
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions

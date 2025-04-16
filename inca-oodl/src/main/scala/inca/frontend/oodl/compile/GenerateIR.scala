@@ -6,7 +6,7 @@ import inca.frontend.oodl.foreign.OODLAggregationOperator
 import inca.frontend.oodl.syntax.*
 import inca.frontend.oodl.util.ParseUtil
 import inca.ir
-import inca.ir.{Arg, ExtensionalRelation, Language, MainHint, Name, RefByName, Term, TermArg, WildcardArg, name2string, optimize, string2name}
+import inca.ir.{Arg, ExtensionalRelation, Language, Name, RefByName, Term, TermArg, WildcardArg, name2string, optimize, string2name}
 import inca.ir.extension.aggregate as iragg
 import inca.ir.extension.aggregateset as iraggset
 import inca.ir.extension.arithmetic as irarith
@@ -30,6 +30,7 @@ import inca.util.Gensym
 import inca.frontend.oodl.syntax.Type.signatureString
 import inca.ir.extension.mono.{MonoDefinition, MonoTypes, UserDefinedMonoDefinition}
 import inca.foreign.scala.ir.primitive as irscala
+import inca.ir.hints.MainHint
 
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class

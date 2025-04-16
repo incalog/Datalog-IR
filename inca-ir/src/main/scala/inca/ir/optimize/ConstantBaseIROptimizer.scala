@@ -6,7 +6,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.analysis.IRConstantAbstractInterpreter
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
-import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, MainHint, ModuleEntry, Name, Param, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
+import inca.ir.{Arg, Atom, Body, Call, Cast, Eq, ExtensionalRelation, ModuleEntry, Name, Param, Ref, RefByName, Relation, Term, TermArg, Type, Var, WildcardArg}
 import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
@@ -18,6 +18,7 @@ import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.set as irset
 import inca.ir.extension.map as irmap
 import inca.ir.extension.disjunction as irdisjunction
+import inca.ir.hints.MainHint
 import sturdy.values.Topped
 
 

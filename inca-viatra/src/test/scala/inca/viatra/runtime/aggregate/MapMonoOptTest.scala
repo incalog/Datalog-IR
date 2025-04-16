@@ -11,7 +11,7 @@ import inca.ir.extension.bool.{BoolFalse, BoolTrue, TBoolean}
 import inca.ir.extension.demand.TDemand
 import inca.ir.extension.foreign.{ConvertForeignIR, ConvertIRForeign}
 import inca.ir.extension.impure.Impure
-import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, MainHint, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, WildcardArg, string2name}
+import inca.ir.{BaseIR, Body, Call, Cast, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Language, Module, ModuleEntry, Name, Param, Relation, TAny, Term, Type, Var, WildcardArg, string2name}
 import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.mono.ArithmeticMonoDefinition.SumInt
 import inca.ir.extension.mono.{ArithmeticMonoDefinition, DisjMonoDefinition, MapMonoDefinition, MonoImpurityKind, MonoTypes, NewMono, ReadMono, SetMonoDefinition, TMono, WriteMono}
@@ -20,6 +20,7 @@ import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit, IR as tupleIR}
 import inca.ir.extension.{arithmetic, block, bool, data, demand, map, not, set, string, tuple}
 import inca.ir.extension.{disjunction, impure, mono}
+import inca.ir.hints.MainHint
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker, TypeErrorException}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions

@@ -18,7 +18,6 @@ trait DataKindOptimizer extends DataKindBaseIROptimizer:
         case Some(kinds) =>
           val possibleCaseDefs = kinds.caseDefs.map(_.name)
           if (!possibleCaseDefs.contains(caseRef.name))
-            println(s"Failing case: ${caseRef.name}")
             logOptimizationStat("failing deconstruct", 1, _+1)
             throw FailedBody
           super.visitAtom(atom)

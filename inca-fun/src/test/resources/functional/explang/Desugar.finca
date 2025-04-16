@@ -15,6 +15,7 @@ data Exp = True() |
            BiImplication(Exp, Exp) |
            Implication(Exp, Exp)
 
+@fold
 def desugar(expr: Exp): Exp = expr match {
   case True() => True()
   case False() => False()
@@ -51,13 +52,6 @@ def interp(expr: Exp): Value = expr match {
     case VNum(i) => VErr("Expected a boolean!")
     case VErr(msg) => VErr(msg)
   }
-  case Or(lhs, rhs) => interp(lhs) match {
-    case VBool(lhv) =>
-        if (lhv == true) VBool(true)
-        else interp(rhs)
-    case VNum(i) => VErr("Expected a boolean!")
-    case VErr(msg) => VErr(msg)
-  }
   case If(cond, thenExpr, elseExpr) => interp(cond) match {
     case VBool(c) =>
         if (c) interp(thenExpr)
@@ -81,6 +75,14 @@ def interp(expr: Exp): Value = expr match {
       case VErr(msg) => VErr(msg)
     }
     case VBool(b) => VErr("Expected a number!")
+    case VErr(msg) => VErr(msg)
+  }
+  // We kind optimize these away thanks to the fold annotation
+  case Or(lhs, rhs) => interp(lhs) match {
+    case VBool(lhv) =>
+        if (lhv == true) VBool(true)
+        else interp(rhs)
+    case VNum(i) => VErr("Expected a boolean!")
     case VErr(msg) => VErr(msg)
   }
   case Implication(lhs, rhs) => interp(lhs) match {

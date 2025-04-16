@@ -15,10 +15,11 @@ import inca.ir.extension.set.{SetMember, TSet}
 import inca.ir.extension.string.{StringConcat, StringLit, TString, ToString}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.extension.{arithmetic, block, data, demand, impure, mono, not, string, aggregate as incaAgg, bool as incaBool, disjunction as incaDisj, set as incaSet, tuple as incaTuple}
+import inca.ir.hints.MainHint
 import inca.ir.optimize.IdentityCastElimination
 import inca.ir.typing.{BaseIRTypechecker, DependencyInfo, IRTypechecker}
 import inca.ir.util.SourceLocation
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, MainHint, Module, Name, Param, Relation, Var, WildcardArg, string2name, stringList2nameList, term2Arg, termList2ArgList}
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, Relation, Var, WildcardArg, string2name, stringList2nameList, term2Arg, termList2ArgList}
 import inca.util.CSVUtil.{CSV, csvToString}
 import inca.util.FileUtil
 import inca.util.compileroptions.CompilerOptions

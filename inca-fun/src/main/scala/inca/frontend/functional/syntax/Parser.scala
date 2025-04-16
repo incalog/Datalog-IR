@@ -114,8 +114,9 @@ object Parser:
   val mainFuncAnno: P[MainFunctionAnno] = op("@main").mapWithLoc(_ => MainFunctionAnno())
   lazy val funcDepAnno: P[FunctionalDependencyAnno] = (op("@FunctionalDependency") *> inParens((list(identifier) <* op("->")) ~ list(identifier)))
     .mapWithLoc((values, determine) => FunctionalDependencyAnno(values, determine))
-
-  lazy val annotation: P[Annotation] = mainFuncAnno | funcDepAnno
+  lazy val foldAnno: P[FoldFunctionAnno] = op("@fold").mapWithLoc(_ => FoldFunctionAnno())
+  
+  lazy val annotation: P[Annotation] = mainFuncAnno | funcDepAnno | foldAnno
 
   /** Types */
 

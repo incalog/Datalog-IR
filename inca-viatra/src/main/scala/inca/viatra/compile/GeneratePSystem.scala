@@ -2,7 +2,7 @@ package inca.viatra.compile
 
 import inca.ir.extension.*
 import inca.ir.lowering.BaseLowering
-import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, FunctionalDependencyHint, Module, Name, Param, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
+import inca.ir.{Arg, Atom, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Name, Param, RefByName, Relation, TAny, Term, TermArg, TermType, Type, Var, WildcardArg, name2string, typing}
 import inca.viatra.util.{LitCollector, ScalaModuleEntryCollector, VarCollector}
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.arithmetic
@@ -15,6 +15,7 @@ import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.extension.edbdata.{EdbType, Link, LookupEdbField, LookupEdbType, NotInEdbType, TEdbList, TEdbNode, TEdbValue}
 import inca.ir.extension.foreign.printer.Printer
+import inca.ir.hints.FunctionalDependencyHint
 import inca.ir.printer.{GenericPrinter, IRDebugPrinter}
 import inca.ir.typing.Mode
 import inca.ir.visitors.BaseIRVisitor
