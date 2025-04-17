@@ -526,16 +526,23 @@ class Typechecker extends TypeContext with TypeIO {
       TypeUtil.substitute(tfun, subst).asInstanceOf[TFun]
     }
 
-    substTFun.from.zipAll(args, null, null) foreach {
-      case (null, arg) =>
+    substTFun.from.zipAll(args, null, null).zipWithIndex foreach {
+      case ((null, arg), _) =>
         typecheckExp(arg, None)
-      case (param, null) =>
+      case ((param, null), _) =>
       // nothing
-      case (tparam, arg) =>
+      case ((tparam, arg), idx) =>
         val argTy = typecheckExp(arg, tparam)
         val meetTy = meet(tparam, argTy)
         if (meetTy == TNothing) {
-          error(s"Invalid argument of type $argTy for parameter of type $tparam", arg)
+          val paramNameOption = fun match
+            case v: Var => v.target.flatMap {
+                case funDef: FunctionDef => funDef.params.lift(idx).map(p => p.name.name)
+                case _ => None
+              }
+            case _ => None
+          val paramName = paramNameOption.map(n => s" '$n'").getOrElse("")
+          error(s"Invalid argument of type $argTy for parameter$paramName of type $tparam at index $idx", arg)
         }
     }
 
