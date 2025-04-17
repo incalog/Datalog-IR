@@ -1,7 +1,7 @@
 package inca.ir.analysis.base.logger
 
 import inca.ir.analysis.base.interpreter.FixIn.EnterRelation
-import inca.ir.{Body, Name, Relation, Term, Var}
+import inca.ir.{Body, Name, Relation, Term, Var, Cast}
 import inca.ir.analysis.{AnalysisKey, AnalysisResult}
 import inca.ir.analysis.base.interpreter.{FixIn, FixOut, SupColumn}
 import inca.ir.analysis.base.values.Meet
@@ -80,7 +80,12 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
       // map all terms to values
       val supColumnToTerm = supColumnStack.pop()
       var termToValue = supColumnToTerm.flatMap { (supCol, term) =>
-        extractTermValue(supCol, rv).map(term -> _)
+        //extractTermValue(supCol, rv).map(term -> _)
+        extractTermValue(supCol, rv) match
+          case Some(v) => term match
+            case Cast(tt, _) => Seq(tt -> v, term -> v)
+            case _ => Seq(term -> v)
+          case _ => Seq()
       }
       // we might miss some variables terms we have not visited in the fixpoint
       val collectedSupColumns = supColumnToTerm.keys.toSet
@@ -95,7 +100,12 @@ trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV],
       // map all terms to values
       val supColumnToTerm = supColumnStack.pop()
       var termToValue = supColumnToTerm.flatMap { (supCol, term) =>
-        extractTermValue(supCol, rawBody).map(term -> _)
+        //extractTermValue(supCol, rawBody).map(term -> _)
+        extractTermValue(supCol, rawBody) match
+          case Some(v) => term match
+            case Cast(tt, _) => Seq(tt -> v, term -> v)
+            case _ => Seq(term -> v)
+          case _ => Seq()
       }
       // we might miss some variables terms we have not visited in the fixpoint
       val collectedSupColumns = supColumnToTerm.keys.toSet
