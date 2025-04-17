@@ -1744,6 +1744,6 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     val constRes = interp(mod)
     val mainRel = constRes("main")
     assert(mainRel.cols == Seq("m2"))
-    assert(mainRel.rows == Seq(Value.Top))
+    assert(mainRel.rows == Seq(ConstantMapV.Top))
     assertResult(Topped.Top)(mainRel.empty)
   }
