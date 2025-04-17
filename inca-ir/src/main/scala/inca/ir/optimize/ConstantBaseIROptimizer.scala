@@ -159,7 +159,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     true
 
   protected def mayEliminate(t: Term): Boolean = t match
-    case Var(ref) => true // we may always eliminate variables
+    case Var(ref) => isConstant(t) //true // we may always eliminate variables
     case Cast(tt, _) => mayEliminate(tt)
 
   protected def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
