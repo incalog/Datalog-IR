@@ -86,16 +86,14 @@ def assertBinOp(lhsTy: Type, rhsTy: Type, expected: Type): Type =
     else
         TErr("Invalid binary op")
 
-def assertBoolBinOp(tys: (Type, Type)): Type =
-    let (lhsTy, rhsTy) = tys in
-        assertBinOp(lhsTy, rhsTy, TBool())
+def assertBoolBinOp(lhsTy: Type, rhsTy: Type): Type =
+    assertBinOp(lhsTy, rhsTy, TBool())
 
 def assertBoolUnaryOp(ty: Type): Type =
    assertUnaryOp(ty, TBool())
 
-def assertNumBinOp(tys: (Type, Type)): Type =
-    let (lhsTy, rhsTy) = tys in
-        assertBinOp(lhsTy, rhsTy, TInt())
+def assertNumBinOp(lhsTy: Type, rhsTy: Type): Type =
+   assertBinOp(lhsTy, rhsTy, TInt())
 
 @fold
 def typecheck(expr: Exp): Type =
@@ -113,8 +111,8 @@ def typecheck(expr: Exp): Type =
         },
         assertNumBinOp,
         assertNumBinOp,
-        assertBoolUnaryOp,
-        assertBoolUnaryOp
+        assertBoolBinOp,
+        assertBoolBinOp
     )
 
 
