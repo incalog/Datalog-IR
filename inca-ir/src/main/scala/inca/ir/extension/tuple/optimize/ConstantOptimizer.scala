@@ -15,7 +15,12 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case _ => super.mayEliminate(t)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match
-    case ConstantTupleV(values) => Some(irtuple.TupleLit(values.flatMap(valueToTerm.apply)))
+    case ConstantTupleV(values) =>
+      val newValues = values.flatMap(valueToTerm.apply)
+      if (newValues.size == values.size)
+        Some(irtuple.TupleLit(newValues))
+      else
+        None
     case _ => super.valueToTermInternal(value)
 
 
