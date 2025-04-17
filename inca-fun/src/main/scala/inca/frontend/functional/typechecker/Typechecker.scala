@@ -534,9 +534,7 @@ class Typechecker extends TypeContext with TypeIO {
       case (tparam, arg) =>
         val argTy = typecheckExp(arg, tparam)
         val meetTy = meet(tparam, argTy)
-        println(s"$argTy :: $tparam :: $meetTy")
         if (meetTy == TNothing) {
-          println("Invalid\n\n\n")
           error(s"Invalid argument of type $argTy for parameter of type $tparam", arg)
         }
     }
