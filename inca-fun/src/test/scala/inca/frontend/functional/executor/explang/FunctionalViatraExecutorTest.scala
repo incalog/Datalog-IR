@@ -22,3 +22,14 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     loaded.execute("main", Seq(prog1))
     loaded.engine.readAll().foreach(r => println(r.asTable))
   }
+
+  test("Desugar (fold)") {
+    val code = FileUtil.readFileFromResource("functional/explang/Desugar_fold.finca")
+    val compiled = exec.compileFunction(code, options)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
+
+    val loaded = exec.loadFunction(compiled)
+    loaded.execute("main", Seq(prog1))
+    loaded.engine.readAll().foreach(r => println(r.asTable))
+  }

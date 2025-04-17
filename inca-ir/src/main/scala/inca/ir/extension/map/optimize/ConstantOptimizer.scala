@@ -41,6 +41,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case irmap.MapLookUp(map, key) =>
       isConstant(t) && isConstant(key)
       && mayEliminate(map) && mayEliminate(key)
+    case irmap.MapFrom(_) => isConstant(t)
     case v: Var if v.typ.exists(tty => tty.ty.isInstanceOf[TMap] && tty.mode.isBinding) => false
     case _ => super.mayEliminate(t)
 

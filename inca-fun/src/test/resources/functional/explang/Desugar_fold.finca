@@ -1,0 +1,207 @@
+module Desugar
+
+data Value = VNum(Int) | VBool(Boolean) | VErr(String)
+
+data Exp = True() |
+           False() |
+           And(Exp, Exp) |
+           Not(Exp) |
+           If(Exp, Exp, Exp) |
+           Num(Int) |
+           Plus(Exp, Exp) |
+           Mult(Exp, Exp) |
+           // These are syntactic sugar – we desugar them into core terms
+           Or(Exp, Exp) |
+           BiImplication(Exp, Exp) |
+           Implication(Exp, Exp)
+
+data Type = TInt() | TBool() | TErr(String)
+
+@fold
+def foldExp[T](
+    expr: Exp,
+    numF: Int => T,
+    boolF: Boolean => T,
+    andF: (T, T) => T,
+    orF: (T, T) => T,
+    notF: T => T,
+    condF: (T, T, T) => T,
+    plusF: (T, T) => T,
+    multF: (T, T) => T,
+    implF: (T, T) => T,
+    biimplF: (T, T) => T
+): T = expr match {
+  case True() => boolF(true)
+  case False() => boolF(false)
+  case Num(n) => numF(n)
+  case And(lhs, rhs) =>
+    andF(
+      foldExp[T](lhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](rhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF)
+    )
+  case Or(lhs, rhs) =>
+    orF(
+      foldExp[T](lhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](rhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF)
+    )
+  case Not(e) =>
+    notF(foldExp[T](e, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF))
+  case If(cond, thenE, elseE) =>
+    condF(
+      foldExp[T](cond, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](thenE, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](elseE, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF)
+    )
+  case Plus(lhs, rhs) =>
+    plusF(
+      foldExp[T](lhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](rhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF)
+    )
+  case Mult(lhs, rhs) =>
+    multF(
+      foldExp[T](lhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](rhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF)
+    )
+  case Implication(lhs, rhs) =>
+    implF(
+      foldExp[T](lhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](rhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF)
+    )
+  case BiImplication(lhs, rhs) =>
+    biimplF(
+      foldExp[T](lhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
+      foldExp[T](rhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF)
+    )
+}
+
+def assertUnaryOp(ty: Type, expected: Type): Type =
+    if (ty == expected)
+        expected
+    else
+        TErr("Invalid unary op")
+
+def assertBinOp(lhsTy: Type, rhsTy: Type, expected: Type): Type =
+    if ((lhsTy == rhsTy) && rhsTy == expected)
+        expected
+    else
+        TErr("Invalid binary op")
+
+def assertBoolBinOp(lhsTy: Type, rhsTy: Type): Type =
+    assertBinOp(lhsTy, rhsTy, TBool())
+
+def assertBoolUnaryOp(ty: Type): Type =
+   assertUnaryOp(ty, TBool())
+
+def assertNumBinOp(lhsTy: Type, rhsTy: Type): Type =
+   assertBinOp(lhsTy, rhsTy, TInt())
+
+def typecheck(expr: Exp): Type =
+    foldExp[Type](
+        expr,
+        (n: Int) => TInt(),
+        (b: Boolean) => TBool(),
+        assertBoolBinOp,
+        assertBoolBinOp,
+        assertBoolUnaryOp,
+        (conTy: Type, thnTy: Type, elsTy: Type) => conTy match {
+            case TBool() => assertBinOp(thnTy, elsTy, thnTy)
+            case TInt() => TErr("If condition must be a boolean")
+            case TErr(msg) => TErr(msg)
+        },
+        assertNumBinOp,
+        assertNumBinOp,
+        assertBoolBinOp,
+        assertBoolBinOp
+    )
+
+@fold
+def desugar(expr: Exp): Exp =
+    foldExp[Exp](
+        expr,
+        (n: Int) => Num(n),
+        (b: Boolean) => if (b) True() else False(),
+        (lhs: Exp, rhs: Exp) => And(lhs, rhs),
+        (lhs: Exp, rhs: Exp) => Not(And(Not(lhs), Not(rhs))),
+        (e: Exp) => Not(e),
+        (con: Exp, thn: Exp, els: Exp) => If(con, thn, els),
+        (lhs: Exp, rhs: Exp) => Plus(lhs, rhs),
+        (lhs: Exp, rhs: Exp) => Mult(lhs, rhs),
+        (lhs: Exp, rhs: Exp) => desugar(Or(Not(lhs), rhs)),
+        (lhs: Exp, rhs: Exp) => desugar(Or(And(Not(lhs), Not(rhs)), And(lhs, rhs)))
+    )
+
+def interp(expr: Exp): Value =
+    foldExp[Value](
+        expr,
+        (n: Int) => VNum(n),
+        (b: Boolean) => VBool(b),
+        (lhv: Value, rhv: Value) => lhv match {
+          case VBool(b) => if (b == false) lhv else rhv
+          case VNum(i) => VErr("Expected a boolean!")
+          case VErr(msg) => VErr(msg)
+        },
+        (lhv: Value, rhv: Value) => lhv match {
+          case VBool(b) => if (b) lhv else rhv
+          case VNum(i) => VErr("Expected a boolean!")
+          case VErr(msg) => VErr(msg)
+        },
+        (v: Value) => v match {
+          case VBool(b) => VBool(!b)
+          case VNum(i) => VErr("Expected a boolean!")
+          case VErr(msg) => VErr(msg)
+        },
+        (con: Value, thn: Value, els: Value) => con match {
+          case VBool(c) => if (c) thn else els
+          case VNum(i) => VErr("Expected a boolean!")
+          case VErr(msg) => VErr(msg)
+        },
+        (lhv: Value, rhv: Value) => lhv match {
+            case VNum(l) => rhv match {
+              case VNum(r) => VNum(l + r)
+              case VBool(b) => VErr("Expected a number!")
+              case VErr(msg) => VErr(msg)
+            }
+            case VBool(b) => VErr("Expected a number!")
+            case VErr(msg) => VErr(msg)
+        },
+        (lhv: Value, rhv: Value) => lhv match {
+            case VNum(l) => rhv match {
+              case VNum(r) => VNum(l * r)
+              case VBool(b) => VErr("Expected a number!")
+              case VErr(msg) => VErr(msg)
+            }
+            case VBool(b) => VErr("Expected a number!")
+            case VErr(msg) => VErr(msg)
+        },
+        (lhv: Value, rhv: Value) => lhv match {
+            case VBool(l) => rhv match {
+                case VBool(r) => VBool(!l || r)
+                case VNum(i) => VErr("Expected a boolean!")
+                case VErr(msg) => VErr(msg)
+            }
+            case VNum(i) => VErr("Expected a boolean!")
+            case VErr(msg) => VErr(msg)
+        },
+        (lhv: Value, rhv: Value) => lhv match {
+            case VBool(l) => rhv match {
+                case VBool(r) => VBool((!l && !r) || (l && r))
+                case VNum(i) => VErr("Expected a boolean!")
+                case VErr(msg) => VErr(msg)
+            }
+            case VNum(i) => VErr("Expected a boolean!")
+            case VErr(msg) => VErr(msg)
+        }
+    )
+
+
+// Idea we could typecheck before and after desugaring.
+// Typechecking after is a subcase of before, that is, we could specialize this relation.
+@main def main(prog: Exp): (Value, Type) =
+    let typed = typecheck(prog) in
+        if (typed == TInt() || typed == TBool())
+            let desugared = desugar(prog) in
+            let res = interp(desugared) in
+            (res, typed)
+        else
+            (VErr("Typecheck failed"), typed)
+
