@@ -13,16 +13,16 @@ import sturdy.values.Topped
 import sturdy.values.booleans.BooleanOps
 import sturdy.data.WithJoin
 
-// If isClosed is true, it means, that the set of CaseDefinitionReference also applies to all
+// If isRecursive is true, it means, that the set of CaseDefinitionReference also applies to all
 // children inside the construct. E.g.
 //   e ~> { Add(?, ?), Num }
 // We don't know anything about the children of Add.
-// If we set `isClosed` to true, then we guarantee that the children of add are either
+// If we set `isRecursive` to true, then we guarantee that the children of add are either
 // `Add` or `Num`. They can't be any other kind.
-case class DataKindV(caseDefs: Set[CaseDefinitionReference], isClosed: Boolean) extends Value:
+case class DataKindV(caseDefs: Set[CaseDefinitionReference], isRecursive: Boolean) extends Value:
   override def toString: String =
     val caseStr = caseDefs.map { c =>
-      val argS = c.args.map(_ => if (isClosed) "!" else "?").mkString("(", ",", ")")
+      val argS = c.args.map(_ => if (isRecursive) "!" else "?").mkString("(", ",", ")")
       s"${c.name}$argS"
     }
     caseStr.mkString("{", ",", "}")
@@ -49,18 +49,18 @@ trait DataKindEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOp
 
 trait DataKindJoinV extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (DataKindV(caseDefs1, isClosed1), DataKindV(caseDefs2, isClosed2)) =>
-      DataKindV(caseDefs1.union(caseDefs2), isClosed1 && isClosed2)
+    case (DataKindV(caseDefs1, isRecursive1), DataKindV(caseDefs2, isRecursive2)) =>
+      DataKindV(caseDefs1.union(caseDefs2), isRecursive1 && isRecursive2)
     case _ => super.join(lhs, rhs)
 
 trait DataKindMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (DataKindV(caseDefs1, isClosed1), DataKindV(caseDefs2, isClosed2)) =>
+    case (DataKindV(caseDefs1, isRecursive1), DataKindV(caseDefs2, isRecursive2)) =>
       val intersect = caseDefs1.intersect(caseDefs2)
       if (intersect.isEmpty)
         throwBotException()
       else
-        DataKindV(intersect, isClosed1 && isClosed2)
+        DataKindV(intersect, isRecursive1 && isRecursive2)
     case _ => super.meet(lhs, rhs)
 
 trait DataKindAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:

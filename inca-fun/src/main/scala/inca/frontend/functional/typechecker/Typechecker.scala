@@ -534,7 +534,9 @@ class Typechecker extends TypeContext with TypeIO {
       case (tparam, arg) =>
         val argTy = typecheckExp(arg, tparam)
         val meetTy = meet(tparam, argTy)
+        println(s"$argTy :: $tparam :: $meetTy")
         if (meetTy == TNothing) {
+          println("Invalid\n\n\n")
           error(s"Invalid argument of type $argTy for parameter of type $tparam", arg)
         }
     }
@@ -571,6 +573,10 @@ class Typechecker extends TypeContext with TypeIO {
     case (TApply(TName(name1), Seq()), TName(name2)) if name1 == name2 => ty1
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2)))
     case (TSet(s1), TSet(s2)) => TSet(meet(s1, s2))
+    case (TFun(fromTys1, toTy1), TFun(fromTys2, toTy2)) if fromTys1.size == fromTys2.size =>
+      val argTys = fromTys1.zip(fromTys2).map { case (a1, a2) => join(a1, a2) } // contravariant in args
+      val retTy = meet(toTy1, toTy2) // covariant in return
+      TFun(argTys, retTy)
     case _ => TNothing
   }
 
