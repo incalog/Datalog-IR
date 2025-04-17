@@ -27,7 +27,7 @@ private class CMapVOps extends MapOps[Value, ConcreteRelation[Value], Boolean]:
     val values = vs.groupBy(_._1).map { (k, kv) => k -> kv.map(_._2).toSet }
     CMapV(values)
 
-  override def mapFun(f: Value => Set[Value]): Value = CMapFunV(f)
+  override def mapFun(mapId: Int, f: Value => Set[Value]): Value = CMapFunV(f)
 
   override def contains(m: Value, key: Value): Boolean = m match
     case fun@CMapFunV(f) => f(key).nonEmpty

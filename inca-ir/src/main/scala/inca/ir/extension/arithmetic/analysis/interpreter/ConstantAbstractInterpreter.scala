@@ -2,13 +2,12 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
+import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, Value}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
-import sturdy.values.{Powerset, Topped}
+import sturdy.values.{Powerset, Structural, Topped}
 import sturdy.values.floating.{FloatOps, LiftedFloatOps, ToppedFloatOps, given}
 import sturdy.data.MayJoin
-import sturdy.values.Topped
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.integer.{ConcreteIntegerOps, IntegerOps, LiftedIntegerOps, ToppedIntegerOps}
 import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps, ToppedCertainOrderingOps}
@@ -23,6 +22,9 @@ case class ConstantIntV(value: Int) extends Value:
 case class ConstantDoubleV(value: Double) extends Value:
   override def toString: String = value.toString
   override def isConstant: Boolean = true
+  
+given Structural[ConstantIntV] with {}
+given Structural[ConstantDoubleV] with {}
 
 trait ConstantEqOps extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match

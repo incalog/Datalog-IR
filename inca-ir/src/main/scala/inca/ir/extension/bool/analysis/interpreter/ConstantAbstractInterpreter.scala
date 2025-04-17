@@ -2,16 +2,17 @@ package inca.ir.extension.bool.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
-import sturdy.values.Powerset
+import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, Value}
+import sturdy.values.{Powerset, Structural, Topped}
 import sturdy.data.MayJoin
-import sturdy.values.Topped
 import sturdy.values.booleans.BooleanOps
 import sturdy.data.WithJoin
 
 case class ConstantBoolV(bool: Boolean) extends Value:
   override def toString: String = bool.toString
   override def isConstant: Boolean = true
+  
+given Structural[ConstantBoolV] with {}
 
 trait ConstantEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match

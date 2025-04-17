@@ -2,7 +2,7 @@ package inca.ir.extension.map.analysis.interpreter
 
 import inca.ir
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
-import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion}
+import inca.ir.extension.map.{MapComprehension, MapConcat, MapContains, MapFrom, MapFun, MapLit, MapLookUp, MapPlus, MapUnion, TMap}
 import inca.ir.*
 import inca.ir.analysis.base.effect.EmptySupplementary
 import inca.ir.extension.demand.TDemand
@@ -11,7 +11,7 @@ import sturdy.data.{MakeJoined, MayJoin, mapJoin}
 
 trait MapOps[V, RV, B]:
   def mapLit(vs: Seq[(V, V)]): V
-  def mapFun(f: V => Set[V]): V
+  def mapFun(mapId: Int, f: V => Set[V]): V
   def concat(m1: V, m2: V): V
   def union(ts: Seq[V]): V
   def plus(m: V, k: V, v: V): V
@@ -57,8 +57,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
    * `f` should compute the mapFun value(s) and return the output columns of the supplementary
    * that contain these value. This function will automatically pack the values into a tuple.
    */
-  private def mapFunResult(inputCols: Seq[String])(f: => Seq[String]): SupColumn =
-    val mapFun = mapOps.mapFun(key => {
+  private def mapFunResult(mapId: Int, inputCols: Seq[String])(f: => Seq[String]): SupColumn =
+    val mapFun = mapOps.mapFun(mapId, key => {
       scopedSupplementary { sup =>
         // Key must be a tuple or a single value!
         // Otherwise, operations such as MapLookup are not type correct.
@@ -87,12 +87,32 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     })
     termResult(mapFun)
 
+  private var mapIds: Map[((Type, Type), Term), Int] = Map()
+  private var id: Int = 0
+  private def freshId() =
+    val lastId = id
+    id += 1
+    lastId
+  private def getUniqueId(term: ir.Term): Int =
+    val (kTy, vTy) = term.typ.getOrElse(
+      throw new IllegalStateException(s"Require type information for MapFun analysis $term")
+    ).ty match
+      case TMap(keyTy, valTy) => (keyTy, valTy)
+      case ty => throw new IllegalStateException(s"Expected map type for $term but it has type $ty")
+    mapIds.get(((kTy, vTy), term)) match
+      case Some(id) => id
+      case _ =>
+        val fresh = freshId()
+        mapIds += ((kTy, vTy), term) -> fresh
+        fresh
+
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case MapLit(ts) => naryTupleOp(ts.map(evalTermTuple))(mapOps.mapLit)
     case MapConcat(t1, t2) => binaryOp(evalTerm(t1), evalTerm(t2))(mapOps.concat)
     case MapPlus(map, key, value) => ternaryOp(evalTerm(map), evalTerm(key), evalTerm(value))(mapOps.plus)
     case MapUnion(t1, t2) => naryOp(Seq(t1, t2).map(evalTerm))(mapOps.union)
-    case MapFun(params, valTerm) => mapFunResult(params.map(_.name.name))(Seq(evalTerm(valTerm)))
+    case MapFun(params, valTerm) =>
+      mapFunResult(getUniqueId(term), params.map(_.name.name))(Seq(evalTerm(valTerm)))
     case MapComprehension(key, value, atoms) =>
       val resultColumn = gensym.fresh("result")
       updateSupplementaryChecked { sup =>
@@ -126,7 +146,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       else
         // demanded arguments, that means we create a map fun
         val inputCols = inputIndices.map(_ => gensym.fresh("bArg"))
-        mapFunResult(inputCols) {
+        mapFunResult(getUniqueId(term), inputCols) {
           val argCols = params.indices.map {
             case i if inputIndices.contains(i) => inputCols(i)
             case _ => gensym.fresh("fArg") // fresh arguments are the output of the mapFun

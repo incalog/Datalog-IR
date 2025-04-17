@@ -47,8 +47,8 @@ trait Lowering extends BaseLowering:
         mapConstructors += ((keyTy, valTy), originalTerm) -> MapConstructor(name, constructorParams, mapEnum)
         (name, constructorParams)
 
-  private def callAddConstructor(originalTerm: Term, setEnum: MapEnum): Construct =
-    val (name, vars) = addConstructor(originalTerm, setEnum)
+  private def callAddConstructor(originalTerm: Term, mapEnum: MapEnum): Construct =
+    val (name, vars) = addConstructor(originalTerm, mapEnum)
     val cons = Construct(RefByName(name), vars.map(v => Var(v._1)))
     cons
 
@@ -111,7 +111,7 @@ trait Lowering extends BaseLowering:
 
   private def keyValType(t: Term): (Type, Type) = t.typ.getOrElse(throw new IllegalStateException(s"Map lowering requires typed IR, type missing in $t")).ty match
     case TMap(keyTy, valTy) => (keyTy, valTy)
-    case ty => throw new IllegalStateException(s"Expected set type for $t but it has type $ty")
+    case ty => throw new IllegalStateException(s"Expected map type for $t but it has type $ty")
 
   override def visitType(ty: Type): Type = preserveHints(ty) {
     ty match

@@ -54,7 +54,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
           }
         case None => Seq()
       }))
-    case ConstantMapFunV(_) => None
+    case ConstantMapFunV(_, _) => None
     case _ => super.valueToTermInternal(value)
 
   /*override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {

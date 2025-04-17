@@ -53,7 +53,7 @@ private class BoundedMapVOps(using eqOps: EqOps[Value, Topped[Boolean]],
       BoundedMapV(keyBound -> valueBound)
 
   // We don't analyse map functions for now
-  override def mapFun(f: Value => Set[Value]): Value = BoundedMapV.Top
+  override def mapFun(mapId: Int, f: Value => Set[Value]): Value = BoundedMapV.Top
 
   override def contains(m: Value, key: Value): Topped[Boolean] = m match
     case Value.Top => Topped.Top

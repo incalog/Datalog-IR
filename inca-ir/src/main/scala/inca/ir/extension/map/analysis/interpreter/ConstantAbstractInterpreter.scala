@@ -2,12 +2,12 @@ package inca.ir.extension.map.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
+import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, Value}
 import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.EffectStack
 import sturdy.values.Topped.Top
 import sturdy.values.ordering.EqOps
-import sturdy.values.{Join, Powerset, Topped}
+import sturdy.values.{Join, Powerset, Structural, Topped}
 
 private trait ConstantMapVBase extends Value:
   def union(other: ConstantMapVBase): ConstantMapVBase = ConstantMapV.Top
@@ -108,20 +108,25 @@ case class ConstantMapV private(var data: Map[Value, Set[Value]]) extends Consta
       ConstantMapV.Top
 
 
-// We don't analyse map funs for now
-case class ConstantMapFunV(f: Value => Set[Value]) extends ConstantMapVBase:
-  override def toString: String = s"MapFun()"
+case class ConstantMapFunV(id: Int, f: Value => Set[Value]) extends ConstantMapVBase:
+  override def toString: String = s"MapFun($id)"
   override def isConstant: Boolean = false
+  override def hashCode(): Int = id.hashCode()
+  override def equals(obj: Any): Boolean = obj match
+    case ConstantMapFunV(otherId, _) => otherId == id
+    case _ => false
+  override def lookup(k: Value)(using eqOps: EqOps[Value, Topped[Boolean]]): Set[Value] = f(k)
+
+given Structural[ConstantMapFunV] with {}
 
 
-// This Constant analysis approximates elements that may be contained in a map.
 private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]], effects: EffectStack, joinRV: Join[AbstractRelation]) extends MapOps[Value, AbstractRelation, Topped[Boolean]]:
 
   override def mapLit(vs: Seq[(Value, Value)]): Value =
     val values = vs.groupBy(_._1).map { (k, kv) => k -> kv.map(_._2).toSet }
     ConstantMapV(values)
 
-  override def mapFun(f: Value => Set[Value]): Value = ConstantMapFunV(f)
+  override def mapFun(mapId: Int, f: Value => Set[Value]): Value = ConstantMapFunV(mapId, f)
 
   override def contains(m: Value, key: Value): Topped[Boolean] = m match
     case map: ConstantMapVBase => map.contains(key)
@@ -199,6 +204,13 @@ trait ConstantEqOps extends BaseEqOps:
       i1.exists(v => i2.forall(equ(v, _) == Topped.Actual(false)))
 
     (v1, v2) match
+      case (m1: ConstantMapFunV, m2: ConstantMapFunV) =>
+        if (m1 == m2)
+          Topped.Actual(true)
+        else
+          Topped.Top
+      case (_: ConstantMapFunV, _) | (_, _: ConstantMapFunV) =>
+        Topped.Top
       case (m1: ConstantMapV, m2: ConstantMapV) =>
         val allKeysAreEqual = iterablesAreEqual(m1.data.keys, m2.data.keys)
         val atLeastOneDisjointKey = iterablesAreNotEqual(m1.data.keys, m2.data.keys)
@@ -215,36 +227,40 @@ trait ConstantEqOps extends BaseEqOps:
           Topped.Actual(false)
         else
           Topped.Top
-      case (_: ConstantMapFunV, _) | (_, _: ConstantMapFunV) => Topped.Top
       case _ => super.equ(v1, v2)
 
-  override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (m1: ConstantMapV, m2: ConstantMapV) =>
-      def iterablesAreEqual(i1: Iterable[Value], i2: Iterable[Value]): Boolean =
-        (i1.size == i2.size) && i1.forall(v => i2.exists(neq(v, _) == Topped.Actual(false)))
+  override def neq(v1: Value, v2: Value): Topped[Boolean] =
+    def iterablesAreEqual(i1: Iterable[Value], i2: Iterable[Value]): Boolean =
+      (i1.size == i2.size) && i1.forall(v => i2.exists(neq(v, _) == Topped.Actual(false)))
 
-      def iterablesAreNotEqual(i1: Iterable[Value], i2: Iterable[Value]) =
-        i1.exists(v => i2.forall(neq(v, _) == Topped.Actual(true)))
+    def iterablesAreNotEqual(i1: Iterable[Value], i2: Iterable[Value]) =
+      i1.exists(v => i2.forall(neq(v, _) == Topped.Actual(true)))
 
-      (v1, v2) match
-        case (m1: ConstantMapV, m2: ConstantMapV) =>
-          val allKeysAreEqual = iterablesAreEqual(m1.data.keys, m2.data.keys)
-          val atLeastOneDisjointKey = iterablesAreNotEqual(m1.data.keys, m2.data.keys)
-          if (allKeysAreEqual)
-            val allValuesAreEqual = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
-            val atLeastOneDisjointValue = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
-            if (allValuesAreEqual)
-              Topped.Actual(false)
-            else if (atLeastOneDisjointValue)
-              Topped.Actual(true)
-            else
-              Topped.Top
-          else if (atLeastOneDisjointKey)
+    (v1, v2) match
+      case (m1: ConstantMapFunV, m2: ConstantMapFunV) =>
+        if (m1 != m2)
+          Topped.Actual(true)
+        else
+          Topped.Top
+      case (_: ConstantMapFunV, _) | (_, _: ConstantMapFunV) =>
+        Topped.Top
+      case (m1: ConstantMapV, m2: ConstantMapV) =>
+        val allKeysAreEqual = iterablesAreEqual(m1.data.keys, m2.data.keys)
+        val atLeastOneDisjointKey = iterablesAreNotEqual(m1.data.keys, m2.data.keys)
+        if (allKeysAreEqual)
+          val allValuesAreEqual = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
+          val atLeastOneDisjointValue = m1.data.keys.forall { k => iterablesAreEqual(m1.data(k), m2.data(k)) }
+          if (allValuesAreEqual)
+            Topped.Actual(false)
+          else if (atLeastOneDisjointValue)
             Topped.Actual(true)
           else
             Topped.Top
-    case (_: ConstantMapFunV, _) | (_, _: ConstantMapFunV) => Topped.Top
-    case _ => super.neq(v1, v2)
+        else if (atLeastOneDisjointKey)
+          Topped.Actual(true)
+        else
+          Topped.Top
+      case _ => super.neq(v1, v2)
 
 trait ConstantJoinV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseJoinV:
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
@@ -253,7 +269,7 @@ trait ConstantJoinV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseJoin
       if (sameMap.isActual && sameMap.get)
         m1
       else
-        Value.Top
+        ConstantMapV.Top
     case _ => super.join(lhs, rhs)
 
 trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeetV:
@@ -263,7 +279,7 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
       if (sameMap.isActual && sameMap.get)
         m1
       else
-        Value.Top
+        throwBotException()
     case _ => super.meet(lhs, rhs)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
