@@ -7,6 +7,7 @@ import inca.ir.extension.map as irmap
 import inca.ir.*
 import inca.ir.extension.map.TMap
 import inca.ir.optimize.ConstantBaseIROptimizer
+import inca.ir.visitors.IRVisitor
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
@@ -27,8 +28,10 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
         }
 
   override def mayEliminate(t: Term): Boolean = t match
-    case irmap.MapComprehension(k, v, ats) => isConstant(t) && ats.flatMap(visitAtom).isEmpty
-    case irmap.MapFun(_, valTerm) => isConstant(t) && isConstant(valTerm) && mayEliminate(valTerm)
+    case irmap.MapComprehension(k, v, ats) =>
+      isConstant(t) && ats.flatMap(visitAtom).isEmpty
+    case irmap.MapFun(_, valTerm) =>
+      isConstant(t) && isConstant(valTerm) && mayEliminate(valTerm)
     case irmap.MapPlus(map, key, value) =>
       isConstant(t) && isConstant(key) && isConstant(value)
       && mayEliminate(map) && mayEliminate(key) && mayEliminate(value)
@@ -38,9 +41,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case irmap.MapConcat(t1, t2) =>
       isConstant(t) && isConstant(t1) && isConstant(t2)
       && mayEliminate(t1) && mayEliminate(t2)
-    case irmap.MapLookUp(map, key) =>
-      isConstant(t) && isConstant(key)
-      && mayEliminate(map) && mayEliminate(key)
+    case irmap.MapLookUp(map, key) => isConstant(t)
     case irmap.MapFrom(_) => isConstant(t)
     case v: Var if v.typ.exists(tty => tty.ty.isInstanceOf[TMap] && tty.mode.isBinding) => false
     case _ => super.mayEliminate(t)
@@ -63,6 +64,31 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
       case irmap.MapContains(m, k) if k.typ.exists(_.mode.isBinding) => ???
       case _ => super.visitAtom(atom)
   }*/
+      
+  private var relationsUsedInMapFrom: Set[Relation] = Set()
+  override def relationIsRequired(relation: Relation): Boolean =
+    if (relationsUsedInMapFrom.contains(relation))
+      true
+    else
+      super.relationIsRequired(relation)
+
+  override def analyzeProgram(modules: Seq[Module]): Unit =
+    relationsUsedInMapFrom = Set()
+
+    val aggVisitor = new IRVisitor {
+      override def visitTerm(term: Term): Seq[Term] = term match
+        case irmap.MapFrom(ref) => 
+          val rel = ref.target.get
+          relationsUsedInMapFrom += rel
+          super.visitTerm(term)
+        case _ => 
+          super.visitTerm(term)
+    }
+
+    aggVisitor.visitProgram(modules)
+
+    super.analyzeProgram(modules)
+
 
 
 

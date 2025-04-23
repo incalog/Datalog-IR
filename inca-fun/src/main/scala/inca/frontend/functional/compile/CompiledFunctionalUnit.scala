@@ -81,6 +81,7 @@ object CompiledFunctionalUnit:
     List(
       () => new typeparam.Lowering {},
       () => new aggregateset.Lowering {},
+      //() => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = true) {},
       () => new IRDataKindOptimizer(computeControlEvents = false, interRelational = true) {},
       () => new set.SyntacticOptimizer {},
       () => new set.Lowering {},
