@@ -4,6 +4,7 @@ import inca.ir
 import inca.ir.*
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.optimize.ConstantBaseIROptimizer
+import inca.ir.visitors.IRVisitor
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
@@ -16,8 +17,11 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     !paramUsedAsAggregateColumn.contains(relation) && super.mayEliminate(p)
 
   private var relationsUsedInAggregations: Set[Relation] = Set()
-  override def relationUsedInAggregation(relation: Relation): Boolean =
-    relationsUsedInAggregations.contains(relation)
+  override def relationIsRequired(relation: Relation): Boolean =
+    if (relationsUsedInAggregations.contains(relation))
+      true
+    else
+      super.relationIsRequired(relation)
 
   override def extractBindingVarRef(arg: Arg): Option[Ref[Var.Target]] = arg match
     case AggregateColumnArg(v@Var(ref)) if v.typ.get.mode.isBinding => Some(v.ref)
@@ -58,19 +62,19 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     relationsUsedInAggregations = Set()
     paramUsedAsAggregateColumn = Map()
 
-    modules.foreach { m =>
-      m.relations.foreach { (_, r) =>
-        r.bodies.foreach(_.atoms.foreach {
-          case a@Aggregate(ref, args, op) =>
-            val rel = ref.target.get
-            val aggIndex = args.indexWhere(_.isInstanceOf[AggregateColumnArg])
-            if (aggIndex > 0)
-              paramUsedAsAggregateColumn += rel -> (paramUsedAsAggregateColumn.getOrElse(rel, Set()) + rel.params(aggIndex))
-            relationsUsedInAggregations += rel
-          case _ => // nothing
-        })
-      }
+    val aggVisitor = new IRVisitor {
+      override def visitAtom(atom: Atom): Seq[Atom] = atom match
+        case a@Aggregate(ref, args, op) =>
+          val rel = ref.target.get
+          val aggIndex = args.indexWhere(_.isInstanceOf[AggregateColumnArg])
+          if (aggIndex > 0)
+            paramUsedAsAggregateColumn += rel -> (paramUsedAsAggregateColumn.getOrElse(rel, Set()) + rel.params(aggIndex))
+          relationsUsedInAggregations += rel
+          super.visitAtom(atom)
+        case _ => super.visitAtom(atom)
     }
+
+    aggVisitor.visitProgram(modules)
 
     super.analyzeProgram(modules)
 

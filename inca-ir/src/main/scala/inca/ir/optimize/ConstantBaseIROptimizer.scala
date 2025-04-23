@@ -60,7 +60,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       case Topped.Top => false
     }
 
-  def relationUsedInAggregation(relation: Relation): Boolean =
+  def relationIsRequired(relation: Relation): Boolean =
     false
 
   private def bodyAlwaysFails(body: Body): Boolean =
@@ -96,7 +96,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     // call will lead to a failing body at the call site. Except if the call is a negative call, in which case it
     // always succeeds.
     if (relationAlwaysFails(relation)) {
-      if (relationUsedInAggregation(relation))
+      if (relationIsRequired(relation))
         logOptimizationStat("aggregate empty relation", 1, _+1)
         Seq(relation.copy(bodies = Seq()))
       else
@@ -109,9 +109,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
         case (p, _) => Some(p)
       }
       if (nonconstantParams.isEmpty) {
-        if (relationUsedInAggregation(relation))
+        if (relationIsRequired(relation))
           logOptimizationStat("aggregate empty relation", 1, _+1)
-          Seq(relation.copy(bodies = Seq()))
+          Seq(relation)//.copy(bodies = Seq())
         else
           logOptimizationStat("constant relation", 1, _+1)
           Seq()
@@ -146,7 +146,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       logOptimizationStat("constant equation", 1, _ - eqAts.size)
       super.visitBody(body)
         .map(b => Body(eqAts ++ b.atoms.diff(eqAts)))
-        .filter(_.atoms.nonEmpty)
+        //.filter(_.atoms.nonEmpty)
     }
   }
 
