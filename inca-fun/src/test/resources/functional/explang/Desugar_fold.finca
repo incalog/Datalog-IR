@@ -1,5 +1,36 @@
 module Desugar
 
+/*
+ * This is a nice example to show why we need inter-relation constant propagation at all layers.
+ * Consider this simplified version of the program below:
+ * data Value = VBool(Boolean) | VErr(String)
+ *
+ *   data Exp = True() | False() | And(Exp, Exp)
+ *   data Type = TBool() | TErr(String)
+ *
+ *   def foldExp[T](expr: Exp, boolF: Boolean => T, andF: (T, T) => T): T = expr match
+ *       case True()  => boolF(true)
+ *       case False() => boolF(false)
+ *       case And(lhs, rhs) => andF(foldExp[T](lhs, boolF, andF), foldExp[T](rhs, boolF, andF))
+ *
+ *   def assertBinOp(lhsTy: Type, rhsTy: Type, expected: Type): Type =
+ *       if ((lhsTy == rhsTy) && rhsTy == expected) expected
+ *       else TErr("Invalid binary op")
+ *
+ *   def assertBoolBinOp(lhsTy: Type, rhsTy: Type): Type = assertBinOp(lhsTy, rhsTy, TBool())
+ *
+ *   def typecheck(expr: Exp): Type = foldExp[Type](expr, (b: Boolean) => TBool(), assertBoolBinOp)
+ *
+ * 1. With intra-relational reasoning, we can not figure out anything about boolF, since we are using
+ *    it recursively. That is, we get Top in `typecheck`
+ * 2. With inter-relational reasoning after lowering, we can figure out that (b: Boolean) => TBool(),
+ *    will always produce TBool(). However, at that point we already defunctionalized the lambda expression.
+ *    That is, we created an ADT and a corresponding case for the lambda function. We can not get rid of it anymore.
+ * Solution:
+ *    With inter-relational reasoning before lowering, we can figure out that (b: Boolean) => TBool() is always TBool(),
+ *    and we can remove it before we defunctionalized it!
+*/
+
 data Value = VNum(Int) | VBool(Boolean) | VErr(String)
 
 data Exp = BoolLit(Boolean) |
