@@ -17,6 +17,7 @@ import inca.ir.extension.block as irblock
 import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.set as irset
 import inca.ir.extension.map as irmap
+import inca.ir.extension.datamatch as irdatamatch
 import inca.ir.extension.disjunction as irdisjunction
 import inca.ir.hints.MainHint
 import sturdy.values.Topped
@@ -282,5 +283,6 @@ class IRConstantOptimizer(
     with irblock.optimize.ConstantOptimizer
     with irset.optimize.ConstantOptimizer
     with irmap.optimize.ConstantOptimizer
+    with irdatamatch.optimize.ConstantOptimizer
     with irdemand.optimize.ConstantOptimizer
     with irdisjunction.optimize.ConstantOptimizer

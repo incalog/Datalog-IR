@@ -2,12 +2,13 @@ package inca.ir.extension.data.optimize
 
 import inca.ir
 import inca.ir.analysis.base.values.Value
-import inca.ir.extension.data.{Construct, Deconstruct}
+import inca.ir.extension.data.{CaseDefinitionReference, Construct, DataDefinitionReference, Deconstruct, TData}
 import inca.ir.extension.data.analysis.interpreter.ConstantDataV
 import sturdy.values.{Top, Topped}
 import inca.ir.*
 import inca.ir.optimize.ConstantBaseIROptimizer
-import inca.ir.optimize.{isTrue, isFalse}
+import inca.ir.optimize.{isFalse, isTrue}
+import inca.ir.visitors.IRVisitor
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
@@ -65,4 +66,23 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
           super.visitAtom(atom)
       case _ => super.visitAtom(atom)
     case _ => super.visitAtom(atom)
+
+  // TODO: We could write an optimization to remove unused Data types
+  /*var usedDataDefs: Set[Name]
+  var usedCaseDefs: Set[Name]
+
+  override def visitProgram(modules: Seq[Module], dependencies: Seq[Module]): Seq[Module] =
+    val visited = super.visitProgram(modules, dependencies)
+    usedDataDefs = Set()
+    usedCaseDefs = Set()
+    new IRVisitor {
+      override def visitType(ty: Type): Type =
+        ty match
+          case TData(ref) => usedDataDefs += ref.name
+          case _ => // nothing
+        super.visitType(ty)
+
+      override def visitTerm(term: Term): Seq[Term] =
+        super.visitTerm(term) // TODO
+    }*/
 

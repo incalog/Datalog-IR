@@ -2,12 +2,11 @@ module Desugar
 
 data Value = VNum(Int) | VBool(Boolean) | VErr(String)
 
-data Exp = True() |
-           False() |
+data Exp = BoolLit(Boolean) |
            And(Exp, Exp) |
            Not(Exp) |
            If(Exp, Exp, Exp) |
-           Num(Int) |
+           NumLit(Int) |
            Plus(Exp, Exp) |
            Mult(Exp, Exp) |
            // These are syntactic sugar – we desugar them into core terms
@@ -31,9 +30,8 @@ def foldExp[T](
     implF: (T, T) => T,
     biimplF: (T, T) => T
 ): T = expr match {
-  case True() => boolF(true)
-  case False() => boolF(false)
-  case Num(n) => numF(n)
+  case BoolLit(b) => boolF(b)
+  case NumLit(n) => numF(n)
   case And(lhs, rhs) =>
     andF(
       foldExp[T](lhs, numF, boolF, andF, orF, notF, condF, plusF, multF, implF, biimplF),
@@ -114,12 +112,12 @@ def typecheck(expr: Exp): Type =
         assertBoolBinOp
     )
 
-@fold
+/*@fold
 def desugar(expr: Exp): Exp =
     foldExp[Exp](
         expr,
-        (n: Int) => Num(n),
-        (b: Boolean) => if (b) True() else False(),
+        (n: Int) => NumLit(n),
+        (b: Boolean) => BoolLit(b),
         (lhs: Exp, rhs: Exp) => And(lhs, rhs),
         (lhs: Exp, rhs: Exp) => Not(And(Not(lhs), Not(rhs))),
         (e: Exp) => Not(e),
@@ -192,16 +190,17 @@ def interp(expr: Exp): Value =
             case VErr(msg) => VErr(msg)
         }
     )
-
+*/
 
 // Idea we could typecheck before and after desugaring.
 // Typechecking after is a subcase of before, that is, we could specialize this relation.
 @main def main(prog: Exp): (Value, Type) =
     let typed = typecheck(prog) in
-        if (typed == TInt() || typed == TBool())
+        (VErr("Typecheck failed"), typed)
+        /*if (typed == TInt() || typed == TBool())
             let desugared = desugar(prog) in
             let res = interp(desugared) in
             (res, typed)
         else
-            (VErr("Typecheck failed"), typed)
+            (VErr("Typecheck failed"), typed)*/
 
