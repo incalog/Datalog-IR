@@ -233,7 +233,9 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
         rv
         //AbstractRelation(rv.cols, rv.rows, Topped.Top)
       case (rv: AbstractRelation.NonEmpty, other: AbstractRelation.NonEmpty) =>
-        val others2Rows = other.cols.map(rv.cols.indexOf)
+        val others2Rows = rv.cols.map(other.cols.indexOf)
+        assert(others2Rows.map(other.cols.apply) == rv.cols)
+
         // TODO: Is the join over booleans the correct operation here?
         /*val newEmpty = (rv.empty, other.empty) match
           case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
