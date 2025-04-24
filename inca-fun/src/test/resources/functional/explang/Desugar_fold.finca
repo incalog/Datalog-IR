@@ -21,8 +21,8 @@ module Desugar
  *
  *   def typecheck(expr: Exp): Type = foldExp[Type](expr, (b: Boolean) => TBool(), assertBoolBinOp)
  *
- * 1. With intra-relational reasoning, we can not figure out anything about boolF, since we are using
- *    it recursively. That is, we get Top in `typecheck`
+ * 1. With intra-relational reasoning, we can not figure out anything about (b: Boolean) => TBool().
+      That is, we always get Top for the argument.
  * 2. With inter-relational reasoning after lowering, we can figure out that (b: Boolean) => TBool(),
  *    will always produce TBool(). However, at that point we already defunctionalized the lambda expression.
  *    That is, we created an ADT and a corresponding case for the lambda function. We can not get rid of it anymore.
