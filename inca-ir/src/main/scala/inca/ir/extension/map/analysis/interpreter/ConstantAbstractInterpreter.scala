@@ -129,6 +129,7 @@ private class ConstantMapVOps(using eqOps: EqOps[Value, Topped[Boolean]], effect
   override def mapFun(mapId: Int, f: Value => Set[Value]): Value = ConstantMapFunV(mapId, f)
 
   override def contains(m: Value, key: Value): Topped[Boolean] = m match
+    case Value.Top => Topped.Top
     case map: ConstantMapVBase => map.contains(key)
     case _ => throw IllegalArgumentException(s"Expected map but got $m")
 
@@ -278,8 +279,15 @@ trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeet
       val sameMap = eqOps.equ(m1, m2)
       if (sameMap.isActual && sameMap.get)
         m1
+      else if (m1 == ConstantMapV.Top)
+        m2
+      else if (m2 == ConstantMapV.Top)
+        m1
       else
-        throwBotException()
+        // We lack information to do anything meaningful when meeting maps.
+        // That is, we just get more imprecise.
+        ConstantMapV.Top
+        //throwBotException()
     case _ => super.meet(lhs, rhs)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:

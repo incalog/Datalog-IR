@@ -167,6 +167,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
         val columnsBefore = relationOps.columns(sup)
         val mapIx = relationOps.columnIndex(sup, mapCol)
         val keyIx = relationOps.columnIndex(sup, keyCol)
+
         relationOps.flatMap(sup) { row =>
           val m = row(mapIx)
           val k = row(keyIx)
