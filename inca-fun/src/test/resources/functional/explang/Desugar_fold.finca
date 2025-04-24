@@ -9,8 +9,8 @@ module Desugar
  *   data Type = TBool() | TErr(String)
  *
  *   def foldExp[T](expr: Exp, boolF: Boolean => T, andF: (T, T) => T): T = expr match
- *       case True()  => boolF(true)
- *       case False() => boolF(false)
+ *       case True()        => boolF(true)
+ *       case False()       => boolF(false)
  *       case And(lhs, rhs) => andF(foldExp[T](lhs, boolF, andF), foldExp[T](rhs, boolF, andF))
  *
  *   def assertBinOp(lhsTy: Type, rhsTy: Type, expected: Type): Type =
