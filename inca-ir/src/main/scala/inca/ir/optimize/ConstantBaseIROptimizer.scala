@@ -11,7 +11,7 @@ import inca.ir.extension.arithmetic as irarith
 import inca.ir.extension.string as irstr
 import inca.ir.extension.data as irdata
 import inca.ir.extension.aggregate as iragg
-import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
+import inca.ir.extension.demand as irdemand
 import inca.ir.extension.bool as irbool
 import inca.ir.extension.block as irblock
 import inca.ir.extension.tuple as irtuple
@@ -111,7 +111,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
       if (nonconstantParams.isEmpty) {
         if (relationIsRequired(relation))
           logOptimizationStat("aggregate empty relation", 1, _+1)
-          Seq(relation)//.copy(bodies = Seq())
+          super.visitRelation(relation)//.copy(bodies = Seq())
         else
           logOptimizationStat("constant relation", 1, _+1)
           Seq()
@@ -126,6 +126,8 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
     }
   }
 
+  def cast(t: Term, ty: Type): Cast = Cast(t, ty)
+
   def eqsToBindConstantParams(body: Body): Seq[Eq] =
     getBodyResult(body).headOption match
       case None => Seq()
@@ -133,7 +135,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
         constRel.cols.zip(constRel.rows).flatMap { (c, v) =>
           valueToTerm(v).flatMap { t =>
             val expectedTy = params.get(RefByName(Name(c)))
-            expectedTy.map(ty => Eq(Var(Name(c)), Cast(t, ty)))
+            expectedTy.map(ty => Eq(Var(Name(c)), cast(t, ty)))
           }
         }
 
@@ -228,7 +230,7 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
             // Test (why cast is needed): OODL -> Unit Test -> Subtyping
             constantArgs.flatMap { case ((a, v), _) =>
               extractBindingVarRef(a).flatMap {
-                case ref if isParam(ref) || !isConstant(a) => Some(Eq(Var(ref), Cast(valueToTerm(v).get, argTy(a))))
+                case ref if isParam(ref) || !isConstant(a) => Some(Eq(Var(ref), cast(valueToTerm(v).get, argTy(a))))
                 case _ => None
               }
             } ++ ats
@@ -256,9 +258,9 @@ trait ConstantBaseIROptimizer(val interRelational: Boolean) extends BaseIROptimi
                * i had type TAny, however, the constant 4 has type TInt. That is, we now compare >TAny< to <TInt>.
                * Test: OODL -> Unit Test -> Subtyping
                */
-              Seq(Cast(trans, ty))
+              Seq(cast(trans, ty))
             case _ =>
-              Seq(Cast(trans, term.typ.get.ty))
+              Seq(cast(trans, term.typ.get.ty))
     } else {
       super.visitTerm(term)
     }
@@ -280,7 +282,5 @@ class IRConstantOptimizer(
     with irblock.optimize.ConstantOptimizer
     with irset.optimize.ConstantOptimizer
     with irmap.optimize.ConstantOptimizer
+    with irdemand.optimize.ConstantOptimizer
     with irdisjunction.optimize.ConstantOptimizer
-
-
-

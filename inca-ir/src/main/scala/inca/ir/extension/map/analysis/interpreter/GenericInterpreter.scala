@@ -58,8 +58,10 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
    * that contain these value. This function will automatically pack the values into a tuple.
    */
   private def mapFunResult(mapId: Int, inputCols: Seq[String])(f: => Seq[String]): SupColumn =
+    // IMPORTANT: snapshot the supplementary at MapFun creation time
+    val sup = supplementaryTable.getTable
     val mapFun = mapOps.mapFun(mapId, key => {
-      scopedSupplementary { sup =>
+      scopedSupplementary { _ =>
         // Key must be a tuple or a single value!
         // Otherwise, operations such as MapLookup are not type correct.
         val keys = tupleOps.iter(key)
