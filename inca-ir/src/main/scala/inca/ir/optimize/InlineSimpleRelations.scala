@@ -22,7 +22,7 @@ trait InlineSimpleRelations extends IRVisitor with Optimizer:
 
   private var phase: Phase = uninitialized
 
-  val maxAtomsToInline = 100
+  val maxAtomsToInline = 2
 
   var gensym: Gensym = Gensym()
 
@@ -47,7 +47,7 @@ trait InlineSimpleRelations extends IRVisitor with Optimizer:
     val isMain = relation.hasHint(MainHint)
     val isNoInline = relation.hasHint(NoInlineHint)
     val singleBody = relation.bodies.size == 1
-    val isSmall = relation.bodies.head.atoms.size < maxAtomsToInline
+    val isSmall = relation.bodies.head.atoms.size <= maxAtomsToInline
     !isMain && !isNoInline && singleBody && isSmall
 
   private var currentRelation: Relation = uninitialized

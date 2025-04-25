@@ -10,10 +10,20 @@ import inca.ir.optimize.ConstantBaseIROptimizer
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   private var commonMatchVars: Set[Name] = Set()
+  def scopedMatchVars[A](m: Match)(f: => A): A = {
+    val oldCommonMatchVars = commonMatchVars
+    commonMatchVars = m.commonVars.map(_.name)
+    try {
+      val a = f
+      a
+    } finally {
+      commonMatchVars = oldCommonMatchVars
+    }
+  }
 
   override def mayEliminate(at: Atom): Boolean = at match
     case eq: Eq =>
-      val matchVarOption = eq.vars.filter(v => commonMatchVars.contains(v.name))
+      val matchVarOption = eq.vars.find(v => commonMatchVars.contains(v.name))
       val isBinding = matchVarOption.exists(_.mode.isBinding)
       if (isBinding)
         false
@@ -27,13 +37,8 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
   override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
     atom match
-      case Match(matchee, cases) =>
-        // we must not eliminate common vars that must be bound after the match block
-        commonMatchVars = atom.commonVars.map(_.name)
-        println(s"Common match vars: $commonMatchVars")
-        val visited = super.visitAtom(atom)
-        commonMatchVars = Set()
-        visited
+      // we must not eliminate common vars that must be bound after the match block
+      case m@Match(matchee, cases) => scopedMatchVars(m)(super.visitAtom(atom))
       case _ => super.visitAtom(atom)
   }
 
