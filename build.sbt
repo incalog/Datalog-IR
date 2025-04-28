@@ -109,7 +109,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
   .settings(
     scalaVersion := scalaVersionString,
 
-    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    //resolvers += "Eclipse Releases" at "https://download.eclipse.org/viatra/updates/release",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
@@ -125,7 +125,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
       // Datalog query engine
       "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0",
       "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
-      "org.eclipse.viatra" % "viatra-query-runtime" % "2.9.0",
+      "org.eclipse.viatra" % "viatra-query-runtime" % "2.9.1",
       // Required for runtime reflection and code execution
       //("org.scala-lang" %% "scala3-interfaces" % scalaVersion.value).cross(CrossVersion.disabled)
       "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
@@ -138,7 +138,7 @@ lazy val inca_souffle = (project in file("inca-souffle"))
   //.dependsOn(inca_ascent % "test->test")
   .settings(
     scalaVersion := scalaVersionString,
-    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    //resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
@@ -172,7 +172,7 @@ lazy val hazel_typing_diffable = (project in file("hazel-typing-diffable"))
   .settings(
     scalaVersion := "2.13.10",
     scalacOptions += "-Ymacro-annotations",
-    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    //resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
@@ -205,7 +205,7 @@ lazy val inca_casestudy_diffable = (project in file("inca-casestudy-diffable"))
   .settings(
     scalaVersion := "2.13.10",
     scalacOptions += "-Ymacro-annotations",
-    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    //resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
@@ -219,7 +219,7 @@ lazy val inca_ascent = (project in file("inca-ascent"))
   .settings(
     scalaVersion := scalaVersionString,
 
-    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    //resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
@@ -238,7 +238,7 @@ lazy val inca_bddbddb = (project in file("inca-bddbddb"))
   .settings(
     scalaVersion := scalaVersionString,
 
-    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+    //resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
