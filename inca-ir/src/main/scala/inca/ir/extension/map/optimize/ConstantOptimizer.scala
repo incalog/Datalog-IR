@@ -47,14 +47,21 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case _ => super.mayEliminate(t)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match
-    case ConstantMapV(values) => Some(irmap.MapLit(values.toSeq.flatMap {
-      (k, vs) => valueToTerm(k) match
-        case Some(key) =>
-          vs.toSeq.flatMap { v =>
-            valueToTerm(v).map(key -> _)
-          }
-        case None => Seq()
-      }))
+    case ConstantMapV(values) =>
+      for
+        mapped <- values.toSeq.foldLeft(Option(List.empty[(Term, Term)])) {
+          case (Some(acc), (k, vs)) =>
+            for
+              key <- valueToTerm(k)
+              mappedVs <- vs.toSeq.foldLeft(Option(List.empty[(Term, Term)])) {
+                case (Some(acc2), v) =>
+                  valueToTerm(v).map(vv => (key, vv) :: acc2)
+                case (None, _) => None
+              }
+            yield mappedVs ++ acc
+          case (None, _) => None
+        }
+      yield irmap.MapLit(mapped.reverse)
     case ConstantMapFunV(_, _) => None
     case _ => super.valueToTermInternal(value)
 
@@ -64,7 +71,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
       case irmap.MapContains(m, k) if k.typ.exists(_.mode.isBinding) => ???
       case _ => super.visitAtom(atom)
   }*/
-      
+
   private var relationsUsedInMapFrom: Set[Relation] = Set()
   override def relationIsRequired(relation: Relation): Boolean =
     if (relationsUsedInMapFrom.contains(relation))
@@ -77,11 +84,11 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
 
     val mapFromVisitor = new IRVisitor {
       override def visitTerm(term: Term): Seq[Term] = term match
-        case irmap.MapFrom(ref) => 
+        case irmap.MapFrom(ref) =>
           val rel = ref.target.get
           relationsUsedInMapFrom += rel
           super.visitTerm(term)
-        case _ => 
+        case _ =>
           super.visitTerm(term)
     }
 

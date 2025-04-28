@@ -53,7 +53,12 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
     case _ => super.visitAtom(atom)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match
-    case ConstantSetV(values) => Some(irset.SetLit(values.toSeq.flatMap(valueToTerm.apply)))
+    case ConstantSetV(values) =>
+      val newValues = values.toSeq.flatMap(valueToTerm.apply)
+      if (newValues.size == values.size)
+        Some(irset.SetLit(newValues))
+      else
+        None
     case _ => super.valueToTermInternal(value)
 
 
