@@ -75,7 +75,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
   override def analyzeProgram(modules: Seq[Module]): Unit =
     relationsUsedInMapFrom = Set()
 
-    val aggVisitor = new IRVisitor {
+    val mapFromVisitor = new IRVisitor {
       override def visitTerm(term: Term): Seq[Term] = term match
         case irmap.MapFrom(ref) => 
           val rel = ref.target.get
@@ -85,8 +85,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
           super.visitTerm(term)
     }
 
-    aggVisitor.visitProgram(modules)
-
+    mapFromVisitor.visitProgram(modules)
     super.analyzeProgram(modules)
 
 
