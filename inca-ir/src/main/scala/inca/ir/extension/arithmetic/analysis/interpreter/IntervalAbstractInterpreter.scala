@@ -2,19 +2,16 @@ package inca.ir.extension.arithmetic.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, Value}
+import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
 import sturdy.values.{Powerset, Topped}
 import sturdy.data.MayJoin
-import sturdy.values.integer.{IntegerOps, NumericIntervalJoin, LiftedIntegerOps, NumericInterval, NumericIntervalEqOps, NumericIntervalIntegerOps, StandardIntervalIntegerOps, NumericIntervalOrderingOps}
+import sturdy.values.integer.{ConcreteIntegerOps, ConcreteStrictIntegerOps, IntegerOps, LiftedIntegerOps, NumericInterval, NumericIntervalEqOps, NumericIntervalIntegerOps, NumericIntervalJoin, NumericIntervalOrderingOps, NumericIntervalWiden, StandardIntervalIntegerOps, TopNumericIntervalInt}
 import sturdy.values.ordering.{EqOps, LiftedOrderingOps, OrderingOps, ToppedCertainOrderingOps}
 import sturdy.data.{MakeJoined, WithJoin}
 import sturdy.effect.EffectStack
 import sturdy.effect.except.Except
 import sturdy.effect.failure.Failure
 import sturdy.values.floating.{FloatOps, LiftedFloatOps}
-import sturdy.values.integer.ConcreteIntegerOps
-import sturdy.values.integer.ConcreteStrictIntegerOps
-import sturdy.values.integer.TopNumericIntervalInt
 
 import scala.math.Ordering.given
 
@@ -98,6 +95,17 @@ private class IntervalIntVOrderingOps(using except: Except[BaseIRException, ?, ?
 private class IntervalDoubleVOrderingOps(using except: Except[BaseIRException, ?, ?])
   extends LiftedOrderingOps[Value, Topped[Boolean], DoubleInterval, Topped[Boolean]](valueAsNumericDoubleInterval, identity)
 
+
+trait IntervalWidenV extends BaseWidenV:
+  val intBounds: Set[Int] = Set()
+  val doubleBounds: Set[Double] = Set()
+  val intIntervalWiden = new NumericIntervalWiden[Int](intBounds, Integer.MIN_VALUE, Integer.MAX_VALUE)
+  val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
+
+  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+    case (IntervalIntV(iv1), IntervalIntV(iv2)) => IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
+    case (IntervalDoubleV(iv1), IntervalDoubleV(iv2)) => IntervalDoubleV(doubleIntervalWiden.apply(iv1, iv2).get)
+    case _ => super.join(lhs, rhs)
 
 trait IntervalJoinV extends BaseJoinV:
   def joinInterval[T](v1: NumericInterval[T], v2: NumericInterval[T])(using ord: Ordering[T]): NumericInterval[T] =

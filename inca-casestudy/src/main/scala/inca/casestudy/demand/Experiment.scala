@@ -9,7 +9,7 @@ import inca.ir.extension.demand.TDemand
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.{arithmetic, block, bool, demand, disjunction, string, tuple}
 import inca.ir.hints.{FunctionalDependencyHint, MainHint}
-import inca.ir.optimize.{AliasElimination, DisjointRuleAnalysis}
+import inca.ir.optimize.{AliasElimination}
 import inca.ir.util.SourceLocation
 import inca.util.compileroptions.CompilerOptions
 
@@ -69,11 +69,6 @@ object Experiment:
       () => new tuple.Lowering {},
       () => new AliasElimination {}
     ))
-
-    /*setOptimizationPipeline(List(
-      () => new DisjointRuleAnalysis {}
-    ))*/
-
 
   private def runModInEngine(executor: IRExecutor, mod: Module): Unit =
     val compiled = createCompiled(mod)

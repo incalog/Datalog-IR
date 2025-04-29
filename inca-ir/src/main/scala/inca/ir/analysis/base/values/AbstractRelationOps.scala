@@ -8,7 +8,7 @@ import sturdy.effect.except.Except
 import sturdy.values.Topped.Top
 import sturdy.values.booleans.BooleanOps
 import sturdy.values.ordering.EqOps
-import sturdy.values.{Join, MaybeChanged, Topped}
+import sturdy.values.{Join, MaybeChanged, Topped, Widen}
 
 import scala.collection
 
@@ -226,24 +226,34 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
       throw new IllegalArgumentException(s"Schemas must match for join: $rv ++ $other")
 
     (rv, other) match
-      case (AbstractRelation.Empty(_), _) =>
-        other
-        //AbstractRelation(other.cols, other.rows, Topped.Top)
-      case (_, AbstractRelation.Empty(_)) =>
-        rv
-        //AbstractRelation(rv.cols, rv.rows, Topped.Top)
+      case (AbstractRelation.Empty(_), _) => other
+      case (_, AbstractRelation.Empty(_)) => rv
       case (rv: AbstractRelation.NonEmpty, other: AbstractRelation.NonEmpty) =>
         val others2Rows = rv.cols.map(other.cols.indexOf)
         assert(others2Rows.map(other.cols.apply) == rv.cols)
-
-        // TODO: Is the join over booleans the correct operation here?
-        /*val newEmpty = (rv.empty, other.empty) match
-          case (Topped.Actual(true), Topped.Actual(true)) => Topped.Actual(true)
-          case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
-          case _ => Topped.Top*/
         // If any of the two relations is definitely non-empty, then the result is also non-empty
         val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
+        AbstractRelation(rv.cols, newRows, newEmpty)
+
+  override def apply(v1: AbstractRelation, v2: AbstractRelation): MaybeChanged[AbstractRelation] =
+    MaybeChanged(join(v1, v2), v1)
+}
+
+given WidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]): Widen[AbstractRelation] with {
+  def join(rv: AbstractRelation, other: AbstractRelation): AbstractRelation =
+    if (rv.cols.toSet != other.cols.toSet)
+      throw new IllegalArgumentException(s"Schemas must match for join: $rv ++ $other")
+
+    (rv, other) match
+      case (AbstractRelation.Empty(_), _) => other
+      case (_, AbstractRelation.Empty(_)) => rv
+      case (rv: AbstractRelation.NonEmpty, other: AbstractRelation.NonEmpty) =>
+        val others2Rows = rv.cols.map(other.cols.indexOf)
+        assert(others2Rows.map(other.cols.apply) == rv.cols)
+        // If any of the two relations is definitely non-empty, then the result is also non-empty
+        val newEmpty = boolOps.or(rv.empty, other.empty)
+        val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => widenV(v1, v2).get }
         AbstractRelation(rv.cols, newRows, newEmpty)
 
   override def apply(v1: AbstractRelation, v2: AbstractRelation): MaybeChanged[AbstractRelation] =

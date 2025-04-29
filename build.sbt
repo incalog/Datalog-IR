@@ -33,7 +33,7 @@ lazy val inca_ir = (project in file("inca-ir"))
       "de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
-      ("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
+      //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
     )
   )
 

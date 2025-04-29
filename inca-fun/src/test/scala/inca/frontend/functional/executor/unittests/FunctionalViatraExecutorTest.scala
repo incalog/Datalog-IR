@@ -3,7 +3,6 @@ package inca.frontend.functional.executor.unittests
 import inca.frontend.functional.compile.{CompiledFunctionalUnit, FunctionalCompilerOptions}
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.ir.execution.{ADT, Relation}
-import inca.ir.optimize.DisjointRuleAnalysis
 import inca.util.FileUtil
 import inca.viatra.backend.Executor
 import org.scalatest.funsuite.AnyFunSuite
@@ -124,9 +123,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     val code = FileUtil.readFileFromResource("functional/unittests/If4.finca")
     val compiled = exec.compileFunction(code, options)
     compiled.setPipeline(CompiledFunctionalUnit.pipeline)
-    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline
-      :+ (() => new DisjointRuleAnalysis {})
-    )
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(7))
     assertResult(7)(res.entries.head)

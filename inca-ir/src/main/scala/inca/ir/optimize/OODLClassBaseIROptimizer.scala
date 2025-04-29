@@ -17,7 +17,7 @@ import inca.ir.visitors.IRVisitor
 
 import scala.compiletime.uninitialized
 
-
+// TODO: Move this to the OODL package
 trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val _interRelational: Boolean)
   extends BaseIROptimizer[Value, AbstractRelation, Value]:
 
