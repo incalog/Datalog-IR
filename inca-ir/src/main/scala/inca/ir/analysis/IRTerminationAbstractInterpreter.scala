@@ -1,6 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir
+import inca.ir.{Name, Param}
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.*
@@ -8,7 +9,8 @@ import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, 
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.aggregate.analysis as iragg
-import inca.ir.extension.arithmetic.analysis as irarith
+import inca.ir.extension.arithmetic.analysis.interpreter.{IntervalDoubleV, IntervalIntV}
+import inca.ir.extension.arithmetic.{TDouble, TInt, analysis as irarith}
 import inca.ir.extension.block.analysis as irblock
 import inca.ir.extension.bool.analysis as irbool
 import inca.ir.extension.data.analysis as irdata
@@ -111,7 +113,7 @@ class IRTerminationAbstractInterpreter(
       MaybeChanged(join(v1, v2), v1)
 
   private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseMeetV(using except)
-    with irarith.interpreter.IntervalJoinV
+    with irarith.interpreter.IntervalMeetV
     with irstr.interpreter.ConstantMeetV
     with irdata.interpreter.ConstantMeetV
     with irtuple.interpreter.ConstantMeetV
@@ -270,7 +272,15 @@ case class AnalysisFailed(msg: String) extends Exception:
 
 class IRTerminationAnalysis extends IRVisitor with Optimizer:
   // Configure
-  val edbConfig: EdbConfig[AbstractRelation] = AbstractEdbConfig.default
+  val edbConfig: EdbConfig[AbstractRelation] = new AbstractEdbConfig {
+    override def abstractExtensionalRelation(n: Name, params: Seq[Param]): AbstractRelation =
+      val (aCols, aRows) = params.map {
+        case Param(name, TInt) => (name.name, IntervalIntV.constant(5000))
+        case Param(name, TDouble) => (name.name, IntervalDoubleV.constant(5000))
+        case Param(name, _) => (name.name, Value.Top)
+      }.unzip
+      AbstractRelation(aCols, aRows, Topped.Actual(false))
+  }
 
   val abstractInterpreter: BaseGenericInterpreter[Value, ?, AbstractRelation, ?, ?] =
     new IRTerminationAbstractInterpreter(false, false, true)
@@ -295,7 +305,9 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
       abstractInterpreter.evalProgram(modules)
     }
 
+    // TODO: Remove me after debugging
     println(new IRDebugPrinter{}.prettyPrint(modules))
+    println(abstractInterpreter.getIDB)
     System.exit(1)
 
     // Interpret result

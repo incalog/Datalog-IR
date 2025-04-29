@@ -197,6 +197,10 @@ class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   override def filter(rv: ConcreteRelation[V])(f: Row => Boolean): ConcreteRelation[V] =
     rv.filter(f)
 
+  override def filter(rv: ConcreteRelation[V])(f: Row => Boolean)(refine: Row => Row): ConcreteRelation[V] =
+    // we are precise, we don't need refinement
+    filter(rv)(f)
+
   override def filterEq(rv: RV, col: String, col2: String): RV =
     val lix = columnIndex(rv, col)
     val rix = columnIndex(rv, col2)

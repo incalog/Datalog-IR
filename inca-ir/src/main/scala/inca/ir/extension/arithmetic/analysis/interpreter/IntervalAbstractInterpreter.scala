@@ -4,10 +4,10 @@ import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
 import sturdy.values.{Powerset, Topped}
-import sturdy.data.MayJoin
-import sturdy.values.integer.{ConcreteIntegerOps, ConcreteStrictIntegerOps, IntegerOps, LiftedIntegerOps, NumericInterval, NumericIntervalEqOps, NumericIntervalIntegerOps, NumericIntervalJoin, NumericIntervalOrderingOps, NumericIntervalWiden, StandardIntervalIntegerOps, TopNumericIntervalInt}
+import sturdy.data.{JOptionC, MakeJoined, MayJoin, WithJoin}
+import sturdy.data.MayJoin.NoJoin
+import sturdy.values.integer.{ConcreteIntegerOps, ConcreteStrictIntegerOps, IntegerOps, LiftedIntegerOps, NumericInterval, NumericIntervalEqOps, NumericIntervalIntegerOps, NumericIntervalJoin, NumericIntervalOrderingOps, NumericIntervalWiden, StandardIntervalIntegerOps, StrictIntegerOps, TopNumericIntervalInt}
 import sturdy.values.ordering.{EqOps, LiftedOrderingOps, OrderingOps, ToppedCertainOrderingOps}
-import sturdy.data.{MakeJoined, WithJoin}
 import sturdy.effect.EffectStack
 import sturdy.effect.except.Except
 import sturdy.effect.failure.Failure
@@ -25,9 +25,15 @@ case class IntervalIntV(iv: IntInterval) extends Value:
   override def toString: String = iv.toString
   override def isConstant: Boolean = iv.isConstant
 
+object IntervalIntV:
+  def constant(i: Int): IntervalIntV = new IntervalIntV(NumericInterval.constant(i))
+
 case class IntervalDoubleV(iv: DoubleInterval) extends Value:
   override def toString: String = iv.toString
   override def isConstant: Boolean = iv.isConstant
+
+object IntervalDoubleV:
+  def constant(d: Double): IntervalDoubleV = new IntervalDoubleV(NumericInterval.constant(d))
 
 trait IntervalEqOps extends BaseEqOps:
   val intIntervalOps = new NumericIntervalEqOps[Int]
@@ -39,12 +45,12 @@ trait IntervalEqOps extends BaseEqOps:
     case _ => super.equ(v1, v2)
 
   override def neq(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
-    case (IntervalIntV(iv1), IntervalIntV(iv2)) => intIntervalOps.equ(iv1, iv2)
-    case (IntervalDoubleV(iv1), IntervalDoubleV(iv2)) => doubleIntervalOps.equ(iv1, iv2)
+    case (IntervalIntV(iv1), IntervalIntV(iv2)) => intIntervalOps.neq(iv1, iv2)
+    case (IntervalDoubleV(iv1), IntervalDoubleV(iv2)) => doubleIntervalOps.neq(iv1, iv2)
     case _ => super.neq(v1, v2)
 
 private def numericDoubleIntervalToValue(value: DoubleInterval): Value = value match
-  case iv if iv == topIntInterval => Value.Top
+  case iv if iv == topDoubleInterval => Value.Top
   case iv => IntervalDoubleV(iv)
 
 private def valueAsNumericDoubleInterval(v: Value)(using except: Except[BaseIRException, ?, ?]): DoubleInterval = v match
@@ -83,6 +89,7 @@ private def valueAsNumericIntInterval(v: Value)(using except: Except[BaseIRExcep
   case IntervalIntV(iv) => iv
   case Value.Top => topIntInterval
   case _ => throw IllegalArgumentException(s"Can not convert $v to int")
+
 
 private class IntervalIntVOps(using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
   extends LiftedIntegerOps[Int, Value, IntInterval](valueAsNumericIntInterval, numericIntIntervalToValue) (
@@ -135,8 +142,52 @@ trait IntervalMeetV extends BaseMeetV:
     case _ => super.meet(lhs, rhs)
 
 
+class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
+  def refineInt(iv1: IntInterval, iv2: IntInterval, op: BinaryArithmeticComparisonOperator): (IntInterval, IntInterval) =
+    def safe(a: Int, b: Int) = NumericInterval.safe(a, b)
+
+    val (l1, h1) = (iv1.low, iv1.high)
+    val (l2, h2) = (iv2.low, iv2.high)
+    op match
+      case BinaryArithmeticComparisonOperator.Geq =>
+        (safe(math.max(l1, l2), h1), safe(l2, math.min(h2, h1)))
+      case BinaryArithmeticComparisonOperator.Gt =>
+        (safe(math.max(l1, l2 + 1), h1), safe(l2, math.min(h2, h1 - 1)))
+      case BinaryArithmeticComparisonOperator.Leq =>
+        (safe(l1, math.min(h1, h2)), safe(math.max(l2, l1), h2))
+      case BinaryArithmeticComparisonOperator.Lt =>
+        (safe(l1, math.min(h1, h2 - 1)), safe(math.max(l2, l1 + 1), h2))
+
+  def refineDouble(iv1: DoubleInterval, iv2: DoubleInterval, op: BinaryArithmeticComparisonOperator): (DoubleInterval, DoubleInterval) =
+    def safe(a: Double, b: Double) = NumericInterval.safe(a, b)
+
+    val (l1, h1) = (iv1.low, iv1.high)
+    val (l2, h2) = (iv2.low, iv2.high)
+    op match
+      case BinaryArithmeticComparisonOperator.Geq =>
+        (safe(math.max(l1, l2), h1), safe(l2, math.min(h2, h1)))
+      case BinaryArithmeticComparisonOperator.Gt =>
+        (safe(math.max(l1, math.nextUp(l2)), h1), safe(l2, math.min(h2, math.nextDown(h1))))
+      case BinaryArithmeticComparisonOperator.Leq =>
+        (safe(l1, math.min(h1, h2)), safe(math.max(l2, l1), h2))
+      case BinaryArithmeticComparisonOperator.Lt =>
+        (safe(l1, math.min(h1, math.nextDown(h2))), safe(math.max(l2, math.nextUp(l1)), h2))
+
+
+  override def refine(v1: Value, v2: Value, op: BinaryArithmeticComparisonOperator): (Value, Value) = (v1, v2) match
+    case (IntervalIntV(i1), IntervalIntV(i2)) =>
+      val (refinedV1, refinedV2) = refineInt(i1, i2, op)
+      (IntervalIntV(refinedV1), IntervalIntV(refinedV2))
+    case (IntervalDoubleV(i1), IntervalDoubleV(i2)) =>
+      val (refinedV1, refinedV2) = refineDouble(i1, i2, op)
+      (IntervalDoubleV(refinedV1), IntervalDoubleV(refinedV2))
+    case _ =>
+      throw IllegalArgumentException("Can not refine non-interval values!")
+
+
 trait IntervalAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntegerOps[Int, Value] = IntervalIntVOps(using failure, effects, except)
   val doubleOps: FloatOps[Double, Value] = IntervalDoubleVOps(using failure, effects, except)
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = IntervalIntVOrderingOps(using except)
   val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = IntervalDoubleVOrderingOps(using except)
+  val arithmeticRefinementOps: ArithmeticRefinementOps[Value] = IntervalArithmeticRefinementOps()

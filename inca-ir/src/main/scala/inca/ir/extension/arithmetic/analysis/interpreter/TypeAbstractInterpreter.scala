@@ -31,3 +31,7 @@ trait TypeAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean],
     { case TypeValue(TDouble) | Value.Top => BaseType[Double] },
     _ => Topped.Top
   )
+
+  // Don't refine values
+  override val arithmeticRefinementOps: ArithmeticRefinementOps[Value] =
+    (v1: Value, v2: Value, op: BinaryArithmeticComparisonOperator) => (v1, v2)

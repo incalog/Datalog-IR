@@ -50,8 +50,13 @@ private class CDoubleVOrderingOps extends OrderingOps[Value, Boolean]:
   override def lt(v1: Value, v2: Value): Boolean = asDouble(v1) < asDouble(v2)
   override def le(v1: Value, v2: Value): Boolean = asDouble(v1) <= asDouble(v2)
 
+private class CArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
+  override def refine(v1: Value, v2: Value, op: BinaryArithmeticComparisonOperator): (Value, Value) =
+    throw IllegalStateException("Refinement for concrete values should never be called")
+
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val intOps: IntegerOps[Int, Value] = CIntVOps(using failure, effects)
   val doubleOps: FloatOps[Double, Value] = CDoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, Boolean] = CIntVOrderingOps()
   val doubleOrderingOps: OrderingOps[Value, Boolean] = CDoubleVOrderingOps()
+  val arithmeticRefinementOps: ArithmeticRefinementOps[Value] = CArithmeticRefinementOps()

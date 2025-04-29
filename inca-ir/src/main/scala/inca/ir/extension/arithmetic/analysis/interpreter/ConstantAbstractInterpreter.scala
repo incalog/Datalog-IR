@@ -83,8 +83,14 @@ trait ConstantMeetV extends BaseMeetV:
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) if d1 == d2 => lhs
     case _ => super.meet(lhs, rhs)
 
+class ConstantArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
+  override def refine(v1: Value, v2: Value, op: BinaryArithmeticComparisonOperator): (Value, Value) =
+    // no refinement for constant values
+    (v1, v2)
+
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects, except)
   val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects, except)
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantIntVOrderingOps(using except)
   val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantDoubleVOrderingOps(using except)
+  val arithmeticRefinementOps: ArithmeticRefinementOps[Value] = ConstantArithmeticRefinementOps()

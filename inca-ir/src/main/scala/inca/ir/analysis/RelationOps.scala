@@ -52,6 +52,9 @@ trait RelationOps[V, B, RV]:
   /** may produce empty table */
   def filterNeq(rv: RV, col: String, col2: String): RV
 
+  /** filter and refine the value */
+  def filter(rv: RV)(f: Row => B)(refine: Row => Row): RV
+  
   /** may produce empty table */
   def naturalJoin(rv: RV, other: RV): RV
 

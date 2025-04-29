@@ -144,6 +144,14 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
       case Topped.Actual(true) => rv // unchanged
       case Topped.Actual(false) => rv.copy(emp = Topped.Actual(true)) // definitely empty
 
+  override def filter(rv: AbstractRelation)(f: Seq[Value] => Topped[Boolean])(refine: Seq[Value] => Seq[Value]): AbstractRelation =
+    rv match
+      case AbstractRelation.Empty(cols) => rv
+      case rv@AbstractRelation.NonEmpty(cols, rows, empty) => f(rv.rows) match
+        case Topped.Top => AbstractRelation(cols, refine(rows), Topped.Top)
+        case Topped.Actual(true) => AbstractRelation(cols, refine(rows), empty)
+        case Topped.Actual(false) => AbstractRelation(cols, refine(rows), Topped.Actual(true)) // definitely empty
+
   def filterEq(rv: AbstractRelation, col: String, col2: String): AbstractRelation =
     val lix = columnIndex(rv, col)
     val rix = columnIndex(rv, col2)
@@ -241,11 +249,11 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
 }
 
 given WidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boolean]], eqOps: EqOps[Value, Topped[Boolean]]): Widen[AbstractRelation] with {
-  def join(rv: AbstractRelation, other: AbstractRelation): AbstractRelation =
+  def widen(rv: AbstractRelation, other: AbstractRelation): AbstractRelation =
     if (rv.cols.toSet != other.cols.toSet)
       throw new IllegalArgumentException(s"Schemas must match for join: $rv ++ $other")
 
-    (rv, other) match
+    val res = (rv, other) match
       case (AbstractRelation.Empty(_), _) => other
       case (_, AbstractRelation.Empty(_)) => rv
       case (rv: AbstractRelation.NonEmpty, other: AbstractRelation.NonEmpty) =>
@@ -255,7 +263,9 @@ given WidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boolean]], 
         val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => widenV(v1, v2).get }
         AbstractRelation(rv.cols, newRows, newEmpty)
+    //println(s"Widen: $rv :: $other -- $res")
+    res
 
   override def apply(v1: AbstractRelation, v2: AbstractRelation): MaybeChanged[AbstractRelation] =
-    MaybeChanged(join(v1, v2), v1)
+    MaybeChanged(widen(v1, v2), v1)
 }
