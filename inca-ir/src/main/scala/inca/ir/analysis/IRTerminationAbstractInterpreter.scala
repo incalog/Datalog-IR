@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir
-import inca.ir.{Name, Param}
+import inca.ir.{Name, Param, Term}
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.*
@@ -10,7 +10,7 @@ import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.arithmetic.analysis.interpreter.{IntervalDoubleV, IntervalIntV}
-import inca.ir.extension.arithmetic.{TDouble, TInt, analysis as irarith}
+import inca.ir.extension.arithmetic.{TDouble, TInt, IntNum, DoubleNum, analysis as irarith}
 import inca.ir.extension.block.analysis as irblock
 import inca.ir.extension.bool.analysis as irbool
 import inca.ir.extension.data.analysis as irdata
@@ -165,7 +165,8 @@ class IRTerminationAbstractInterpreter(
   override val mayJoinUnit: WithJoin[Unit] = implicitly
   override lazy val mayJoinRV: MayJoin.WithJoin[AbstractRelation] = MakeJoined(using joinRV, effects)
 
-  given Widen[Value] = new IRWidenV
+  private val irWiden = new IRWidenV
+  given Widen[Value] = irWiden
   given Widen[RV] = new WidenRV
   
   override lazy val supplementaryTable: SupplementaryTable[AbstractRelation] = new AbstractSupplementaryTable[RV]() {
@@ -174,6 +175,22 @@ class IRTerminationAbstractInterpreter(
 
   given Meet[Value] = IRMeetV(using except)
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new AbstractRelationOps(using except)
+
+  override def evalModule(m: ir.Module)(using Fixed): Map[SupColumn, RV] =
+    // Set up bounds for widening
+    var intLits: Set[Int] = Set()
+    var doubleLits: Set[Double] = Set()
+    new IRVisitor {
+      override def visitTerm(term: Term): Seq[Term] =
+        term match
+          case IntNum(value) => intLits += value
+          case DoubleNum(value) => doubleLits += value
+          case _ => // nothing
+        super.visitTerm(term)
+    }.visitModule(m)
+    irWiden.intBounds = intLits
+    irWiden.doubleBounds = doubleLits
+    super.evalModule(m)
 
 
   class AnalysisAnnotator
@@ -215,7 +232,6 @@ class IRTerminationAbstractInterpreter(
 
   //fix.Fixpoint.DEBUG = true
 
-  //(new PrintingControlObserver()(println))
   val graphBuilder: ControlEventGraphBuilder[Long, Long, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
 
   private val stackConfig: StackConfig = if (logControlEvents)

@@ -1,8 +1,12 @@
 package inca.ir.extension.arithmetic.analysis.interpreter
 
+import inca.ir
+import inca.ir.Term
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
+import inca.ir.visitors.IRVisitor
+import inca.ir.extension.arithmetic as irarith
 import sturdy.values.{Powerset, Topped}
 import sturdy.data.{JOptionC, MakeJoined, MayJoin, WithJoin}
 import sturdy.data.MayJoin.NoJoin
@@ -104,13 +108,15 @@ private class IntervalDoubleVOrderingOps(using except: Except[BaseIRException, ?
 
 
 trait IntervalWidenV extends BaseWidenV:
-  val intBounds: Set[Int] = Set()
-  val doubleBounds: Set[Double] = Set()
-  val intIntervalWiden = new NumericIntervalWiden[Int](intBounds, Integer.MIN_VALUE, Integer.MAX_VALUE)
-  val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
+  var intBounds: Set[Int] = Set()
+  var doubleBounds: Set[Double] = Set()
+  lazy val intIntervalWiden = new NumericIntervalWiden[Int](intBounds, Integer.MIN_VALUE, Integer.MAX_VALUE)
+  lazy val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
 
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (IntervalIntV(iv1), IntervalIntV(iv2)) => IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
+    case (IntervalIntV(iv1), IntervalIntV(iv2)) =>
+      println(s"Int bounds: $intBounds")
+      IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
     case (IntervalDoubleV(iv1), IntervalDoubleV(iv2)) => IntervalDoubleV(doubleIntervalWiden.apply(iv1, iv2).get)
     case _ => super.join(lhs, rhs)
 

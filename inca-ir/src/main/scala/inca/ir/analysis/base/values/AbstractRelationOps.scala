@@ -253,7 +253,7 @@ given WidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boolean]], 
     if (rv.cols.toSet != other.cols.toSet)
       throw new IllegalArgumentException(s"Schemas must match for join: $rv ++ $other")
 
-    val res = (rv, other) match
+    (rv, other) match
       case (AbstractRelation.Empty(_), _) => other
       case (_, AbstractRelation.Empty(_)) => rv
       case (rv: AbstractRelation.NonEmpty, other: AbstractRelation.NonEmpty) =>
@@ -263,8 +263,6 @@ given WidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boolean]], 
         val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => widenV(v1, v2).get }
         AbstractRelation(rv.cols, newRows, newEmpty)
-    //println(s"Widen: $rv :: $other -- $res")
-    res
 
   override def apply(v1: AbstractRelation, v2: AbstractRelation): MaybeChanged[AbstractRelation] =
     MaybeChanged(widen(v1, v2), v1)
