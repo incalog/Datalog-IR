@@ -114,9 +114,7 @@ trait IntervalWidenV extends BaseWidenV:
   lazy val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
 
   override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (IntervalIntV(iv1), IntervalIntV(iv2)) =>
-      println(s"Int bounds: $intBounds")
-      IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
+    case (IntervalIntV(iv1), IntervalIntV(iv2)) => IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
     case (IntervalDoubleV(iv1), IntervalDoubleV(iv2)) => IntervalDoubleV(doubleIntervalWiden.apply(iv1, iv2).get)
     case _ => super.join(lhs, rhs)
 
@@ -187,8 +185,10 @@ class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
     case (IntervalDoubleV(i1), IntervalDoubleV(i2)) =>
       val (refinedV1, refinedV2) = refineDouble(i1, i2, op)
       (IntervalDoubleV(refinedV1), IntervalDoubleV(refinedV2))
+    case (Value.Top, _) | (_, Value.Top) =>
+      (Value.Top, Value.Top)
     case _ =>
-      throw IllegalArgumentException("Can not refine non-interval values!")
+      throw IllegalArgumentException(s"Can not refine non-interval values! $v1 :: $v2")
 
 
 trait IntervalAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
