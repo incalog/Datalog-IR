@@ -5,15 +5,11 @@ import sturdy.effect.except.Except
 import sturdy.values.{Finite, Join, MaybeChanged}
 
 trait BaseCombineV:
-  def combine(lhs: Value, rhs: Value): Value
-
-trait BaseJoinV extends BaseCombineV:
   def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case _ => Value.Top
 
-trait BaseWidenV extends BaseCombineV:
-  def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case _ => Value.Top
+trait BaseJoinV extends BaseCombineV
+trait BaseWidenV extends BaseCombineV
 
 trait Meet[V]:
   def meet(lhs: V, rhs: V): V

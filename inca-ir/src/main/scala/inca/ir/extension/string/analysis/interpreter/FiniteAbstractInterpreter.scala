@@ -25,7 +25,7 @@ case object Unknown extends Component:
 
 case class FiniteStringV(components: Seq[Component], concatDepth: Int) extends Value:
   override def isConstant: Boolean = !components.contains(Unknown)
-  override def toString: String = components.mkString("")
+  override def toString: String = s"${components.mkString("")} at $concatDepth"
 
 object FiniteStringV:
   def apply(concatDepth: Int): FiniteStringV = new FiniteStringV(Seq(Unknown), concatDepth)
@@ -60,13 +60,12 @@ trait FiniteStringJoinV extends BaseJoinV:
     case _ => super.combine(lhs, rhs)
 
 trait FiniteStringWidenV extends BaseWidenV:
-  var maxConcatDepth: Int = 1
+  var maxConcatDepth: Int = 15
 
   override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (f1: FiniteStringV, f2: FiniteStringV) =>
       val newDepth = f1.concatDepth.max(f2.concatDepth)
       if (newDepth > maxConcatDepth)
-        println("Concat!!!")
         Value.Top
       else if (f1.components == f2.components)
         FiniteStringV(f1.components, newDepth)
@@ -77,11 +76,16 @@ trait FiniteStringWidenV extends BaseWidenV:
 trait FiniteStringMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (f1: FiniteStringV, f2: FiniteStringV) =>
-      val newDepth = f1.concatDepth.min(f2.concatDepth)
-      if (f1.components == f2.components)
-        FiniteStringV(f1.components, newDepth)
+      if (f1.isConstant)
+        f1
+      else if (f2.isConstant)
+        f2
       else
-        FiniteStringV(newDepth)
+        val newDepth = f1.concatDepth.min(f2.concatDepth)
+        if (f1.components == f2.components)
+          FiniteStringV(f1.components, newDepth)
+        else
+          FiniteStringV(newDepth)
     case _ => super.meet(lhs, rhs)
 
 class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?]) extends StringOps[Value]:
@@ -96,9 +100,9 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
     case (f1: FiniteStringV, f2: FiniteStringV) =>
       if (f1.components.lastOption.contains(Unknown) && f2.components.headOption.contains(Unknown))
         // Collapse unknowns
-        FiniteStringV(f1.components ++ f2.components.tail, f1.concatDepth + f2.concatDepth)
+        FiniteStringV(f1.components ++ f2.components.tail, f1.concatDepth + f2.concatDepth + 1)
       else
-        FiniteStringV(f1.components ++ f2.components, f1.concatDepth + f2.concatDepth)
+        FiniteStringV(f1.components ++ f2.components, f1.concatDepth + f2.concatDepth + 1)
     case (Value.Top, _) | (_, Value.Top) => Value.Top
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 

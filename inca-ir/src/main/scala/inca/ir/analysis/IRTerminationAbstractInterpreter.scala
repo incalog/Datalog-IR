@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir
-import inca.ir.{Name, Param, Term}
+import inca.ir.{Name, Param, Relation, Term}
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.*
@@ -177,6 +177,9 @@ class IRTerminationAbstractInterpreter(
   given Meet[Value] = IRMeetV(using except)
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new AbstractRelationOps(using except)
 
+  //override def entryPoints(m: ir.Module): Iterable[Relation] =
+  //  super.entryPoints(m).filter(_.name.name == "basic$Superinterface")
+
   override def evalModule(m: ir.Module)(using Fixed): Map[SupColumn, RV] =
     // Set up bounds for widening
     var intLits: Set[Int] = Set()
@@ -343,6 +346,6 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
       }
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
-    if (!analysisHasRun)
+    if (!analysisHasRun && isClosedWorld)
       analyzeProgram(modules)
     super.visitProgram(modules, dependencies)
