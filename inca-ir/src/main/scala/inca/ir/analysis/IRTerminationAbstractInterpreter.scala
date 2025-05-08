@@ -59,7 +59,7 @@ class IRTerminationAbstractInterpreter(
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.IntervalAbstractInterpreter
-    with irstr.interpreter.ConstantAbstractInterpreter
+    with irstr.interpreter.FiniteStringAbstractInterpreter
     with irdata.interpreter.ConstantAbstractInterpreter
     with iragg.interpreter.ConstantAbstractInterpreter
     with irtuple.interpreter.ConstantAbstractInterpreter
@@ -78,7 +78,7 @@ class IRTerminationAbstractInterpreter(
 
   private class IRJoinV extends Join[Value] with BaseJoinV
     with irarith.interpreter.IntervalJoinV
-    with irstr.interpreter.ConstantJoinV
+    with irstr.interpreter.FiniteStringJoinV
     with irdata.interpreter.ConstantJoinV
     with irtuple.interpreter.ConstantJoinV
     with irbool.interpreter.ConstantJoinV
@@ -94,9 +94,9 @@ class IRTerminationAbstractInterpreter(
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
       MaybeChanged(join(v1, v2), v1)
 
-  private class IRWidenV extends Widen[Value] with BaseJoinV
+  private class IRWidenV extends Widen[Value] with BaseWidenV
     with irarith.interpreter.IntervalWidenV
-    with irstr.interpreter.ConstantJoinV
+    with irstr.interpreter.FiniteStringWidenV
     with irdata.interpreter.ConstantJoinV
     with irtuple.interpreter.ConstantJoinV
     with irbool.interpreter.ConstantJoinV
@@ -110,11 +110,11 @@ class IRTerminationAbstractInterpreter(
     with irimpure.interpreter.ConstantJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
-      MaybeChanged(join(v1, v2), v1)
+      MaybeChanged(combine(v1, v2), v1)
 
   private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseMeetV(using except)
     with irarith.interpreter.IntervalMeetV
-    with irstr.interpreter.ConstantMeetV
+    with irstr.interpreter.FiniteStringMeetV
     with irdata.interpreter.ConstantMeetV
     with irtuple.interpreter.ConstantMeetV
     with irbool.interpreter.ConstantMeetV
@@ -129,7 +129,7 @@ class IRTerminationAbstractInterpreter(
 
   private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
     with irarith.interpreter.IntervalEqOps
-    with irstr.interpreter.ConstantEqOps
+    with irstr.interpreter.FiniteStringEqOps
     with irdata.interpreter.ConstantEqOps(using boolOps)
     with irtuple.interpreter.ConstantEqOps(using boolOps)
     with irbool.interpreter.ConstantEqOps(using boolOps)
@@ -287,6 +287,7 @@ case class AnalysisFailed(msg: String) extends Exception:
 
 
 class IRTerminationAnalysis extends IRVisitor with Optimizer:
+
   // Configure
   val edbConfig: EdbConfig[AbstractRelation] = new AbstractEdbConfig {
     override def abstractExtensionalRelation(n: Name, params: Seq[Param]): AbstractRelation =
@@ -304,39 +305,40 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
   private var analysisHasRun: Boolean = false
 
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
-    analysisHasRun = true
+    if (isClosedWorld)
+      analysisHasRun = true
 
-    // Fill edb
-    modules.foreach { m =>
-      m.entries.foreach {
-        case (_, ir.ExtensionalRelation(n, params)) =>
-          val aRel = edbConfig.abstractExtensionalRelation(n, params)
-          abstractInterpreter.insertEDB(n.name, aRel)
+      // Fill edb
+      modules.foreach { m =>
+        m.entries.foreach {
+          case (_, ir.ExtensionalRelation(n, params)) =>
+            val aRel = edbConfig.abstractExtensionalRelation(n, params)
+            abstractInterpreter.insertEDB(n.name, aRel)
+          case _ => // nothing
+        }
+      }
+
+      // Analyse
+      val analysisRes = abstractInterpreter.failure.fallible {
+        abstractInterpreter.evalProgram(modules)
+      }
+
+      // TODO: Remove me after debugging
+      println(new IRDebugPrinter{}.prettyPrint(modules))
+      println(abstractInterpreter.getIDB)
+      System.exit(1)
+
+      // Interpret result
+      analysisRes match {
+        case AFallible.Failing(failures) =>
+          val msg = failures.map { (kind, message) =>
+            s"[$kind]: $message"
+          }.set.mkString("\n")
+          throw AnalysisFailed(msg)
+        case AFallible.Diverging(recur) =>
+          throw IllegalStateException()
         case _ => // nothing
       }
-    }
-
-    // Analyse
-    val analysisRes = abstractInterpreter.failure.fallible {
-      abstractInterpreter.evalProgram(modules)
-    }
-
-    // TODO: Remove me after debugging
-    println(new IRDebugPrinter{}.prettyPrint(modules))
-    println(abstractInterpreter.getIDB)
-    System.exit(1)
-
-    // Interpret result
-    analysisRes match {
-      case AFallible.Failing(failures) =>
-        val msg = failures.map { (kind, message) =>
-          s"[$kind]: $message"
-        }.set.mkString("\n")
-        throw AnalysisFailed(msg)
-      case AFallible.Diverging(recur) =>
-        throw IllegalStateException()
-      case _ => // nothing
-    }
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
     if (!analysisHasRun)

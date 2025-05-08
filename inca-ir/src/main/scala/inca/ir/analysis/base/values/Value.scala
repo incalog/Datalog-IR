@@ -4,11 +4,18 @@ import inca.ir.analysis.base.effect.{BaseIRException, EmptyTable}
 import sturdy.effect.except.Except
 import sturdy.values.{Finite, Join, MaybeChanged}
 
-trait BaseJoinV:
+trait BaseCombineV:
+  def combine(lhs: Value, rhs: Value): Value
+
+trait BaseJoinV extends BaseCombineV:
+  override def combine(lhs: Value, rhs: Value): Value = join(lhs, rhs)
   def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case _ => Value.Top
 
-trait BaseWidenV extends BaseJoinV
+trait BaseWidenV extends BaseCombineV:
+  override def combine(lhs: Value, rhs: Value): Value = widen(lhs, rhs)
+  def widen(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+    case _ => Value.Top
 
 trait Meet[V]:
   def meet(lhs: V, rhs: V): V

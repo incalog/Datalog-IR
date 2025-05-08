@@ -113,10 +113,10 @@ trait IntervalWidenV extends BaseWidenV:
   lazy val intIntervalWiden = new NumericIntervalWiden[Int](intBounds, Integer.MIN_VALUE, Integer.MAX_VALUE)
   lazy val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
 
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def widen(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (IntervalIntV(iv1), IntervalIntV(iv2)) => IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
     case (IntervalDoubleV(iv1), IntervalDoubleV(iv2)) => IntervalDoubleV(doubleIntervalWiden.apply(iv1, iv2).get)
-    case _ => super.join(lhs, rhs)
+    case _ => super.widen(lhs, rhs)
 
 trait IntervalJoinV extends BaseJoinV:
   def joinInterval[T](v1: NumericInterval[T], v2: NumericInterval[T])(using ord: Ordering[T]): NumericInterval[T] =
