@@ -104,11 +104,11 @@ trait BoundedEqOps extends BaseEqOps:
     case _ => super.neq(v1, v2)
 
 trait BoundedJoinV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (BoundedSetV.Empty, _) => rhs
     case (_, BoundedSetV.Empty) => lhs
-    case (BoundedSetV.NonEmpty(b1), BoundedSetV.NonEmpty(b2)) => BoundedSetV.NonEmpty(join(b1, b2))
-    case _ => super.join(lhs, rhs)
+    case (BoundedSetV.NonEmpty(b1), BoundedSetV.NonEmpty(b2)) => BoundedSetV.NonEmpty(combine(b1, b2))
+    case _ => super.combine(lhs, rhs)
 
 trait BoundedMeetV[J[_] <: MayJoin[?]](using eqOps: EqOps[Value, Topped[Boolean]], except: Except[BaseIRException, ?, J], mayJoinV: J[Value]) extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

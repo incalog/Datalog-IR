@@ -8,13 +8,11 @@ trait BaseCombineV:
   def combine(lhs: Value, rhs: Value): Value
 
 trait BaseJoinV extends BaseCombineV:
-  override def combine(lhs: Value, rhs: Value): Value = join(lhs, rhs)
-  def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case _ => Value.Top
 
 trait BaseWidenV extends BaseCombineV:
-  override def combine(lhs: Value, rhs: Value): Value = widen(lhs, rhs)
-  def widen(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case _ => Value.Top
 
 trait Meet[V]:

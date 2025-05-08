@@ -138,7 +138,7 @@ class IROODLClassAbstractInterpreter(
     with irimpure.interpreter.ConstantJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
-      MaybeChanged(join(v1, v2), v1)
+      MaybeChanged(combine(v1, v2), v1)
 
   private class IRMeetV(using except: Except[BaseIRException, Powerset[BaseIRException], WithJoin]) extends BaseMeetV(using except)
     with irarith.interpreter.ConstantMeetV

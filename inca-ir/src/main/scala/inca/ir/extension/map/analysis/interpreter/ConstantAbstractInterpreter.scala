@@ -264,14 +264,14 @@ trait ConstantEqOps extends BaseEqOps:
       case _ => super.neq(v1, v2)
 
 trait ConstantJoinV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (m1: ConstantMapVBase, m2: ConstantMapVBase) =>
       val sameMap = eqOps.equ(m1, m2)
       if (sameMap.isActual && sameMap.get)
         m1
       else
         ConstantMapV.Top
-    case _ => super.join(lhs, rhs)
+    case _ => super.combine(lhs, rhs)
 
 trait ConstantMeetV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

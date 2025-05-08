@@ -207,12 +207,11 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     else
       m.relations.values
 
-  def evalModule(m: ir.Module)(using Fixed): Map[String, RV] = {
+  def evalModule(m: ir.Module)(using Fixed): Map[String, RV] =
     entryPoints(m).map { rel =>
       val allFreeAdorn = Adornment(relationParams(rel).map(_ => Adorn.f))
       rel.name.name -> evalRelation(rel, allFreeAdorn)
     }.toMap
-  }
 
   inline def evalRelation(r: ir.Relation, adornment: Adornment)(using rec: Fixed): RV =
     rec(FixIn.EnterRelation(r, adornment)) match

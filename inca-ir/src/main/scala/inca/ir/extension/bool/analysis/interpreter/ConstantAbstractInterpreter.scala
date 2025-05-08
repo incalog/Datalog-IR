@@ -20,9 +20,9 @@ trait ConstantEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOp
     case _ => super.equ(v1, v2)
 
 trait ConstantJoinV extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (ConstantBoolV(b1), ConstantBoolV(b2)) if b1 == b2 => ConstantBoolV(b1)
-    case _ => super.join(lhs, rhs)
+    case _ => super.combine(lhs, rhs)
 
 trait ConstantMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

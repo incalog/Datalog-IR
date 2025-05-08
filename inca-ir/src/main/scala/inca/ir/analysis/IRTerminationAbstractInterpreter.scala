@@ -10,7 +10,7 @@ import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.arithmetic.analysis.interpreter.{IntervalDoubleV, IntervalIntV}
-import inca.ir.extension.arithmetic.{TDouble, TInt, IntNum, DoubleNum, analysis as irarith}
+import inca.ir.extension.arithmetic.{DoubleNum, IntNum, TDouble, TInt, analysis as irarith}
 import inca.ir.extension.block.analysis as irblock
 import inca.ir.extension.bool.analysis as irbool
 import inca.ir.extension.data.analysis as irdata
@@ -21,7 +21,8 @@ import inca.ir.extension.impure.analysis as irimpure
 import inca.ir.extension.map.analysis as irmap
 import inca.ir.extension.not.analysis as irnot
 import inca.ir.extension.set.analysis as irset
-import inca.ir.extension.string.analysis as irstr
+import inca.ir.extension.string.{TString, analysis as irstr}
+import inca.ir.extension.string.analysis.interpreter.FiniteStringV
 import inca.ir.extension.tuple.analysis as irtuple
 import inca.ir.optimize.{AbstractEdbConfig, EdbConfig, Optimizer}
 import inca.ir.printer.IRDebugPrinter
@@ -92,7 +93,7 @@ class IRTerminationAbstractInterpreter(
     with irimpure.interpreter.ConstantJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
-      MaybeChanged(join(v1, v2), v1)
+      MaybeChanged(combine(v1, v2), v1)
 
   private class IRWidenV extends Widen[Value] with BaseWidenV
     with irarith.interpreter.IntervalWidenV
@@ -294,6 +295,7 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
       val (aCols, aRows) = params.map {
         case Param(name, TInt) => (name.name, IntervalIntV.constant(5000))
         case Param(name, TDouble) => (name.name, IntervalDoubleV.constant(5000))
+        case Param(name, TString) => (name.name, FiniteStringV.edb())
         case Param(name, _) => (name.name, Value.Top)
       }.unzip
       AbstractRelation(aCols, aRows, Topped.Actual(false))

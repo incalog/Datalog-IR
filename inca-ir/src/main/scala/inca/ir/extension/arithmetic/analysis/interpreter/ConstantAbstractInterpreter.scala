@@ -72,10 +72,10 @@ private class ConstantDoubleVOrderingOps(using except: Except[BaseIRException, ?
   extends LiftedOrderingOps[Value, Topped[Boolean], Topped[Double], Topped[Boolean]](toppedDoubleAsConstantDouble, identity)
 
 trait ConstantJoinV extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (ConstantIntV(i1), ConstantIntV(i2)) if i1 == i2 => lhs
     case (ConstantDoubleV(d1), ConstantDoubleV(d2)) if d1 == d2 => lhs
-    case _ => super.join(lhs, rhs)
+    case _ => super.combine(lhs, rhs)
 
 trait ConstantMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

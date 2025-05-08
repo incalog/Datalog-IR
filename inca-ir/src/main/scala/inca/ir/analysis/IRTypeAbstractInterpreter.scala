@@ -65,7 +65,7 @@ class IRTypeAbstractInterpreter(
 
   type TRV = AbstractRelation
 
-  // Define a join for TypeValues according to the lattice given above.
+  // Define a combine for TypeValues according to the lattice given above.
   given JoinTV: Join[Value] with {
     private def join(v1: Value, v2: Value): Value = (v2, v2) match
       case (TypeValue(ty1), TypeValue(ty2)) if ty1 == ty2 => v1

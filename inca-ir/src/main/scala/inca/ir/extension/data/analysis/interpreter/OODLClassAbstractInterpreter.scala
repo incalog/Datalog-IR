@@ -39,9 +39,9 @@ trait OODLClassEqOps(using boolOps: BooleanOps[Topped[Boolean]], classOps: Class
     case _ => super.neq(v1, v2)
 
 trait OODLClassJoinV(using classOps: ClassOps[OODLClassV, Boolean]) extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (cls1: OODLClassV, cls2: OODLClassV) => classOps.join(cls1, cls2)
-    case _ => super.join(lhs, rhs)
+    case _ => super.combine(lhs, rhs)
 
 trait OODLClassMeetV(using classOps: ClassOps[OODLClassV, Boolean]) extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

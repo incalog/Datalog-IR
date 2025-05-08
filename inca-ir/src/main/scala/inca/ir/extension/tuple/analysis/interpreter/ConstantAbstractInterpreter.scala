@@ -35,9 +35,9 @@ trait ConstantEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOp
     case _ => super.equ(v1, v2)
 
 trait ConstantJoinV extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (ConstantTupleV(ts1), ConstantTupleV(ts2)) => ConstantTupleV(ts1.zip(ts2).map(join(_, _)))
-    case _ => super.join(lhs, rhs)
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+    case (ConstantTupleV(ts1), ConstantTupleV(ts2)) => ConstantTupleV(ts1.zip(ts2).map(combine(_, _)))
+    case _ => super.combine(lhs, rhs)
 
 trait ConstantMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

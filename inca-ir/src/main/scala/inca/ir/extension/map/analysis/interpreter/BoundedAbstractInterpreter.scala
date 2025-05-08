@@ -151,11 +151,11 @@ trait BoundedEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
     case _ => super.neq(v1, v2)
 
 trait BoundedJoinV(using eqOps: EqOps[Value, Topped[Boolean]]) extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (BoundedMapV.Empty, _) => rhs
     case (_, BoundedMapV.Empty) => lhs
-    case (BoundedMapV.NonEmpty(k1, v1), BoundedMapV.NonEmpty(k2, v2)) => BoundedMapV(join(k1, k2) -> join(v1, v2))
-    case _ => super.join(lhs, rhs)
+    case (BoundedMapV.NonEmpty(k1, v1), BoundedMapV.NonEmpty(k2, v2)) => BoundedMapV(combine(k1, k2) -> combine(v1, v2))
+    case _ => super.combine(lhs, rhs)
 
 trait BoundedMeetV[J[_] <: MayJoin[?]](using eqOps: EqOps[Value, Topped[Boolean]], except: Except[BaseIRException, ?, J], mayJoinV: J[Value]) extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match

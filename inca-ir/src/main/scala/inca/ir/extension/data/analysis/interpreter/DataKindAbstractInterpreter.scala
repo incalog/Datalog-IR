@@ -48,10 +48,10 @@ trait DataKindEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOp
     case _ => super.neq(v1, v2)
 
 trait DataKindJoinV extends BaseJoinV:
-  override def join(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (DataKindV(caseDefs1, isRecursive1), DataKindV(caseDefs2, isRecursive2)) =>
       DataKindV(caseDefs1.union(caseDefs2), isRecursive1 && isRecursive2)
-    case _ => super.join(lhs, rhs)
+    case _ => super.combine(lhs, rhs)
 
 trait DataKindMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
