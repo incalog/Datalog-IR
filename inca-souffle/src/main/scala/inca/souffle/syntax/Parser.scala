@@ -6,6 +6,8 @@ import inca.ir.{Name, RefByName}
 import inca.souffle.syntax.Atom.Disjunction
 import inca.souffle.syntax.Parser.{call, term}
 import inca.souffle.syntax.ProgramContent.*
+import inca.util.TextStyle.Bold
+import inca.util.{Color, TextStyle, colorize, style}
 
 import scala.language.implicitConversions
 
@@ -41,7 +43,14 @@ object Parser:
   def parseSouffle(source: String): Program =
     (whitespaces0 *> program <* P.end).parseAll(source) match
       case Right(p) => p
-      case Left(err) => throw new IllegalArgumentException(s"Parse error at ${source.slice(err.failedAtOffset, err.failedAtOffset + 10)}: $err")
+      case Left(err) =>
+        val range = 60
+        val idx = if (err.failedAtOffset < range) err.failedAtOffset else range
+        val errS = source.slice(err.failedAtOffset - range, err.failedAtOffset + range)
+        val errStr = errS.substring(0, idx).colorize(Color.Black)
+          + errS.substring(idx, idx + 1).colorize(Color.Red).style(TextStyle.Bold)
+          + errS.substring(idx+1).colorize(Color.Black)
+        throw new IllegalArgumentException(s"Parse error at $errStr: $err")
 
   /* LEXICAL */
 
@@ -89,7 +98,7 @@ object Parser:
     spaced(id)
 
   val varidentifier: P[String] =
-    spaced(P.char('?').?.with1 ~ id).map {
+    spaced(P.char('?').?.with1 ~ (letter ~ letterDigit.rep0).string).map {
       case (None, name) => name
       case (Some(_), name) => s"?$name"
     }
@@ -125,7 +134,7 @@ object Parser:
     spaced(P.char(c))
 
   def op(s: String): P[Unit] =
-    spaced(P.string(s) *> P.not(letterDigit))
+    spaced(P.string(s) *> P.not(letter)) //P.not(letterDigit))
 
   def operator(s: String): P[Unit] =
     spaced(P.string(s) <* P.not(opSymbol))
@@ -159,7 +168,6 @@ object Parser:
   val typ: P[Type] =
     oneOperator(List(Type.Number, Type.Symbol, Type.Unsigned, Type.Float)) |
     qualifiedIdentifier.map(Type.Name.apply)
-
 
   lazy val term: P[Term] = P.defer(termRec)
 
@@ -270,7 +278,7 @@ object Parser:
     )
 
   lazy val atom: P[Atom] =
-    inParens(P.defer(disjunction)) |
+    inParens(P.defer(disjunction)).backtrack |
     op('!') *> P.defer(atom).map(Atom.Not.apply) |
     matchAtom.backtrack |
     call.backtrack |
@@ -339,6 +347,7 @@ object Parser:
     import TypeDeclConstraint.*
     (op("<:") *> typ).map(SubType.apply) |
     (op("=") *> adtBranch.repSep(1, op("|")).map(a => ADTType(a.toList))).backtrack |
+    (op("=") *> inBrackets(attribute.repSep(1, op(","))).map(a => RecordType(Record(a.toList)))).backtrack |
     (op("=") *> typ).map(EqType.apply)
 
   val typeDecl: P[TypeDecl] =

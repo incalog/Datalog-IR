@@ -53,3 +53,7 @@ enum TextStyle(val code: String):
 extension (text: String)
   def colorize(color: Color): String = s"$color$text${Color.Reset}"
   def style(style: TextStyle): String = s"$style$text${TextStyle.Reset}"
+
+extension (c: Char)
+  def colorize(color: Color): String = s"$color$c${Color.Reset}"
+  def style(style: TextStyle): String = s"$style$c${TextStyle.Reset}"
