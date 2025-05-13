@@ -103,7 +103,7 @@ object GenerateSouffle:
         case arith.ArithmeticAggregationOperator.MinInt => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(ref.name), callArgs)))
         case arith.ArithmeticAggregationOperator.MaxInt => Aggregator.Max(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(ref.name), callArgs)))
         case arith.ArithmeticAggregationOperator.SumInt => Aggregator.Sum(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(ref.name), callArgs)))
-        case count@arith.ArithmeticAggregationOperator.Count => throw new IllegalArgumentException(s"Currently do not support count aggregation $count")
+        case arith.ArithmeticAggregationOperator.Count =>  Aggregator.Count(Seq(Atom.Call(qualifyName(ref.name), callArgs)))
         case defined: AggregationOperatorUserDefined => throw new IllegalArgumentException(s"Currently do not support user-defined aggregation $defined")
       Atom.Compare(Term.Var(cleanName(resultVar)), EQ, Term.AggregatorTerm(souffleAgg))
 

@@ -5,6 +5,7 @@ import inca.ir.*
 import inca.ir.execution.ThreadCount.Fixed
 import inca.ir.execution.{IRExecutor, UnitRelation}
 import inca.ir.extension.*
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.*
 import inca.ir.extension.arithmetic.IR as arithIR
 import inca.ir.extension.bool.{BoolAnd, BoolNot, BoolTrue, TBoolean}
@@ -169,4 +170,77 @@ object Termination:
 
     val res = runModInEngine(inca.souffle.backend.Executor(), mod, edb)
     res.foreach(r => println(r.asTable))
-  
+
+  @main def runDefensiveTerminatingInt(): Unit =
+    val mod = Module("MethodLookup", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("DirectSuperclass", Seq(
+        Param("type", TString),
+        Param("supertype", TString)
+      )),
+
+      ExtensionalRelation("MethodImplemented", Seq(
+        Param("type", TString),
+        Param("method", TString)
+      )),
+
+      /*Relation("MethodImplemented", Seq(
+        Param("type", TString),
+        Param("method", TString)
+      ), Seq(
+        Body(Seq(ExtensionalCall("_MethodImplemented", Seq(Var("type"), Var("method")))))
+      )),*/
+
+      Relation("TransitiveSuperclasses",
+        Seq(
+          Param("type", TString),
+          Param("supertype", TString)
+        ),
+        Seq(
+          Body(Seq(
+            ExtensionalCall("DirectSuperclass", Seq(Var("type"), Var("supertype"))),
+          )),
+          Body(Seq(
+            ExtensionalCall("DirectSuperclass", Seq(Var("type"), Var("stype"))),
+            Call("TransitiveSuperclasses", Seq(Var("stype"), Var("supertype"))),
+          ))
+        )
+      ),
+
+      Relation("_MethodLookup_WithLen", Seq(
+        Param("type", TString),
+        Param("method", TString),
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          ExtensionalCall("MethodImplemented", Seq(Var("type"), Var("method"))),
+          Eq(Var("n"), IntNum(0))
+        )),
+        Body(Seq(
+          ExtensionalCall("DirectSuperclass", Seq(Var("type"), Var("supertype"))),
+          Call("_MethodLookup_WithLen", Seq(Var("supertype"), Var("method"), Var("n0"))),
+          Aggregate("TransitiveSuperclasses", Seq(Var("type").arg, AggregateColumnArg(Var("c"))), ArithmeticAggregationOperator.Count),
+          LE(Var("c"), Var("n0")),
+          ExtensionalCall("MethodImplemented", Seq(Var("type"), Var("_")), true),
+          Eq(Var("n"), Add(Var("n0"), IntNum(1)))
+        ))
+      ))
+    ))
+
+    val edb = Seq(
+      execution.Relation2(
+        "DirectSuperclass", Seq("type", "supertype"), Seq(
+          Seq("C", "A"),
+          Seq("B", "A"),
+          Seq("C", "B"),
+          Seq("B", "C"), // This fact closes the cycle and produces and endless-loop
+        )
+      ),
+      execution.Relation2(
+        "MethodImplemented", Seq("type", "method"), Seq(
+          Seq("A", "test"),
+        )
+      )
+    )
+
+    val res = runModInEngine(inca.souffle.backend.Executor(), mod, edb)
+    res.foreach(r => println(r.asTable))
