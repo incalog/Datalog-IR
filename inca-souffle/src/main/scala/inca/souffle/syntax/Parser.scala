@@ -185,10 +185,10 @@ object Parser:
       (t, as) => Aggregator.Min(t, as)
     }
     val maxAgg = (op("max") *> (term <* op(":")) ~ aggArgs).map {
-      (t, as) => Aggregator.Min(t, as)
+      (t, as) => Aggregator.Max(t, as)
     }
     val sumAgg = (op("sum") *> (term <* op(":")) ~ aggArgs).map {
-      (t, as) => Aggregator.Min(t, as)
+      (t, as) => Aggregator.Sum(t, as)
     }
     val countAgg = ((op("count") ~ op(":")) *> aggArgs).map {
       as => Aggregator.Count(as)

@@ -14,7 +14,7 @@ import scala.io.Source
 
 // TODO: Links, but not yet executable since GenerateIR for Souffle is missing features
 object TwoTypeSensitiveHeap:
-  private def runContextInsensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "2-type-sensitive+heap.dl"): Unit =
+  private def runContextInsensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "2-type-sensitive+heap-flatten.dl"): Unit =
     val baseDir = "doop"
     val source = Source.fromResource(baseDir + "/" + file)
     val options = CompilerOptions.default
