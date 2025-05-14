@@ -190,9 +190,14 @@ class GenerateIR extends GenerateIRContext:
     ???
 
   private def compileRecordTypeDecl(decl: ProgramContent.TypeDecl) =
-    val ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(tys)) = decl
-    // TODO: Adapt record IR to contain nil case and use the extension here
-    ???
+    // Lower records to ADTs
+    val ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(record)) = decl
+    val dataDefName = ir.Name(name)
+    val dataDef = irdata.DataDefinition(dataDefName)
+    val dataTy = irdata.TData(dataDefName)
+    val nilCase = irdata.CaseDefinition(ir.Name(name + "Nil"), Seq(), dataTy)
+    val conCase = irdata.CaseDefinition(ir.Name(name + "Cons"), record.attrs.map(a => compileType(a.ty)), dataTy)
+    Seq(dataDef, nilCase, conCase)
 
   private def compileRelationDecl(decl: ProgramContent.RelationDecl): Seq[ir.ModuleEntry] =
     // TODO: Do something with qualifiers and choiceDomain
@@ -310,8 +315,9 @@ class GenerateIR extends GenerateIRContext:
     case Term.UnsignedLit(n) => irarith.IntNum(n.toInt)
     case Term.FloatLit(f) => irarith.DoubleNum(f)
     case Term.Nil() => ??? // record nil case
-    case Term.List(s) => ???
+    case Term.RecordList(s) => ???
     case constr@Term.Constr(qname, args) =>
+      println(s"constr: $constr")
       val typeDecl = constr.target.get
       val fromPath = qname.path.map(n => ir.Name(n))
       val fromName = prefixedName(QName(qname.ns), typeDecl, absolutePath = fromPath.nonEmpty)
@@ -409,7 +415,9 @@ class GenerateIR extends GenerateIRContext:
           irdata.TData(fromPath :+ fromName)
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.UnionType(_)) =>
           ???
-        case ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(_)) =>
-          ???
+        case decl@ProgramContent.TypeDecl(name, TypeDeclConstraint.RecordType(_)) =>
+          val fromPath = qname.path.map(n => ir.Name(n))
+          val fromName = prefixedName(QName(qname.ns), decl, absolutePath = fromPath.nonEmpty)
+          irdata.TData(fromPath :+ fromName)
         case ProgramContent.TypeDecl(name, TypeDeclConstraint.SubType(_)) =>
           ???

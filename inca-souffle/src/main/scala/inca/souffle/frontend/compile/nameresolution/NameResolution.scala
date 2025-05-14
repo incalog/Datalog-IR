@@ -108,6 +108,7 @@ trait NameResolution:
       ctx.lookupRelationDecl(qualifiedName) match
         case Some(relDecl) => call.resolved(relDecl)
         case None => throw IllegalArgumentException(s"Could not resolve $qualifiedName for $atom")
+      args.foreach(resolveTerm)
     case Atom.Not(atom) => resolveAtom(atom)
     case Atom.Disjunction(bodys) => bodys.foreach(_.foreach(resolveAtom))
     case Atom.Compare(t1, _, t2) =>
@@ -145,7 +146,7 @@ trait NameResolution:
     case Term.UnsignedLit(n) =>
     case Term.FloatLit(f) =>
     case Term.Nil() =>
-    case Term.List(s) =>
+    case Term.RecordList(s) =>
 
   private def resolveAggregator(agg: Aggregator): Unit = agg match
     case Aggregator.Max(t, atoms) =>

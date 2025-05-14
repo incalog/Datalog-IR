@@ -209,7 +209,7 @@ enum Term extends SourceLocation:
   case UnsignedLit(n: Long)
   case FloatLit(f: Double)
   case Nil()
-  case List(s: Seq[Term])
+  case RecordList(s: Seq[Term]) extends Term, Resolvable[ProgramContent.TypeDecl]
   case Constr(qualifiedName: QualifiedName, args: Seq[Term]) extends Term, Resolvable[ProgramContent.TypeDecl]
   case TypeCast(t: Term, ty: Type)
   case AggregatorTerm(agg: Aggregator)
@@ -225,7 +225,7 @@ enum Term extends SourceLocation:
     case UnsignedLit(n) => n.toString
     case FloatLit(f) => f.toString
     case Nil() => "nil"
-    case List(s) => s"[${s.mkString(", ")}]"
+    case RecordList(s) => s"[${s.mkString(", ")}]"
     case Constr(name, args) =>
       val argList = s"(${args.mkString(", ")})"
       s"$$$name$argList"

@@ -65,8 +65,8 @@
 .type ExceptionHandler = Instruction
 .type Annotation = ReferenceType
 .type OpaqueInstruction = Instruction
-.type mainAnalysis_configuration_Context = [type1:Type, type2:Type]
-.type mainAnalysis_configuration_HContext = [type:Type]
+.type mainAnalysis_configuration_Context = Ctx { type1: Type, type2: Type }
+.type mainAnalysis_configuration_HContext = HCtx { type: Type }
 .type mainAnalysis_MethodType = Value
 .type mainAnalysis_ParamTypes = symbol
 .type mainAnalysis_MethodHandle = Value
@@ -6260,26 +6260,28 @@ mainAnalysis_configuration_ContextRequest(?callerCtx,?hctx,?invo,?value,"<java.l
    mainAnalysis_isImmutableContext(?callerCtx),
    mainAnalysis_FakeInvocation_MainThreadInit(?invo).
 
-mainAnalysis_configuration_ContextResponse(?callerCtx,[?hctxType],?invo,?value,?tomethod,[?hctxType,?type]) :- 
-   mainAnalysis_configuration_ContextRequest(?callerCtx,[?hctxType],?invo,?value,?tomethod,_),
+mainAnalysis_configuration_ContextResponse(?callerCtx,?hctx,?invo,?value,?tomethod,$Ctx(?hctxType, ?type)) :-
+   mainAnalysis_configuration_ContextRequest(?callerCtx,?hctx,?invo,?value,?tomethod,_),
+   ?hctx = $HCtx(?hctxType),
    mainAnalysis_Value_DeclaringType(?value,?type).
 
 mainAnalysis_configuration_InitContextRequest("<<immutable-context>>").
 
-mainAnalysis_configuration_InitContextResponse(?value,[?value,?value]) :- 
+mainAnalysis_configuration_InitContextResponse(?value,$Ctx(?value, ?value)) :-
    mainAnalysis_configuration_InitContextRequest(?value).
 
 mainAnalysis_configuration_InitHContextRequest("<<immutable-hcontext>>").
 
-mainAnalysis_configuration_InitHContextResponse(?value,[?value]) :- 
+mainAnalysis_configuration_InitHContextResponse(?value,$HCtx(?value)) :- 
    mainAnalysis_configuration_InitHContextRequest(?value).
 
 mainAnalysis_configuration_RecordContextRequest(?ctx,?heapValue,?var) :- 
    mainAnalysis_AssignNormalHeapAllocation(?heapValue,?var,?inmethod),
    mainAnalysis_ReachableContext(?ctx,?inmethod).
 
-mainAnalysis_configuration_RecordContextResponse([?ctxType1,?ctxType2],?value,?var,[?ctxType2]) :- 
-   mainAnalysis_configuration_RecordContextRequest([?ctxType1,?ctxType2],?value,?var).
+mainAnalysis_configuration_RecordContextResponse(?ctx,?value,?var,$HCtx(?ctxType2)) :- 
+   mainAnalysis_configuration_RecordContextRequest(?ctx,?value,?var),
+   ?ctx = $Ctx(?ctxType1, ?ctxType2).
 
 mainAnalysis_configuration_StaticContextRequest(?callerCtx,?invo) :- 
    mainAnalysis_MethodHandleCallGraphEdge_Candidate(?callerCtx,?invo,?method,_,_),

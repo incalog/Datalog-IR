@@ -136,7 +136,7 @@ trait RequirementAnalysis:
     terms.foreach(analyseTerm)
 
   def analyseTerm(term: Term): Unit = term match
-    case Term.List(s) => analyseTerms(s: _*)
+    case Term.RecordList(s) => analyseTerms(s: _*)
     // TODO: support qualified names
     case constr@Term.Constr(qname, args) if qname.ns.size == 1 =>
       analyseTerms(args: _*)

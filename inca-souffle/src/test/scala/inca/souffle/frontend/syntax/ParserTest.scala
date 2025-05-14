@@ -34,3 +34,7 @@ class ParserTest extends AnyFunSuite:
     Parser.plan.parseAll(".plan 1:(3,2,1)").getOrElse(???)
     Parser.plan.parseAll(".plan 1 : (3,2,1)").getOrElse(???)
   }
+
+  test("adt typedecl") {
+    Parser.typeDecl.parseAll(".type mainAnalysis_configuration_Context = Ctx { type1: Type, type2: Type }").getOrElse(???)
+  }

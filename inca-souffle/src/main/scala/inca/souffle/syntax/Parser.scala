@@ -219,7 +219,7 @@ object Parser:
   val atomicTerm: P[Term] =
     literal |
     op("nil").mapWithLoc(_ => Term.Nil.apply()) |
-    inBrackets(argList).mapWithLoc(Term.List.apply) |
+    inBrackets(argList).mapWithLoc(Term.RecordList.apply) |
     P.char('$') *> (qualifiedIdentifier ~ inParens(argList)).mapWithLoc((name, args) => Term.Constr(name, args)) |
     op("as") *> inParens(term ~ (op(',') *> typ)).mapWithLoc((t, ty) => Term.TypeCast(t, ty)) |
     aggregator.mapWithLoc(Term.AggregatorTerm.apply) |
@@ -343,15 +343,15 @@ object Parser:
     }
 
 
-  private val adtBranch: P[ADTConstructor] = (identifier ~ inBraces(attribute.rep0)).map {
+  private val adtBranch: P[ADTConstructor] = (identifier ~ inBraces(attribute.repSep0(op(",")))).map {
     case (name, attributes) => ADTConstructor(name, attributes)
   }
 
   private val typeDeclConstraint: P[TypeDeclConstraint] =
     import TypeDeclConstraint.*
     (op("<:") *> typ).map(SubType.apply) |
-    (op("=") *> adtBranch.repSep(1, op("|")).map(a => ADTType(a.toList))).backtrack |
-    (op("=") *> inBrackets(attribute.repSep(1, op(","))).map(a => RecordType(Record(a.toList)))).backtrack |
+    (op("=") *> adtBranch.repSep0(op("|")).map(a => ADTType(a))).backtrack |
+    (op("=") *> inBrackets(attribute.repSep0(op(","))).map(a => RecordType(Record(a)))).backtrack |
     (op("=") *> typ).map(EqType.apply)
 
   val typeDecl: P[TypeDecl] =
