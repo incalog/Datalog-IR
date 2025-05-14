@@ -47,9 +47,13 @@ object Parser:
         val range = 60
         val idx = if (err.failedAtOffset < range) err.failedAtOffset else range
         val errS = source.slice(err.failedAtOffset - range, err.failedAtOffset + range)
-        val errStr = errS.substring(0, idx).colorize(Color.Black)
-          + errS.substring(idx, idx + 1).colorize(Color.Red).style(TextStyle.Bold)
-          + errS.substring(idx+1).colorize(Color.Black)
+        val errStr =
+          if (errS.length > idx)
+            errS.substring(0, idx).colorize(Color.Black)
+            + errS.substring(idx, idx + 1).colorize(Color.Red).style(TextStyle.Bold)
+            + errS.substring(idx+1).colorize(Color.Black)
+          else
+            errS.substring(0, idx).colorize(Color.Black)
         throw new IllegalArgumentException(s"Parse error at $errStr: $err")
 
   /* LEXICAL */
