@@ -40,7 +40,7 @@ trait Lowering extends BaseLowering:
         )))
       )),
       Body(Seq(
-        data.Deconstruct(Var("ls"), s"Cons$$$ty", Seq(Var("curEl"), Var("tl").arg)),
+        data.Deconstruct(Var("ls"), s"Cons$$$ty", Seq(Var("curEl"), Var("tl"))),
         Call(s"List$$$ty$$Append", Seq(Var("tl"), Var("el"), Var("tlOut"))),
         Eq(Var("out"), data.Construct(s"Cons$$$ty", Seq(Var("curEl"), Var("tlOut"))))
       ))

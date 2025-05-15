@@ -190,10 +190,8 @@ object GenerateAscent:
             case ir.TermArg(t) =>
               tmpTerm.typ = termTy.map(_.ty.bound)
               as ++= compileAtom(ir.Eq(tmpTerm, t))
-            case ir.WildcardArg() =>
-            // nothing
-            case AggregateColumnArg(t) =>
-          // Should not happen
+            case ir.WildcardArg() => // nothing
+            case AggregateColumnArg(t) => // Should not happen
           tmpTerm.typ = termTy.map(_.ty.binding)
           compileArg(tmpTerm.arg, noClone = true, noDeref = true)
         else

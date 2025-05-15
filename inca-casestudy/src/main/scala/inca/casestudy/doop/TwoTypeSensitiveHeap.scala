@@ -20,6 +20,7 @@ object TwoTypeSensitiveHeap:
     val options = CompilerOptions.default
     //options.irLogging.logLowerings = true
     val compiled = CompiledSouffleProgram.fromSource("TwoTypeSensitiveHeap", source, options)
+    compiled.setOptimizationPipeline(List())
     compiled.setPipeline(List(
       () => new bool.Lowering {},
       () => new block.Lowering {},

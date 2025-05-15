@@ -111,6 +111,12 @@ case class Deconstruct(t: Term, caseRef: Ref[_ <: CaseDefinitionReference], args
   override def commonVars: Set[Var] = t.commonVars ++ args.flatMap(_.commonVars).toSet
 
 object Deconstruct:
+  def apply(t: Term, caseName: Seq[Name], args: Seq[Arg]): Deconstruct =
+    if caseName.size == 1 then
+      new Deconstruct(t, RefByName(caseName.last), args, false)
+    else
+      new Deconstruct(t, RefByQualifiedName(caseName), args, false)
+  
   def apply(t: Term, caseName: Name, args: Seq[Arg], neg: Boolean = false): Deconstruct =
     new Deconstruct(t, RefByName(caseName), args, neg)
 

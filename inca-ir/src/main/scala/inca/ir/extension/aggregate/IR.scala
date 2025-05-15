@@ -9,6 +9,10 @@ trait IR extends BaseIR:
   override def language: Language = super.language + IR
   override def requires: Language = Language(IR)
 
+// TODO: Should we support count aggregation like this:
+//  R(x, y)
+//  count R(#z, x, y) where #z is the OutputAggregateArg
+
 case class AggregateColumnArg(t: Term) extends Arg:
   override def toString: String = s"#$t"
   override def vars: Seq[Var] = t.vars

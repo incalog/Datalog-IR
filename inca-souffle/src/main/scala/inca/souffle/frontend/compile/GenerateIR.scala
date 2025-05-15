@@ -35,6 +35,8 @@ class GenerateIR extends GenerateIRContext:
 
   private var componentModules: Map[ir.Name, ir.Module] = Map()
 
+  private var boundVariables: Set[String] = _
+
   def compileProgram(prog: Program, name: String): Seq[ir.Module] =
     initContext(prog)
     val content = switchToMainComponent {
@@ -247,7 +249,7 @@ class GenerateIR extends GenerateIRContext:
     ir.Param(cleanParamName(attr.name), compileType(attr.ty))
 
   private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): Seq[ir.Body] =
-    val ProgramContent.Rule(heads, atom, queryPlanOption) = rule
+    val ProgramContent.Rule(heads, bodyAtom, queryPlanOption) = rule
     // need to consider that there could be multiple heads for the same rule
     // e.g. R(x), R(y) :- Q(x, y).
     val headTermsPerRule = heads.flatMap {
@@ -255,11 +257,15 @@ class GenerateIR extends GenerateIRContext:
       case _ => None
     }
     headTermsPerRule.map { headTerms =>
+      boundVariables = Set()
+
+      val compiledBody = compileAtom(bodyAtom)
       // rules might use other variable names or even terms in their head
       val renameAtoms = headTerms.zip(decl.attrs).map { (headTerm, attr) =>
         ir.Eq(compileTerm(headTerm), ir.Var(cleanParamName(attr.name)))
       }
-      val body = ir.Body(compileAtom(atom) +: renameAtoms)
+
+      val body = ir.Body(compiledBody +: renameAtoms)
       queryPlanOption match
         case Some(qp) => body.addHint(SouffleQueryPlanHint(qp))
         case None => body
@@ -292,7 +298,22 @@ class GenerateIR extends GenerateIRContext:
     case Atom.Disjunction(bodys) =>
       irdis.Disjunction(bodys.map(atoms => irdis.DisjunctionAlternative(atoms.map(compileAtom))))
     case Atom.Compare(t1, Comparator.EQ, t2) =>
-      ir.Eq(compileTerm(t1), compileTerm(t2))
+      def compileDeconstruct(constr: Term.Constr, t: Term): ir.Atom =
+        val qname = constr.qualifiedName
+        val args = constr.args
+        val typeDecl = constr.target.get
+        val fromPath = qname.path.map(n => ir.Name(n))
+        val fromName = prefixedName(QName(qname.ns), typeDecl, absolutePath = fromPath.nonEmpty)
+        irdata.Deconstruct(compileTerm(t), fromPath :+ fromName, args.map(compileTerm(_).arg))
+
+      // Handle deconstructs
+      (t1, t2) match
+        case (constr: Term.Constr, t) if isBound(t) && !isBound(constr) => compileDeconstruct(constr, t)
+        case (t, constr: Term.Constr) if isBound(t) && !isBound(constr) => compileDeconstruct(constr, t)
+        case (constr: Term.Constr, t) if isBound(t) && !isBound(constr) => compileDeconstruct(constr, t)
+        case (t, constr: Term.Constr) if isBound(t) && !isBound(constr) => compileDeconstruct(constr, t)
+        case _ => ir.Eq(compileTerm(t1), compileTerm(t2))
+
     case Atom.Compare(t1, Comparator.NEQ, t2) =>
       ir.Eq(compileTerm(t1), compileTerm(t2), true)
     case Atom.Compare(t1, op, t2) =>
@@ -308,8 +329,18 @@ class GenerateIR extends GenerateIRContext:
     case Term.Var("_") => ir.WildcardArg() // Souffle only allows wildcards at argument positions
     case _ => compileTerm(term).arg
 
+  private def isBound(term: Term): Boolean = term match
+    case Term.Var(name) => boundVariables.contains(name)
+    case Term.Constr(_, args) => args.forall(isBound)
+    case Term.TypeCast(t, _) => isBound(t)
+    case _ => true
+
   private def compileTerm(term: Term): ir.Term = term match
-    case Term.Var(name) => ir.Var(ir.Name(cleanName(name)))
+    case Term.Var(name) =>
+      // TODO: This over approximates variables. We would need a precise typechecker to do this the correct way.
+      //  E.g variables in negative calls are not bound.
+      boundVariables += name
+      ir.Var(ir.Name(cleanName(name)))
     case Term.StringLit(s) => irstring.StringLit(s)
     case Term.NumberLit(n) => irarith.IntNum(n)
     case Term.UnsignedLit(n) => irarith.IntNum(n.toInt)
@@ -317,7 +348,7 @@ class GenerateIR extends GenerateIRContext:
     case Term.Nil() => ??? // record nil case
     case Term.RecordList(s) => ???
     case constr@Term.Constr(qname, args) =>
-      println(s"constr: $constr")
+      // Deconstruct, since all args are bound
       val typeDecl = constr.target.get
       val fromPath = qname.path.map(n => ir.Name(n))
       val fromName = prefixedName(QName(qname.ns), typeDecl, absolutePath = fromPath.nonEmpty)
@@ -325,30 +356,47 @@ class GenerateIR extends GenerateIRContext:
     case Term.TypeCast(t, ty) =>
       ir.Cast(compileTerm(t), compileType(ty))
     case Term.AggregatorTerm(agg) =>
-      // TODO: Ignore for now
-      irarith.IntNum(1)
-    /*val (op, args, t) = agg match
-      case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
-      case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
-      case Aggregator.Sum(t, args) => (irarith.ArithmeticAggregationOperator.SumInt, args, Some(t))
-      case Aggregator.Count(args) => (irarith.ArithmeticAggregationOperator.Count, args, None)
-    val outTerm = t.map(compileTerm)
+      val (incaAggOp, aggCalls, outTerm) = agg match
+        case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
+        case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
+        case Aggregator.Sum(t, args) => (irarith.ArithmeticAggregationOperator.SumInt, args, Some(t))
+        case Aggregator.Count(args) => (irarith.ArithmeticAggregationOperator.Count, args, None)
 
-    Block(
-      args.map(compileAtom).map {
-        case ir.Call(ref, args, false) if args.find(_ == outTerm) =>
-          val aggIndex = args.indexOf(outTerm)
-          val aggTem = args(aggIndex) match
-            case TermArg(t) => t
-            case _ => throw IllegalStateException(s"Could not extract aggregation term for: $a")
-          val newArgs = args.updated(aggIndex, AggregateColumnArg(aggTem))
-          iragg.Aggregate(ref, newArgs, op)
-        case ir.Call(ref, args, false)  =>
-          throw IllegalStateException(s"Cound not find aggregation index for: $a")
-        case a =>
-          throw IllegalStateException(s"Unexpected aggregation atom: $a")
-      }
-    )*/
+      // TODO: We only support aggregations of this form
+      val allowedFormat = "agg_op v: Term.Var : { Call(..., v, ...) }"
+      val errMsg = s"Only Souffle aggregations of the form: $allowedFormat are allowed"
+      if (aggCalls.size != 1)
+        throw IllegalStateException(errMsg)
+
+
+      aggCalls.head match
+        case call@Atom.Call(qualifiedName, args) =>
+          val relDecl = call.target match
+            case Some(decl) => decl
+            case _ => throw IllegalArgumentException(s"Unresolved relation declaration for call $call")
+
+          val fromPath = qualifiedName.path.map(n => ir.Name(n))
+          val fromName = prefixedName(QName(qualifiedName.ns), relDecl, absolutePath = fromPath.nonEmpty)
+          val ref: ir.Ref[ir.Relation] = ir.RefByQualifiedName(fromPath :+ fromName)
+
+          outTerm match
+            case Some(t) =>
+              val aggIndex = args.indexOf(t)
+              if (aggIndex < 0)
+                throw IllegalStateException(errMsg)
+
+              val compiledArgs = args.map(compileTerm(_).arg)
+              val aggTerm = compileTerm(t)
+              val newArgs = compiledArgs.updated(aggIndex, iragg.AggregateColumnArg(aggTerm))
+              val aggAtom = iragg.Aggregate(ref, newArgs, incaAggOp)
+              Block(aggAtom, aggTerm)
+            case _ =>
+              ??? // TODO: How to?
+              // Count aggregation for example does not use aggregate column arg
+              //iragg.Aggregate(ref, args.map(compileTerm(_).arg), incaAggOp)
+        case _ =>
+          throw IllegalStateException(errMsg)
+
 
     case Term.IntrinsicFunctorApp(f, args) =>
       f match
