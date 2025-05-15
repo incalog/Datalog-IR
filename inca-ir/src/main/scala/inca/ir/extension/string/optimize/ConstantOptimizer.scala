@@ -16,6 +16,13 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
       && mayEliminate(lhs) && mayEliminate(rhs)
     case irstr.ToString(tt) =>
       isConstant(t) && isConstant(tt) && mayEliminate(tt)
+    case irstr.Substring(tt, index, length) =>
+      isConstant(t)
+      && isConstant(tt) && mayEliminate(tt)
+      && isConstant(index) && mayEliminate(index)
+      && isConstant(length) && mayEliminate(length)
+    case irstr.StringLength(tt) =>
+      isConstant(t) && isConstant(tt) && mayEliminate(tt)
     case _ => super.mayEliminate(t)
 
   override def valueToTermInternal(value: Value): Option[Term] = value match

@@ -2,7 +2,7 @@ package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir
 import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, SupColumn}
-import inca.ir.extension.string.{StringConcat, StringLit, ToString}
+import inca.ir.extension.string.{StringConcat, StringLit, ToString, Substring, StringLength}
 import sturdy.data.MayJoin
 
 trait StringOps[V]:
@@ -11,20 +11,28 @@ trait StringOps[V]:
   def toString(v: V): V
 
   def concat(v1: V, v2: V): V
-  
+
+  def substring(v: V, index: V, length: V): V
+
+  def stringLength(v: V): V
+
   def stringValue(v: V): String
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
-  val stringOps: StringOps[V]
+  lazy val stringOps: StringOps[V]
 
   override protected def canDetermineValue(t: ir.Term): Boolean = t match
     case StringLit(_) => true
     case StringConcat(lhs, rhs) => canDetermineValue(lhs) && canDetermineValue(rhs)
     case ToString(t) => canDetermineValue(t)
+    case Substring(t, index, length) => canDetermineValue(t) && canDetermineValue(index) && canDetermineValue(length)
+    case StringLength(t) => canDetermineValue(t)
     case _ => super.canDetermineValue(t)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case StringLit(s) => termResult(stringOps.stringLit(s))
     case ToString(t) => unaryOp(evalTerm(t))(stringOps.toString)
     case StringConcat(lhs, rhs) => binaryOp(evalTerm(lhs), evalTerm(rhs))(stringOps.concat)
+    case Substring(t, index, length) => ternaryOp(evalTerm(t), evalTerm(index), evalTerm(length))(stringOps.substring)
+    case StringLength(t) => unaryOp(evalTerm(t))(stringOps.stringLength)
     case _ => super.evalTermOpen(term)

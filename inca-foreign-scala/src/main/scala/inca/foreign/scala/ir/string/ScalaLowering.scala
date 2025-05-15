@@ -26,6 +26,31 @@ trait ScalaLowering extends BaseScalaLowering:
           case ((l, lty), (r, rty)) =>
             throw IllegalStateException(s"Can not concat types $lty and $rty")
         }
+      case Substring(t, index, length) =>
+        val strParams = typedParams(t)
+        val indexParams = typedParams(index)
+        val lengthParams = typedParams(length)
+
+        strParams.zip(indexParams).zip(lengthParams).map {
+          case ((str, strTy@TString), (start, startTy@TInt), (len, lenTy@TInt)) =>
+            val sty = compileType(strTy)
+            val startScalaTy = compileType(startTy)
+            val lenScalaTy = compileType(lenTy)
+            val lambdaCode =
+              s"(str: ${sty.name}, start: ${startScalaTy.name}, len: ${lenScalaTy.name}) => str.substring(start, start + len)"
+            ScalaTerm(lambdaCode, ScalaType.string, Seq(str, start, len))
+          case ((_, strTy), (_, startTy), (_, lenTy)) =>
+            throw IllegalStateException(s"Unexpected types in Substring: $strTy, $startTy, $lenTy")
+        }
+      case StringLength(t) =>
+        typedParams(t).map {
+          case (t, ty@TString) =>
+            val sty = compileType(ty)
+            val lambdaCode = s"(arg: ${sty.name}) => arg.length"
+            ScalaTerm(lambdaCode, ScalaType.int, Seq(t))
+          case (_, strTy) =>
+            throw IllegalStateException(s"Unexpected types in StringLength: $strTy")
+        }
       case ToString(term) =>
         visitTerm(term).map { t =>
           ScalaTerm(s"(s: Any) => s.toString", ScalaType.string, Seq(t))

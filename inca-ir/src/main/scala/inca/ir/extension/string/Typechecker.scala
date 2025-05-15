@@ -1,8 +1,9 @@
 package inca.ir.extension.string
 
+import inca.ir.extension.arithmetic.TInt
 import inca.ir.typing.{BaseIRTypechecker, Mode}
 import inca.ir.util.SourceLocation
-import inca.ir.{Term, TermType, Type}
+import inca.ir.{TAny, Term, TermType, Type}
 
 trait Typechecker extends BaseIRTypechecker:
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match
@@ -15,6 +16,18 @@ trait Typechecker extends BaseIRTypechecker:
     case ToString(t) =>
       inferTerm(t, Mode.Bound).ty
       TString.bound
+    case Substring(t, index, length) =>
+      (inferTerm(t, Mode.Bound).ty, inferTerm(index, Mode.Bound).ty, inferTerm(length, Mode.Bound).ty) match
+        case (TString, TInt, TInt) => TString.bound
+        case _ =>
+          error(s"Ill-typed substring for term of type $t with index $index and length $length", term)
+          TAny.bound
+    case StringLength(t) =>
+      inferTerm(t, Mode.Bound).ty match
+        case TString => TInt.bound
+        case _ =>
+          error(s"Ill-typed string length for term of type $t", term)
+          TInt.bound
     case _ => super.inferTermExtend(term, mode)
 
   override def checkType(ty: Type): Unit = ty match

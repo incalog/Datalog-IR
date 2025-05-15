@@ -11,6 +11,14 @@ trait Visitor extends BaseIRVisitor:
       visitTerm(lhs).zip(visitTerm(rhs)).map(StringConcat.apply)
     case ToString(t) =>
       visitTerm(t).map(ToString.apply)
+    case Substring(t, index, length) =>
+      for {
+        tt <- visitTerm(t)
+        i <- visitTerm(index)
+        l <- visitTerm(length)
+      } yield Substring(tt, i, l)
+    case StringLength(t) =>
+      visitTerm(t).map(StringLength.apply)
     case _ => super.visitTerm(term))
 
   override def visitType(ty: Type): Type = preserveHints(ty)(ty match

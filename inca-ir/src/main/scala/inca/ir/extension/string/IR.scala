@@ -22,6 +22,18 @@ case class ToString(t: Term) extends Term:
   override def vars: Seq[Var] = t.vars
   override def commonVars: Set[Var] = t.commonVars
 
+case class Substring(t: Term, index: Term, length: Term) extends Term:
+  override def toString: String = s"$t[$index..<$length]"
+  override def vars: Seq[Var] = t.vars
+  override def commonVars: Set[Var] = t.commonVars
+
+
+case class StringLength(t: Term) extends Term:
+    override def toString: String = s"$t.length"
+    override def vars: Seq[Var] = t.vars
+    override def commonVars: Set[Var] = t.commonVars
+
+
 object IR extends IR {}
 
 trait IR extends BaseIR:

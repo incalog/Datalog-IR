@@ -39,7 +39,7 @@ trait ConstantMeetV extends BaseMeetV:
     case (ConstantStringV(s1), ConstantStringV(s2)) if s1 == s2 => lhs
     case _ => super.meet(lhs, rhs)
 
-class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?]) extends StringOps[Value]:
+class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntegerOps[Int, Value]) extends StringOps[Value]:
   override def stringLit(s: String): Value = ConstantStringV(s)
 
   override def toString(v: Value): Value = v match
@@ -52,10 +52,22 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
     case (Value.Top, _) | (_, Value.Top) => Value.Top
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
+  override def substring(v: Value, index: Value, length: Value): Value = v match
+    case Value.Top => Value.Top
+    // TODO: Fix me, we need to extract the int value from a value
+    case ConstantStringV(s) => ConstantStringV(s.substring(index, index+length))
+    case _ => failure(InvalidStringValue, s"Can not get substring of $v")
+
+  override def stringLength(v: Value): Value = v match
+    case Value.Top => Value.Top
+    case ConstantStringV(s) => intOps.integerLit(s.length)
+    case _ => failure(InvalidStringValue, s"Can not get substring of $v")
+
   override def stringValue(v: Value): String = v match
     case ConstantStringV(value) => value
     case _ => failure(InvalidStringValue, s"Value $v has no string value")
 
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val stringOps: StringOps[Value] = ConstantStringVOps(using failure, except)
+  val intOps: IntegerOps[Int, Value]
+  lazy val stringOps: StringOps[Value] = ConstantStringVOps(using failure, except, intOps)
