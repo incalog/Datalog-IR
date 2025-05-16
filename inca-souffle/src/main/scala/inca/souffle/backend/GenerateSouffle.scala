@@ -83,7 +83,7 @@ object GenerateSouffle:
     case ir.Eq(lhs, rhs, false) => Atom.Compare(compileTerm(lhs), Comparator.EQ, compileTerm(rhs))
     case ir.Eq(lhs, rhs, true) => Atom.Compare(compileTerm(lhs), Comparator.NEQ, compileTerm(rhs))
     case string.RegexMatch(t, pattern, neg) =>
-      val matchAtom = Atom.Match(compileTerm(t), compileTerm(pattern))
+      val matchAtom = Atom.Match(compileTerm(pattern), compileTerm(t))
       if (neg) Atom.Not(matchAtom) else matchAtom
     case arith.BinCompare(lhs, rhs, c) =>
       val op = Parser.comparator.parseAll(c).toOption.get
