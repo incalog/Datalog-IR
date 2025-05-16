@@ -17,8 +17,11 @@ trait Typechecker extends BaseIRTypechecker:
       inferTerm(t, Mode.Bound).ty
       TString.bound
     case Substring(t, index, length) =>
-      (inferTerm(t, Mode.Bound).ty, inferTerm(index, Mode.Bound).ty, inferTerm(length, Mode.Bound).ty) match
-        case (TString, TInt, TInt) => TString.bound
+      inferTerm(t, Mode.Bound).ty match
+        case TString =>
+          checkTerm(index, TInt, Mode.Bound)
+          checkTerm(length, TInt, Mode.Bound)
+          TString.bound
         case _ =>
           error(s"Ill-typed substring for term of type $t with index $index and length $length", term)
           TAny.bound

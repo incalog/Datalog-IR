@@ -1,7 +1,7 @@
 package inca.foreign.scala.ir.string
 
 import inca.foreign.scala.ir.primitive
-import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
+import inca.foreign.scala.ir.primitive.{ScalaConstantTerm, ScalaInca, ScalaTerm, ScalaType, ScalaLowering as BaseScalaLowering}
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.string.*
@@ -21,9 +21,9 @@ trait ScalaLowering extends BaseScalaLowering:
       typedParams(t).zip(typedParams(pattern)).map {
         case ((l, TString), (r, TString)) =>
           val sty = compileType(TString)
-          val flag = if (neg) ScalaConstantTerm.FALSE else ScalaConstantTerm.FALSE
+          val flag = if (neg) ScalaConstantTerm.FALSE else ScalaConstantTerm.TRUE
           val lambdaCode = s"(str: ${sty.name}, pat: ${sty.name}) => pat.r.matches(str)"
-          Eq(flag, ScalaTerm(lambdaCode, ScalaType.string, Seq(l, r)))
+          Eq(flag, ScalaTerm(lambdaCode, ScalaType.bool, Seq(l, r)))
         case ((l, lty), (r, rty)) =>
           throw IllegalStateException(s"Can not concat types $lty and $rty")
       }
@@ -47,10 +47,10 @@ trait ScalaLowering extends BaseScalaLowering:
         val lengthParams = typedParams(length)
 
         strParams.zip(indexParams).zip(lengthParams).map {
-          case (((str, strTy@TString), (start, startTy@TInt)), (len, lenTy@TInt)) =>
+          case (((str, strTy@TString), (start, startTy)), (len, lenTy)) =>
             val sty = compileType(strTy)
-            val startScalaTy = compileType(startTy)
-            val lenScalaTy = compileType(lenTy)
+            val startScalaTy = ScalaInca.compileType(startTy)
+            val lenScalaTy = ScalaInca.compileType(lenTy)
             val lambdaCode =
               s"(str: ${sty.name}, start: ${startScalaTy.name}, len: ${lenScalaTy.name}) => str.substring(start, start + len)"
             ScalaTerm(lambdaCode, ScalaType.string, Seq(str, start, len))

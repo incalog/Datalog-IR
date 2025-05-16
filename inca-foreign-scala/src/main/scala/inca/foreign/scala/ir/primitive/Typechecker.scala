@@ -20,6 +20,19 @@ trait Typechecker extends BaseIRTypechecker:
       ty.bound
     case _ => super.inferTermExtend(term, mode)
 
+  override def checkTermExtend(term: Term, expected: Type, mode: Mode): Mode =
+    // Implicit conversion elimination during type checking for Scala types and IR types
+    // This is required, because e.g. Substring uses the arithmetic IR. That is Substring
+    // contains partially lowered integer.
+    val action = startContextTransaction()
+    withErrors(super.checkTermExtend(term, expected, mode)) match
+      case (m, Nil) =>
+        action.commit()
+        m
+      case (tt, errsInfer) =>
+        action.abort()
+        super.checkTermExtend(term, ScalaInca.compileType(expected), mode)
+
   override def checkType(ty: Type): Unit = ty match
     case ScalaType(_) => // good
     case _ => super.checkType(ty)
