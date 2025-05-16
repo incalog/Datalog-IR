@@ -60,10 +60,14 @@ private class ConstantDoubleVOps (using failure: Failure, effects: EffectStack, 
     using ToppedFloatOps[Double, Double] (using implicitly) //  failure and effects are not needed... why?
   )
 
-private class ConstantIntVOps (using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
+private class ConstantIntVOps(using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
   extends LiftedIntegerOps[Int, Value, Topped[Int]](toppedIntAsConstantInt, constantIntFromToppedInt) (
     using ToppedIntegerOps[Int, Int](using implicitly, failure, effects)
   )
+  with IntOps[Int, Value]:
+  override def integerValue(v: Value): Option[Int] = v match
+    case ConstantIntV(i) => Some(i)
+    case _ => None
 
 private class ConstantIntVOrderingOps(using except: Except[BaseIRException, ?, ?])
   extends LiftedOrderingOps[Value, Topped[Boolean], Topped[Int], Topped[Boolean]](toppedIntAsConstantInt, identity)
@@ -89,7 +93,7 @@ class ConstantArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
     (v1, v2)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntegerOps[Int, Value] = ConstantIntVOps(using failure, effects, except)
+  val intOps: IntOps[Int, Value] = ConstantIntVOps(using failure, effects, except)
   val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects, except)
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantIntVOrderingOps(using except)
   val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantDoubleVOrderingOps(using except)

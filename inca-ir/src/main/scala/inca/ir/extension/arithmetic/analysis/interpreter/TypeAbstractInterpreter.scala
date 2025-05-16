@@ -15,10 +15,12 @@ import sturdy.values.types.{BaseType, given}
 
 trait TypeAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
 
-  override val intOps: IntegerOps[Int, Value] = new LiftedIntegerOps[Int, Value, BaseType[Int]](
+  override val intOps: IntOps[Int, Value] = new LiftedIntegerOps[Int, Value, BaseType[Int]](
     {case TypeValue(TInt) | Value.Top => BaseType[Int]},
     _ => TypeValue(TInt)
-  )
+  ) with IntOps[Int, Value]:
+    override def integerValue(v: Value): Option[Int] = None
+
   override val doubleOps: FloatOps[Double, Value] = new LiftedFloatOps[Double, Value, BaseType[Double]](
     { case TypeValue(TDouble) | Value.Top => BaseType[Double] },
     _ => TypeValue(TDouble)

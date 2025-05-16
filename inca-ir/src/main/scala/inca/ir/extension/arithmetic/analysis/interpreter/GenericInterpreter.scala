@@ -35,8 +35,11 @@ object BinaryArithmeticComparisonOperator:
 trait ArithmeticRefinementOps[V]:
   def refine(v1: V, v2: V, op: BinaryArithmeticComparisonOperator): (V, V)
 
+trait IntOps[B, V] extends IntegerOps[B, V]:
+  def integerValue(v: V): Option[B]
+
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
-  val intOps: IntegerOps[Int, V]
+  val intOps: IntOps[Int, V]
   val doubleOps: FloatOps[Double, V]
   val intOrderingOps: OrderingOps[V, B]
   val doubleOrderingOps: OrderingOps[V, B]

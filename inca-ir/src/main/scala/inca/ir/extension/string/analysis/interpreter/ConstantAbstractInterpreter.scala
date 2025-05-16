@@ -2,7 +2,8 @@ package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, AbstractRelation, Value}
+import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, Value}
+import inca.ir.extension.arithmetic.analysis.interpreter.IntOps
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -39,7 +40,7 @@ trait ConstantMeetV extends BaseMeetV:
     case (ConstantStringV(s1), ConstantStringV(s2)) if s1 == s2 => lhs
     case _ => super.meet(lhs, rhs)
 
-class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntegerOps[Int, Value]) extends StringOps[Value]:
+class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntOps[Int, Value]) extends StringOps[Value]:
   override def stringLit(s: String): Value = ConstantStringV(s)
 
   override def toString(v: Value): Value = v match
@@ -54,8 +55,12 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
 
   override def substring(v: Value, index: Value, length: Value): Value = v match
     case Value.Top => Value.Top
-    // TODO: Fix me, we need to extract the int value from a value
-    case ConstantStringV(s) => ConstantStringV(s.substring(index, index+length))
+    case ConstantStringV(s) =>
+      val idx = intOps.integerValue(index)
+      val len = intOps.integerValue(length)
+      (idx, len) match
+        case (Some(i), Some(l)) => ConstantStringV(s.substring(i, i+l))
+        case _ => Value.Top
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")
 
   override def stringLength(v: Value): Value = v match
@@ -69,5 +74,5 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
 
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntegerOps[Int, Value]
+  val intOps: IntOps[Int, Value]
   lazy val stringOps: StringOps[Value] = ConstantStringVOps(using failure, except, intOps)

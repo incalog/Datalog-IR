@@ -3,6 +3,7 @@ package inca.ir.extension.string.analysis.interpreter
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
+import inca.ir.extension.arithmetic.analysis.interpreter.IntOps
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -88,7 +89,7 @@ trait FiniteStringMeetV extends BaseMeetV:
           FiniteStringV(newDepth)
     case _ => super.meet(lhs, rhs)
 
-class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntegerOps[Int, Value]) extends StringOps[Value]:
+class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntOps[Int, Value]) extends StringOps[Value]:
   override def stringLit(s: String): Value = FiniteStringV.lit(s)
 
   override def toString(v: Value): Value = v match
@@ -107,22 +108,22 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
   override def substring(v: Value, index: Value, length: Value): Value = v match
-    case f: FiniteStringV if f.isConstant => FiniteStringV.lit(f.toString.substring(index, index+length))
+    case f: FiniteStringV if f.isConstant => FiniteStringV(f.concatDepth)
     case f: FiniteStringV => f
     case Value.Top => Value.Top
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")
-  
+
   override def stringLength(v: Value): Value = v match
     case f: FiniteStringV if f.isConstant =>  intOps.integerLit(f.toString.length)
     case f: FiniteStringV => intOps.integerLit(5000) // TODO: We might want to use a symbolic value here in the future
     case Value.Top => Value.Top
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")
-  
+
   override def stringValue(v: Value): String = v match
     case f: FiniteStringV if f.isConstant  => f.toString
     case _ => failure(InvalidStringValue, s"Value $v has no string value")
 
 
 trait FiniteStringAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntegerOps[Int, Value]
+  val intOps: IntOps[Int, Value]
   lazy val stringOps: StringOps[Value] = FiniteStringVOps(using failure, except, intOps)

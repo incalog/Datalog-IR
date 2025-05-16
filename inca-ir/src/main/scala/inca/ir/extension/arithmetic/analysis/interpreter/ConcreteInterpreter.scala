@@ -41,6 +41,11 @@ private class CDoubleVOps (using failure: Failure, effects: EffectStack)
 
 private class CIntVOps (using failure: Failure, effects: EffectStack) 
   extends LiftedIntegerOps[Int, Value, Int] (asInt, fromInt)
+  with IntOps[Int, Value]:
+
+  override def integerValue(v: Value): Option[Int] = v match
+    case CIntV(i) => Some(i)
+    case _ => None
 
 private class CIntVOrderingOps extends OrderingOps[Value, Boolean]:
     override def lt(v1: Value, v2: Value): Boolean = asInt(v1) < asInt(v2) 
@@ -55,7 +60,7 @@ private class CArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
     throw IllegalStateException("Refinement for concrete values should never be called")
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
-  val intOps: IntegerOps[Int, Value] = CIntVOps(using failure, effects)
+  val intOps: IntOps[Int, Value] = CIntVOps(using failure, effects)
   val doubleOps: FloatOps[Double, Value] = CDoubleVOps(using failure, effects)
   val intOrderingOps: OrderingOps[Value, Boolean] = CIntVOrderingOps()
   val doubleOrderingOps: OrderingOps[Value, Boolean] = CDoubleVOrderingOps()

@@ -99,6 +99,11 @@ private class IntervalIntVOps(using failure: Failure, effects: EffectStack, exce
   extends LiftedIntegerOps[Int, Value, IntInterval](valueAsNumericIntInterval, numericIntIntervalToValue) (
     using StandardIntervalIntegerOps
   )
+  with IntOps[Int, Value]:
+  
+  override def integerValue(v: Value): Option[Int] = v match
+    case IntervalIntV(iv) if iv.isConstant => Some(iv.low)
+    case _ => None
 
 private class IntervalIntVOrderingOps(using except: Except[BaseIRException, ?, ?])
   extends LiftedOrderingOps[Value, Topped[Boolean], IntInterval, Topped[Boolean]](valueAsNumericIntInterval, identity)
@@ -192,7 +197,7 @@ class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
 
 
 trait IntervalAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntegerOps[Int, Value] = IntervalIntVOps(using failure, effects, except)
+  val intOps: IntOps[Int, Value] = IntervalIntVOps(using failure, effects, except)
   val doubleOps: FloatOps[Double, Value] = IntervalDoubleVOps(using failure, effects, except)
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = IntervalIntVOrderingOps(using except)
   val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = IntervalDoubleVOrderingOps(using except)

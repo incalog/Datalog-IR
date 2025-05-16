@@ -7,6 +7,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.extension.string.*
 import inca.ir.extension.string
 import inca.ir.*
+import inca.ir.extension.arithmetic.TInt
 
 trait ScalaLowering extends BaseScalaLowering:
   override def name: String = "StringScalaLowering"
@@ -32,14 +33,14 @@ trait ScalaLowering extends BaseScalaLowering:
         val lengthParams = typedParams(length)
 
         strParams.zip(indexParams).zip(lengthParams).map {
-          case ((str, strTy@TString), (start, startTy@TInt), (len, lenTy@TInt)) =>
+          case (((str, strTy@TString), (start, startTy@TInt)), (len, lenTy@TInt)) =>
             val sty = compileType(strTy)
             val startScalaTy = compileType(startTy)
             val lenScalaTy = compileType(lenTy)
             val lambdaCode =
               s"(str: ${sty.name}, start: ${startScalaTy.name}, len: ${lenScalaTy.name}) => str.substring(start, start + len)"
             ScalaTerm(lambdaCode, ScalaType.string, Seq(str, start, len))
-          case ((_, strTy), (_, startTy), (_, lenTy)) =>
+          case (((_, strTy), (_, startTy)), (_, lenTy)) =>
             throw IllegalStateException(s"Unexpected types in Substring: $strTy, $startTy, $lenTy")
         }
       case StringLength(t) =>

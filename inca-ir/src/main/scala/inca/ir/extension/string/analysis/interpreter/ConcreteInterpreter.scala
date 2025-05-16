@@ -2,7 +2,7 @@ package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{BaseIRException, BaseIRFailure}
 import inca.ir.analysis.base.values.{BaseJoinV, ConcreteRelation, Value}
-import inca.ir.extension.arithmetic.analysis.interpreter.CIntV
+import inca.ir.extension.arithmetic.analysis.interpreter.{CIntV, IntOps}
 import sturdy.values.integer.IntegerOps
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
@@ -18,7 +18,7 @@ case class CStringV(value: String) extends Value:
   override def toString: String = s"\"$value\""
   override def isConstant: Boolean = true
 
-private class CStringVOps (using failure: Failure, intOps: IntegerOps[Int, Value]) extends StringOps[Value]:
+private class CStringVOps (using failure: Failure, intOps: IntOps[Int, Value]) extends StringOps[Value]:
   override def stringLit(s: String): Value = CStringV(s)
 
   override def toString(v: Value): Value = v match
@@ -29,8 +29,13 @@ private class CStringVOps (using failure: Failure, intOps: IntegerOps[Int, Value
     case (CStringV(s1), CStringV(s2)) => CStringV(s1 + s2)
     case _ => failure(InvalidStringConcat, s"Can not concat non-string values $v1 and $v2")
 
-  override def substring(v: Value, index: Value, length: Value): Value = (v, index, length) match
-    case (CStringV(s), CIntV(idx), CIntV(len)) => CStringV(s.substring(idx, idx+len))
+  override def substring(v: Value, index: Value, length: Value): Value = v match
+    case CStringV(s) =>
+      val idx = intOps.integerValue(index)
+      val len = intOps.integerValue(length)
+      (idx, len) match
+        case (Some(i), Some(l)) => CStringV(s.substring(i, i+l))
+        case _ => failure(InvalidStringValue, s"Index and length must be integers to compute a substring")
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")
 
   override def stringLength(v: Value): Value = v match
@@ -41,6 +46,6 @@ private class CStringVOps (using failure: Failure, intOps: IntegerOps[Int, Value
     case CStringV(s) => s 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
-  val intOps: IntegerOps[Int, Value]
+  val intOps: IntOps[Int, Value]
   lazy val stringOps: StringOps[Value] = CStringVOps(using failure, intOps)
 
