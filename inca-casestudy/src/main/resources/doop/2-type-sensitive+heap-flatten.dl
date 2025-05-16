@@ -1,3 +1,7 @@
+// Use the following command to remove components in a Souffle program.
+// You probably still need to manually change things.
+//souffle --disable-transformers=DebugReporter,DebugDeltaRelationTransformer,FoldAnonymousRecords,MinimiseProgramTransformer,ResolveAnonymousRecordAliases,ReduceExistentialsTransformer,PartitionBodyLiteralsTransformer,IODefaultsTransformer,IOAttributesTransformer,RemoveRelationCopiesTransformer,UniqueAggregationVariablesTransformer,InlineRelationsTransformer,ResolveAliasesTransformer,AddNullariesToAtomlessAggregatesTransformer,MaterializeAggregationQueriesTransformer,MaterializeSingletonAggregationTransformer,NormaliseGeneratorsTransformer,NameUnnamedVariablesTransformer --show=transformed-ast 2-type-sensitive+heap.dl > 2-type-sensitive+heap.dl-flatten.dl
+
 .type Modifier = symbol
 .type Type = symbol
 .type PrimitiveType = Type
