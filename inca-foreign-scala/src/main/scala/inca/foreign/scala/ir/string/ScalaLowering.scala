@@ -16,6 +16,20 @@ trait ScalaLowering extends BaseScalaLowering:
     case TString => true
     case _ => super.isTypeSupported(ty)
 
+  override def visitAtom(atom: Atom): Seq[Atom] = atom match
+    case RegexMatch(t, pattern, neg) =>
+      typedParams(t).zip(typedParams(pattern)).map {
+        case ((l, TString), (r, TString)) =>
+          val sty = compileType(TString)
+          val flag = if (neg) ScalaConstantTerm.FALSE else ScalaConstantTerm.FALSE
+          val lambdaCode = s"(str: ${sty.name}, pat: ${sty.name}) => pat.r.matches(str)"
+          Eq(flag, ScalaTerm(lambdaCode, ScalaType.string, Seq(l, r)))
+        case ((l, lty), (r, rty)) =>
+          throw IllegalStateException(s"Can not concat types $lty and $rty")
+      }
+    case _ =>
+      super.visitAtom(atom)
+
   override def visitTerm(term: Term): Seq[Term] = preserveHints(term) {
     term match
       case StringLit(value) =>
@@ -51,6 +65,15 @@ trait ScalaLowering extends BaseScalaLowering:
             ScalaTerm(lambdaCode, ScalaType.int, Seq(t))
           case (_, strTy) =>
             throw IllegalStateException(s"Unexpected types in StringLength: $strTy")
+        }
+      case OrdinalNumber(t) =>
+        typedParams(t).map {
+          case (t, ty@TString) =>
+            val sty = compileType(ty)
+            val lambdaCode = s"(arg: ${sty.name}) => arg.hashCode"
+            ScalaTerm(lambdaCode, ScalaType.int, Seq(t))
+          case (_, strTy) =>
+            throw IllegalStateException(s"Unexpected types in OrdinalNumber: $strTy")
         }
       case ToString(term) =>
         visitTerm(term).map { t =>

@@ -151,6 +151,7 @@ object GenerateAscent:
     }
     case ir.Eq(lhs, rhs, true) =>
       Seq(Atom.NotEqual(compileTerm(rhs, noClone = true), compileTerm(lhs, noClone = true)))
+    case string.RegexMatch(t, pattern, neg) => ???
     case arith.BinCompare(lhs, rhs, "<") =>
       Seq(Atom.LesserThan(compileTerm(lhs), compileTerm(rhs)))
     case arith.BinCompare(lhs, rhs, ">") =>
@@ -281,6 +282,9 @@ object GenerateAscent:
     case arith.BinOp(lhs, rhs, op) => Term.Binary(compileTerm(lhs), compileBinOp(op), compileTerm(rhs))
     case string.StringLit(s) => Term.StringLit(s)
     case string.ToString(t) => Term.ToString(compileTerm(t, noDeref, noClone))
+    case string.Substring(t, index, length) => ???
+    case string.StringLength(t) => ???
+    case string.OrdinalNumber(t) => ???
     case string.StringConcat(t1, t2) => Term.Concat(Seq(compileTerm(t1, true), compileTerm(t2, true)))
     case arith.UnOp(t, "-") => Term.Unary(Unop.neg, compileTerm(t))
     case data.Construct(ref, args) =>

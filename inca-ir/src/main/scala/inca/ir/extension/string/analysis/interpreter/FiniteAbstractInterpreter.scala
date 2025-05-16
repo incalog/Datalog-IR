@@ -89,7 +89,7 @@ trait FiniteStringMeetV extends BaseMeetV:
           FiniteStringV(newDepth)
     case _ => super.meet(lhs, rhs)
 
-class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntOps[Int, Value]) extends StringOps[Value]:
+class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntOps[Int, Value]) extends StringOps[Topped[Boolean], Value]:
   override def stringLit(s: String): Value = FiniteStringV.lit(s)
 
   override def toString(v: Value): Value = v match
@@ -119,6 +119,17 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
     case Value.Top => Value.Top
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")
 
+  override def ordinalNumber(v: Value): Value = v match
+    case Value.Top => Value.Top
+    case f: FiniteStringV if f.isConstant => intOps.integerLit(f.toString.hashCode)
+    case f: FiniteStringV => intOps.integerLit(5000) // TODO: We might want to use a symbolic value here in the future
+    case _ => failure(InvalidStringValue, s"Can not get ordinal number of $v")
+
+  override def matches(v: Value, pattern: Value): Topped[Boolean] = (v, pattern) match
+    case (Value.Top, _) | (_, Value.Top) => Topped.Top
+    case (f1: FiniteStringV, f2: FiniteStringV) => Topped.Top
+    case _ => failure(InvalidStringConcat, s"Can not regex match values $v and $pattern")
+
   override def stringValue(v: Value): String = v match
     case f: FiniteStringV if f.isConstant  => f.toString
     case _ => failure(InvalidStringValue, s"Value $v has no string value")
@@ -126,4 +137,4 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
 
 trait FiniteStringAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntOps[Int, Value]
-  lazy val stringOps: StringOps[Value] = FiniteStringVOps(using failure, except, intOps)
+  lazy val stringOps: StringOps[Topped[Boolean], Value] = FiniteStringVOps(using failure, except, intOps)

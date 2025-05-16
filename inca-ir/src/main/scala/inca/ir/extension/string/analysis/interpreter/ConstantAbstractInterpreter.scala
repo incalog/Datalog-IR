@@ -40,7 +40,7 @@ trait ConstantMeetV extends BaseMeetV:
     case (ConstantStringV(s1), ConstantStringV(s2)) if s1 == s2 => lhs
     case _ => super.meet(lhs, rhs)
 
-class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntOps[Int, Value]) extends StringOps[Value]:
+class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException, ?, ?], intOps: IntOps[Int, Value]) extends StringOps[Topped[Boolean], Value]:
   override def stringLit(s: String): Value = ConstantStringV(s)
 
   override def toString(v: Value): Value = v match
@@ -68,6 +68,16 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
     case ConstantStringV(s) => intOps.integerLit(s.length)
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")
 
+  override def ordinalNumber(v: Value): Value = v match
+    case Value.Top => Value.Top
+    case ConstantStringV(s) => intOps.integerLit(s.hashCode)
+    case _ => failure(InvalidStringValue, s"Can not get ordinal number of $v")
+
+  override def matches(v: Value, pattern: Value): Topped[Boolean] = (v, pattern) match
+    case (Value.Top, _) | (_, Value.Top) => Topped.Top
+    case (ConstantStringV(s), ConstantStringV(p)) => Topped.Actual(p.r.matches(s))
+    case _ => failure(InvalidStringConcat, s"Can not regex match values $v and $pattern")
+
   override def stringValue(v: Value): String = v match
     case ConstantStringV(value) => value
     case _ => failure(InvalidStringValue, s"Value $v has no string value")
@@ -75,4 +85,4 @@ class ConstantStringVOps(using failure: Failure, except: Except[BaseIRException,
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntOps[Int, Value]
-  lazy val stringOps: StringOps[Value] = ConstantStringVOps(using failure, except, intOps)
+  lazy val stringOps: StringOps[Topped[Boolean], Value] = ConstantStringVOps(using failure, except, intOps)

@@ -24,9 +24,20 @@ case class ToString(t: Term) extends Term:
 
 case class Substring(t: Term, index: Term, length: Term) extends Term:
   override def toString: String = s"$t[$index..<$length]"
+  override def vars: Seq[Var] = t.vars ++ index.vars ++ length.vars
+  override def commonVars: Set[Var] = t.commonVars ++ index.commonVars ++ length.commonVars
+
+case class OrdinalNumber(t: Term) extends Term:
+  override def toString: String = s"ord($t)"
   override def vars: Seq[Var] = t.vars
   override def commonVars: Set[Var] = t.commonVars
 
+case class RegexMatch(t: Term, pattern: Term, neg: Boolean = false) extends Atom:
+  override def toString: String =
+    val negPrefix = if (neg) "~" else ""
+    s"${negPrefix}reg_match($t, $pattern)"
+  override def vars: Seq[Var] = t.vars ++ pattern.vars
+  override def commonVars: Set[Var] = t.commonVars ++ pattern.commonVars
 
 case class StringLength(t: Term) extends Term:
     override def toString: String = s"$t.length"

@@ -82,6 +82,9 @@ object GenerateSouffle:
     case ir.ExtensionalCall(ref, args, true) => Atom.Not(Atom.Call(qualifyName(ref.name), args.map(compileArg)))
     case ir.Eq(lhs, rhs, false) => Atom.Compare(compileTerm(lhs), Comparator.EQ, compileTerm(rhs))
     case ir.Eq(lhs, rhs, true) => Atom.Compare(compileTerm(lhs), Comparator.NEQ, compileTerm(rhs))
+    case string.RegexMatch(t, pattern, neg) =>
+      val matchAtom = Atom.Match(compileTerm(t), compileTerm(pattern))
+      if (neg) Atom.Not(matchAtom) else matchAtom
     case arith.BinCompare(lhs, rhs, c) =>
       val op = Parser.comparator.parseAll(c).toOption.get
       Atom.Compare(compileTerm(lhs), op, compileTerm(rhs))
@@ -140,6 +143,9 @@ object GenerateSouffle:
     case arith.UnOp(t, "abs") => Term.IntrinsicFunctorApp(IntrinsicFunctor.Max, Seq(compileTerm(t), Term.Binary(compileTerm(t), BinOp.Mul, Term.NumberLit(-1))))
     case string.StringLit(s) => Term.StringLit(s)
     case string.StringConcat(t1, t2) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Cat, Seq(compileTerm(t1), compileTerm(t2)))
+    case string.StringLength(t) => Term.IntrinsicFunctorApp(IntrinsicFunctor.StrLen, Seq(compileTerm(t)))
+    case string.OrdinalNumber(t) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Ord, Seq(compileTerm(t)))
+    case string.Substring(t, index, length) => Term.IntrinsicFunctorApp(IntrinsicFunctor.Substr, Seq(compileTerm(t), compileTerm(index), compileTerm(length)))
     case string.ToString(t) => Term.IntrinsicFunctorApp(IntrinsicFunctor.ToString, Seq(compileTerm(t)))
     case data.Construct(ref, args) => Term.Constr(qualifyName(ref.name), args.map(compileTerm))
 

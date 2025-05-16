@@ -12,13 +12,13 @@ import inca.viatra.backend.Executor
 
 import scala.io.Source
 
-// TODO: Links, but not yet executable since GenerateIR for Souffle is missing features
 object TwoTypeSensitiveHeap:
-  private def runContextInsensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "2-type-sensitive+heap-flatten.dl"): Unit =
+  private def runContextSensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "2-type-sensitive+heap-flatten.dl"): Unit =
     val baseDir = "doop"
     val source = Source.fromResource(baseDir + "/" + file)
     val options = CompilerOptions.default
-    //options.irLogging.logLowerings = true
+    options.irLogging.logModule = true
+    options.irLogging.logLowerings = true
     val compiled = CompiledSouffleProgram.fromSource("TwoTypeSensitiveHeap", source, options)
     compiled.setOptimizationPipeline(List())
     compiled.setPipeline(List(
@@ -58,7 +58,7 @@ object TwoTypeSensitiveHeap:
 
   @main
   def runTwoTypeSensitiveHeapDL(): Unit = {
-    runContextInsensitiveDL(
+    runContextSensitiveDL(
       compiled => inca.souffle.backend.Executor(Auto).instantiate(compiled)
     )
   }

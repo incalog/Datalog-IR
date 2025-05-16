@@ -165,6 +165,8 @@ class GenerateDDLog:
           throw IllegalStateException(s"Can not compile eq: $at")
     case ir.Eq(lhs, rhs, true) => RhsClause.NotEq(compileTermToExpression(lhs, false), compileTermToExpression(rhs, false))
 
+    case irstring.RegexMatch(t, pattern, neg) => ???
+    
     case irarith.BinCompare(lhs, rhs, op) =>  op match
       case "<" => RhsClause.Ex(Expr.LT(compileTermToExpression(lhs, false), compileTermToExpression(rhs, false)))
       case "<=" => RhsClause.Ex(Expr.LE(compileTermToExpression(lhs, false), compileTermToExpression(rhs, false)))
@@ -331,6 +333,9 @@ class GenerateDDLog:
       case "abs"=> Expr.Abs(compileTermToExpression(t, isAssign))
     case irstring.StringConcat(lhs, rhs) => Expr.Concat(compileTermToExpression(lhs, isAssign),compileTermToExpression(rhs, isAssign))
     case irstring.ToString(s) => Expr.ToString(compileTermToExpression(s, isAssign))
+    case irstring.Substring(t, index, length) => ???
+    case irstring.StringLength(t) => ???
+    case irstring.OrdinalNumber(t) => ???
     case ir.Cast(t, ty) => Expr.Cast(compileTermToExpression(t, isAssign),compileType(ty))
     case _ => Expr.T(compileTerm(term, isAssign))
 

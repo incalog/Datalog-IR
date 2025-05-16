@@ -4058,8 +4058,8 @@ mainAnalysis_HeapRepresentative(?representativeHeap,?heap) :-
 mainAnalysis_HeapRepresentative(?representativeHeap,?heap) :- 
    mainAnalysis_ExceptionHeapTypeRepresentativeOrdinal(?heaptype,?representativeHeapOrd),
    mainAnalysis_ExceptionTypeToHeap(?heap,?heaptype),
-   ord(?representativeHeap) = ?representativeHeapOrd,
-   isHeapAllocation(?representativeHeap).
+   isHeapAllocation(?representativeHeap),
+   ord(?representativeHeap) = ?representativeHeapOrd.
 
 mainAnalysis_HeapRepresentative(?constant,?heap) :- 
    isStringConstant(?heap),

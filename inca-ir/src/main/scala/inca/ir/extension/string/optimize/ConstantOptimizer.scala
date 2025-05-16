@@ -5,6 +5,7 @@ import inca.ir.analysis.base.values.Value
 import inca.ir.extension.string as irstr
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
 import inca.ir.*
+import inca.ir.Hint.preserveHints
 import inca.ir.optimize.ConstantBaseIROptimizer
 
 trait ConstantOptimizer extends ConstantBaseIROptimizer:
@@ -23,7 +24,16 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
       && isConstant(length) && mayEliminate(length)
     case irstr.StringLength(tt) =>
       isConstant(t) && isConstant(tt) && mayEliminate(tt)
+    case irstr.OrdinalNumber(tt) =>
+      isConstant(t) && isConstant(tt) && mayEliminate(tt)
     case _ => super.mayEliminate(t)
+
+  // TODO: Implement this to remove Regex that always hold
+  /*override def visitAtom(atom: Atom): Seq[Atom] = preserveHints(atom) {
+    atom match
+      case irstr.RegexMatch(s, p, neg) => ???
+      case _ => super.visitAtom(atom)
+  }*/
 
   override def valueToTermInternal(value: Value): Option[Term] = value match
     case ConstantStringV(v) => Some(irstr.StringLit(v))

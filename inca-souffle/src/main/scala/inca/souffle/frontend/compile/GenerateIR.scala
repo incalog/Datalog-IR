@@ -2,7 +2,7 @@ package inca.souffle.frontend.compile
 
 import inca.ir
 import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.{ExtensionalRelationSubstitution, Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation}
+import inca.ir.{ExtensionalRelationSubstitution, Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation, WildcardArg}
 import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
@@ -282,7 +282,7 @@ class GenerateIR extends GenerateIRContext:
 
   private def compileAtom(atom: Atom): ir.Atom = atom match
     case Atom.Not(atom) =>
-      irnot.Not(compileAtom(atom))
+      irnot.WeakNot(compileAtom(atom))
     case call@Atom.Call(qname, args) =>
       val compileArgs = args.map(compileTermAsArgument)
       val decl = call.target.get
@@ -318,9 +318,7 @@ class GenerateIR extends GenerateIRContext:
       ir.Eq(compileTerm(t1), compileTerm(t2), true)
     case Atom.Compare(t1, op, t2) =>
       irarith.BinCompare(compileTerm(t1), compileTerm(t2), op.toString)
-    case Atom.Match(t1, t2) =>
-      // TODO: Remove this dummy
-      ir.Eq(irarith.IntNum(1), irarith.IntNum(0))
+    case Atom.Match(t1, t2) => irstring.RegexMatch(compileTerm(t1), compileTerm(t2))
     case Atom.Contains(t1, t2) => ???
     case Atom.True => ir.Eq(BoolTrue, BoolTrue)
     case Atom.False => ir.Eq(BoolTrue, BoolFalse)
@@ -334,6 +332,10 @@ class GenerateIR extends GenerateIRContext:
     case Term.Constr(_, args) => args.forall(isBound)
     case Term.TypeCast(t, _) => isBound(t)
     case _ => true
+
+  private def compileArg(term: Term): ir.Arg = term match
+    case Term.Var("_") => WildcardArg()
+    case _ => compileTerm(term).arg
 
   private def compileTerm(term: Term): ir.Term = term match
     case Term.Var(name) =>
@@ -385,24 +387,29 @@ class GenerateIR extends GenerateIRContext:
               if (aggIndex < 0)
                 throw IllegalStateException(errMsg)
 
-              val compiledArgs = args.map(compileTerm(_).arg)
+              val compiledArgs = args.map(compileArg)
               val aggTerm = compileTerm(t)
               val newArgs = compiledArgs.updated(aggIndex, iragg.AggregateColumnArg(aggTerm))
               val aggAtom = iragg.Aggregate(ref, newArgs, incaAggOp)
               Block(aggAtom, aggTerm)
             case _ =>
-              ??? // TODO: How to?
-              // Count aggregation for example does not use aggregate column arg
-              //iragg.Aggregate(ref, args.map(compileTerm(_).arg), incaAggOp)
+              // Count aggregation for example does not specify a column to aggregate on.
+              // In our IR the aggregated column does exist, but does not matter.
+              // We always get the same result, which is the number of rows in the relation minus the filtering.
+              val unboundIndex = args.indexWhere(t => !isBound(t) && t.isInstanceOf[Term.Var])
+              if (unboundIndex < 0)
+                throw IllegalStateException("Aggregation must contain at least one unbound variable.")
+              val aggTerm = ir.Var(ir.Name(gensym.fresh("aggCol"))) // ok, since aggregation args do not bind things
+              val compiledArgs = args.map(compileArg).updated(unboundIndex, AggregateColumnArg(aggTerm))
+              val aggAtom = iragg.Aggregate(ref, compiledArgs, incaAggOp)
+              Block(aggAtom, aggTerm)
         case _ =>
           throw IllegalStateException(errMsg)
 
 
     case Term.IntrinsicFunctorApp(f, args) =>
       f match
-        case IntrinsicFunctor.Ord =>
-          // TODO: Remove this dummy
-          irarith.IntNum(1)
+        case IntrinsicFunctor.Ord => irstring.OrdinalNumber(compileTerm(args.head))
         case IntrinsicFunctor.ToFloat => ???
         case IntrinsicFunctor.ToNumber => ???
         case IntrinsicFunctor.ToString =>
@@ -411,11 +418,10 @@ class GenerateIR extends GenerateIRContext:
         case IntrinsicFunctor.Cat =>
           irstring.StringConcat(compileTerm(args.head), compileTerm(args(1)))
         case IntrinsicFunctor.StrLen =>
-          // TODO: Remove this dummy
-          irarith.IntNum(0)
+          irstring.StringLength(compileTerm(args.head))
         case IntrinsicFunctor.Substr =>
-          // TODO: Remove this dummy
-          irstring.StringLit("")
+          val Seq(s, idx, len) = args.map(compileTerm)
+          irstring.Substring(s, idx, len)
         case IntrinsicFunctor.Max =>
           irarith.Max(compileTerm(args.head), compileTerm(args(1)))
         case IntrinsicFunctor.Min =>

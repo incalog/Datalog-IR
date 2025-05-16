@@ -18,7 +18,7 @@ case class CStringV(value: String) extends Value:
   override def toString: String = s"\"$value\""
   override def isConstant: Boolean = true
 
-private class CStringVOps (using failure: Failure, intOps: IntOps[Int, Value]) extends StringOps[Value]:
+private class CStringVOps (using failure: Failure, intOps: IntOps[Int, Value]) extends StringOps[Boolean, Value]:
   override def stringLit(s: String): Value = CStringV(s)
 
   override def toString(v: Value): Value = v match
@@ -42,10 +42,18 @@ private class CStringVOps (using failure: Failure, intOps: IntOps[Int, Value]) e
     case CStringV(s) => intOps.integerLit(s.length)
     case _ => failure(InvalidStringValue, s"Can not get length of $v")
 
+  override def ordinalNumber(v: Value): Value = v match
+    case CStringV(s) => intOps.integerLit(s.hashCode)
+    case _ => failure(InvalidStringValue, s"Can not get ordinal number of $v")
+
+  override def matches(v: Value, pattern: Value): Boolean = (v, pattern) match
+    case (CStringV(s), CStringV(p)) => p.r.matches(s)
+    case _ => failure(InvalidStringConcat, s"Can not regex match values $v and $pattern")
+
   override def stringValue(v: Value): String = v match
     case CStringV(s) => s 
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val intOps: IntOps[Int, Value]
-  lazy val stringOps: StringOps[Value] = CStringVOps(using failure, intOps)
+  lazy val stringOps: StringOps[Boolean, Value] = CStringVOps(using failure, intOps)
 
