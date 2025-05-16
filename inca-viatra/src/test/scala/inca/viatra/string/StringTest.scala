@@ -1,4 +1,4 @@
-package inca.viatra.string.aggregate
+package inca.viatra.string
 
 import inca.ir.*
 import inca.ir.execution.UnitRelation

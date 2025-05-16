@@ -1,16 +1,16 @@
-package inca.souffle.compile.backend
+package inca.souffle.compile.backend.string
 
-import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, Module, Name, Param, Relation, Var, string2name, term2Arg, termList2ArgList}
 import inca.ir.execution.UnitRelation
 import inca.ir.extension.arithmetic.{IntNum, TInt, IR as arithIR}
 import inca.ir.extension.string.{OrdinalNumber, RegexMatch, StringLength, StringLit, Substring, TString, IR as strIR}
 import inca.ir.hints.MainHint
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.ir.util.SourceLocation
+import inca.ir.{BaseIR, Body, Call, CompiledUnit, Eq, Module, Name, Param, Relation, Var, string2name, term2Arg, termList2ArgList}
 import inca.util.compileroptions.CompilerOptions
 import org.scalatest.funsuite.AnyFunSuite
 
-class GenerateSouffleStringTest extends AnyFunSuite:
+class StringTest extends AnyFunSuite:
   private def compile(mod: Module): CompiledUnit =
     new CompiledUnit {
       def compilerOptions: CompilerOptions = CompilerOptions.default
