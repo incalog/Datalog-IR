@@ -2,7 +2,7 @@ package inca.casestudy.doop
 
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
-import inca.ir.extension.{block, bool, disjunction, module, not}
+import inca.ir.extension.{block, bool, disjunction, module, not, aggregategeneric}
 import inca.ir.optimize.AliasElimination
 import inca.ir.{CompiledUnit, string2name}
 import inca.souffle.frontend.compile.CompiledSouffleProgram
@@ -22,6 +22,7 @@ object TwoTypeSensitiveHeap:
     val compiled = CompiledSouffleProgram.fromSource("TwoTypeSensitiveHeap", source, options)
     compiled.setOptimizationPipeline(List())
     compiled.setPipeline(List(
+      () => new aggregategeneric.Lowering {},
       () => new bool.Lowering {},
       () => new block.Lowering {},
       () => new disjunction.Lowering {},

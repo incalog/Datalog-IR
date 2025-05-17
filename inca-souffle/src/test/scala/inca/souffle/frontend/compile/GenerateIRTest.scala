@@ -3,8 +3,7 @@ package inca.souffle.frontend.compile
 import inca.ir.*
 import inca.ir.execution.{Relation2, Relation as Rel}
 import inca.ir.extension.data.{DataDefinition, DataModuleEntry}
-import inca.ir.extension.module.Lowering
-import inca.ir.extension.{aggregate, block, bool, data, datamatch, disjunction, module, not, set, tuple, arithmetic as arith}
+import inca.ir.extension.{aggregate, aggregategeneric, block, bool, data, datamatch, disjunction, module, not, set, tuple, arithmetic as arith}
 import inca.ir.optimize.AliasElimination
 import inca.ir.typing.Typechecker
 import inca.ir.util.SourceLocation
@@ -25,6 +24,7 @@ class GenerateIRTest extends AnyFunSuite:
   def typechecker(): Typechecker = new Typechecker {}
 
   val pipeline: List[() => BaseIRVisitor] = List(
+    () => new aggregategeneric.Lowering {},
     () => new set.Lowering {},
     () => new bool.Lowering {},
     () => new datamatch.Lowering {},
@@ -61,17 +61,17 @@ class GenerateIRTest extends AnyFunSuite:
     }
     compiledProg.setPipeline(pipeline)
 
-    //println()
-    //println("Generated:")
-    //generateMods.foreach(m => {
-    //  println(); println(m)
-    //})
+    println()
+    println("Generated:")
+    generateMods.foreach(m => {
+      println(); println(m)
+    })
 
-    //compiledProg.compiledUnits.foreach { u =>
-    //  println()
-    //  println("After lowering:")
-    //  println(u.compiled)
-    //}
+    compiledProg.compiledUnits.foreach { u =>
+      println()
+      println("After lowering:")
+      println(u.compiled)
+    }
 
     val engine = new Executor().instantiate(compiledProg.mainUnit)
     val rels = engine.readAll()
@@ -149,4 +149,18 @@ class GenerateIRTest extends AnyFunSuite:
     val prog = Parser.parseSouffle(file)
     val res = execute(prog)
     assertResult("comp$innerComp$Succ(comp$innerComp$Zero())")(res("nats").entries.head.toString)
+  }
+
+  test("Aggregate") {
+    val file = FileUtil.readFileFromResource("inca/souffle/Aggregate.dl")
+    val prog = Parser.parseSouffle(file)
+    val res = execute(prog)
+    assertResult(1)(res("b").entries.head)
+  }
+
+  test("AggregateCount") {
+    val file = FileUtil.readFileFromResource("inca/souffle/AggregateCount.dl")
+    val prog = Parser.parseSouffle(file)
+    val res = execute(prog)
+    assertResult(2)(res("b").entries.head)
   }

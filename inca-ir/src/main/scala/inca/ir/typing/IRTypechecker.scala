@@ -5,6 +5,7 @@ import inca.ir.extension.*
 class IRTypechecker extends BaseIRTypechecker
   with aggregate.Typechecker
   with aggregateset.Typechecker
+  with aggregategeneric.Typechecker
   with arithmetic.Typechecker
   with block.Typechecker
   with bool.Typechecker

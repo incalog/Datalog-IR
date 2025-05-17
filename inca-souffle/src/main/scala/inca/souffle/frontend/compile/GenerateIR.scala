@@ -7,7 +7,7 @@ import inca.ir.extension.arithmetic.IntNum
 import inca.ir.extension.block.Block
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
 import inca.ir.extension.data.{RequireCaseDefinition, RequireDataDefinition}
-import inca.ir.extension.{block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
+import inca.ir.extension.{aggregategeneric as iraggGeneric, block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.ir.typing.Resolvable
 import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
@@ -29,7 +29,7 @@ class GenerateIR extends GenerateIRContext:
   val irLang: Language = new Language(Set(ir.BaseIR)
                                       + irarith.IR + block.IR + irbool.IR + irdata.IR
                                       + irdis.IR + irnot.IR + irstring.IR
-                                      + iragg.IR
+                                      + iragg.IR + iraggGeneric.IR
   )
   val gensym: Gensym = new Gensym()
 
@@ -358,55 +358,12 @@ class GenerateIR extends GenerateIRContext:
     case Term.TypeCast(t, ty) =>
       ir.Cast(compileTerm(t), compileType(ty))
     case Term.AggregatorTerm(agg) =>
-      val (incaAggOp, aggCalls, outTerm) = agg match
-        case Aggregator.Min(t, args) => (irarith.ArithmeticAggregationOperator.MinInt, args, Some(t))
-        case Aggregator.Max(t, args) => (irarith.ArithmeticAggregationOperator.MaxInt, args, Some(t))
-        case Aggregator.Sum(t, args) => (irarith.ArithmeticAggregationOperator.SumInt, args, Some(t))
-        case Aggregator.Count(args) => (irarith.ArithmeticAggregationOperator.Count, args, None)
-
-      // TODO: We only support aggregations of this form
-      val allowedFormat = "agg_op v: Term.Var : { Call(..., v, ...) }"
-      val errMsg = s"Only Souffle aggregations of the form: $allowedFormat are allowed"
-      if (aggCalls.size != 1)
-        throw IllegalStateException(errMsg)
-
-
-      aggCalls.head match
-        case call@Atom.Call(qualifiedName, args) =>
-          val relDecl = call.target match
-            case Some(decl) => decl
-            case _ => throw IllegalArgumentException(s"Unresolved relation declaration for call $call")
-
-          val fromPath = qualifiedName.path.map(n => ir.Name(n))
-          val fromName = prefixedName(QName(qualifiedName.ns), relDecl, absolutePath = fromPath.nonEmpty)
-          val ref: ir.Ref[ir.Relation] = ir.RefByQualifiedName(fromPath :+ fromName)
-
-          outTerm match
-            case Some(t) =>
-              val aggIndex = args.indexOf(t)
-              if (aggIndex < 0)
-                throw IllegalStateException(errMsg)
-
-              val compiledArgs = args.map(compileArg)
-              val aggTerm = compileTerm(t)
-              val newArgs = compiledArgs.updated(aggIndex, iragg.AggregateColumnArg(aggTerm))
-              val aggAtom = iragg.Aggregate(ref, newArgs, incaAggOp)
-              Block(aggAtom, aggTerm)
-            case _ =>
-              // Count aggregation for example does not specify a column to aggregate on.
-              // In our IR the aggregated column does exist, but does not matter.
-              // We always get the same result, which is the number of rows in the relation minus the filtering.
-              val unboundIndex = args.indexWhere(t => !isBound(t) && t.isInstanceOf[Term.Var])
-              if (unboundIndex < 0)
-                throw IllegalStateException("Aggregation must contain at least one unbound variable.")
-              val aggTerm = ir.Var(ir.Name(gensym.fresh("aggCol"))) // ok, since aggregation args do not bind things
-              val compiledArgs = args.map(compileArg).updated(unboundIndex, AggregateColumnArg(aggTerm))
-              val aggAtom = iragg.Aggregate(ref, compiledArgs, incaAggOp)
-              Block(aggAtom, aggTerm)
-        case _ =>
-          throw IllegalStateException(errMsg)
-
-
+      agg match
+        case Aggregator.Min(t, args) => iraggGeneric.AggregateGeneric.minInt(compileTerm(t), args.map(compileAtom))
+        case Aggregator.Max(t, args) => iraggGeneric.AggregateGeneric.maxInt(compileTerm(t), args.map(compileAtom))
+        case Aggregator.Sum(t, args) => iraggGeneric.AggregateGeneric.sumInt(compileTerm(t), args.map(compileAtom))
+        case Aggregator.Count(args) => iraggGeneric.AggregateGeneric.count(args.map(compileAtom))
+        case _ => throw IllegalStateException(s"Unsupported aggregate operation $agg")
     case Term.IntrinsicFunctorApp(f, args) =>
       f match
         case IntrinsicFunctor.Ord => irstring.OrdinalNumber(compileTerm(args.head))

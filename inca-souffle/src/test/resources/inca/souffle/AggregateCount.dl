@@ -1,0 +1,8 @@
+.decl a(s:symbol, x:number)
+.decl b(x:number)
+
+a("B", 1).
+a("B", 2).
+
+b(n) :- x = "B", n = count : a(x, _).
+.output b

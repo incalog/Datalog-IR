@@ -5,6 +5,7 @@ import inca.ir.extension.*
 trait IRVisitor extends BaseIRVisitor
   with aggregate.Visitor
   with aggregateset.Visitor
+  with aggregategeneric.Visitor
   with arithmetic.Visitor
   with data.Visitor
   with block.Visitor

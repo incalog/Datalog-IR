@@ -1,3 +1,7 @@
+// Use the following command to remove components in a Souffle program.
+// You probably still need to manually change things.
+//souffle --disable-transformers=DebugReporter,DebugDeltaRelationTransformer,FoldAnonymousRecords,MinimiseProgramTransformer,ResolveAnonymousRecordAliases,ReduceExistentialsTransformer,PartitionBodyLiteralsTransformer,IODefaultsTransformer,IOAttributesTransformer,RemoveRelationCopiesTransformer,UniqueAggregationVariablesTransformer,InlineRelationsTransformer,ResolveAliasesTransformer,AddNullariesToAtomlessAggregatesTransformer,MaterializeAggregationQueriesTransformer,MaterializeSingletonAggregationTransformer,NormaliseGeneratorsTransformer,NameUnnamedVariablesTransformer --show=transformed-ast 2-type-sensitive+heap.dl > 2-type-sensitive+heap.dl-flatten.dl
+
 .type Modifier = symbol
 .type Type = symbol
 .type PrimitiveType = Type
@@ -1871,7 +1875,13 @@ NonApplicationConcreteImplementations(?class,?staticType) :-
 
 NonApplicationConcreteImplementationsOrd(?classOrd, ?staticType) :-
     NonApplicationConcreteImplementations(_, ?staticType),
-    ?classOrd = min ord(?allConcreteImplementations): NonApplicationConcreteImplementations(?allConcreteImplementations, ?staticType).
+    //?classOrd = min ord(?allConcreteImplementations): NonApplicationConcreteImplementations(?allConcreteImplementations, ?staticType).
+    ?classOrd = min ?allConcreteImplementationsOrd: NonApplicationConcreteImplementations_Agg(?allConcreteImplementationsOrd, ?staticType).
+
+.decl NonApplicationConcreteImplementations_Agg(?classOrd:number, ?staticType:Type) 
+NonApplicationConcreteImplementations_Agg(?classOrd,?staticType) :-
+   NonApplicationConcreteImplementations(?class,?staticType),
+   ?classOrd = ord(?class).
 
 PossibleEntryPointClass(?type) :- 
    !isSpringApplication(1),
@@ -3896,7 +3906,13 @@ mainAnalysis_CompatibleTypes(?t,?tConv) :-
 
 mainAnalysis_ExceptionHeapTypeRepresentativeOrdinal(?type,?representativeHeapOrd) :- 
    mainAnalysis_ExceptionTypeToHeap(_,?type),
-   ?representativeHeapOrd = min ord(?heap) : mainAnalysis_ExceptionTypeToHeap(?heap, ?type).
+   //?representativeHeapOrd = min ord(?heap) : mainAnalysis_ExceptionTypeToHeap(?heap, ?type).
+   ?representativeHeapOrd = min ?heapOrd : mainAnalysis_ExceptionTypeToHeap_Agg(?heapOrd, ?type).
+
+.decl mainAnalysis_ExceptionTypeToHeap_Agg(?heapOrd:number,?type:Type)
+mainAnalysis_ExceptionTypeToHeap_Agg(?heapOrd,?type) :-
+   mainAnalysis_ExceptionTypeToHeap(?heap, ?type),
+   ?heapOrd = ord(?heap).
 
 mainAnalysis_ExceptionType(?type) :- 
    ?throw = "java.lang.Throwable",
@@ -4503,11 +4519,23 @@ mainAnalysis_MethodVarArgs(?method,?idx,?formal,?type) :-
 
 mainAnalysis_MinHeapOrdinalPerMethodAndType(?minHeapOrd,?type,?meth) :- 
    mainAnalysis_MethodAndTypeToMergedHeap(_,?type,?meth),
-   ?minHeapOrd = min ord(?heap): mainAnalysis_MethodAndTypeToMergedHeap(?heap, ?type, ?meth).
+   //?minHeapOrd = min ord(?heap): mainAnalysis_MethodAndTypeToMergedHeap(?heap, ?type, ?meth).
+   ?minHeapOrd = min ?heapOrd: mainAnalysis_MethodAndTypeToMergedHeap_Agg(?heapOrd, ?type, ?meth).
+
+.decl mainAnalysis_MethodAndTypeToMergedHeap_Agg(?heapOrd:number,?type:Type,?meth:Method)
+mainAnalysis_MethodAndTypeToMergedHeap_Agg(?heapOrd,?type,?meth) :-
+   mainAnalysis_MethodAndTypeToMergedHeap(?heap, ?type, ?meth),
+   ?heapOrd = ord(?heap).
 
 mainAnalysis_MinRepresentativeHeapToPickFromOrdinal(?minHeapReprOrd,?heap) :- 
    mainAnalysis_RepresentativesToPickFrom(_,?heap),
-   ?minHeapReprOrd = min ord(?heapRepr): mainAnalysis_RepresentativesToPickFrom(?heapRepr, ?heap).
+   //?minHeapReprOrd = min ord(?heapRepr): mainAnalysis_RepresentativesToPickFrom(?heapRepr, ?heap).
+   ?minHeapReprOrd = min ?heapOrd: mainAnalysis_RepresentativesToPickFrom_Agg(?heapOrd, ?heap).
+
+.decl mainAnalysis_RepresentativesToPickFrom_Agg(?heapOrd:number,?heap:HeapAllocation)
+mainAnalysis_RepresentativesToPickFrom_Agg(?heapOrd,?heap) :-
+   mainAnalysis_RepresentativesToPickFrom(?heapRepr,?heap),
+   ?heapOrd = ord(?heapRepr).
 
 mainAnalysis_MockedMethodReturns("<java.sql.DriverManager: java.sql.Connection getConnection(java.lang.String,java.util.Properties,java.lang.Class)>",cat("<mock SQL connection of type ",cat(?type,">")),?type) :- 
    basic_SubtypeOf(?type,"java.sql.Connection"),
