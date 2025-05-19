@@ -7,8 +7,6 @@ import inca.ir.optimize.AliasElimination
 import inca.ir.{CompiledUnit, string2name}
 import inca.souffle.frontend.compile.CompiledSouffleProgram
 import inca.util.compileroptions.CompilerOptions
-import inca.viatra.backend
-import inca.viatra.backend.Executor
 
 import scala.io.Source
 
@@ -33,29 +31,29 @@ object TwoTypeSensitiveHeap:
 
     println(compiled.mainUnit.compiled)
 
-  /*println("Load edb from files...")
-  val edbFacts = compiled.loadEdbInputs(baseDir)
-  val outputRels = compiled.outputRelations
+    println("Load edb from files...")
+    val edbFacts = compiled.loadEdbInputs(baseDir)
+    val outputRels = compiled.outputRelations
 
-  println("Populate edb...")
-  val engine = createEngine(compiled.mainUnit)
-  edbFacts.foreach(engine.insert)
+    println("Populate edb...")
+    val engine = createEngine(compiled.mainUnit)
+    edbFacts.foreach(engine.insert)
 
-  println("Execute...")
-  val execTime = outputRels.map { rel =>
-    val start = System.currentTimeMillis()
-    val res = engine.read(rel)
+    println("Execute...")
+    val execTime = outputRels.map { rel =>
+      val start = System.currentTimeMillis()
+      val res = engine.read(rel)
+      val end = System.currentTimeMillis()
+      println(res.name -> res.size)
+      end - start
+    }.sum
+
+    /*val start = System.currentTimeMillis()
+    engine.read(UnitRelation("VarPointsTo"))
     val end = System.currentTimeMillis()
-    println(res.name -> res.size)
-    end - start
-  }.sum*/
+    val execTime = end - start
 
-  /*val start = System.currentTimeMillis()
-  engine.read(UnitRelation("VarPointsTo"))
-  val end = System.currentTimeMillis()
-  val execTime = end - start
-
-  println(execTime / 1000.0)*/
+    println(execTime / 1000.0)*/
 
   @main
   def runTwoTypeSensitiveHeapDL(): Unit = {

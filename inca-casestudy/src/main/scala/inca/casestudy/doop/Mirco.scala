@@ -4,7 +4,7 @@ import inca.ir.analysis.{IRConstantAbstractInterpreter, IRTerminationAnalysis}
 import inca.ir.{CompiledUnit, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
-import inca.ir.extension.{block, bool, disjunction, module, not}
+import inca.ir.extension.{aggregategeneric, block, bool, disjunction, module, not}
 import inca.ir.optimize.{AliasElimination, IRConstantOptimizer, IdentityCastElimination}
 import inca.souffle.frontend.compile.CompiledSouffleProgram
 import inca.util.compileroptions.CompilerOptions
@@ -25,6 +25,7 @@ object Mirco:
     //options.irLogging.logLowerings = true
     val compiled = CompiledSouffleProgram.fromSource("micro", source, options,
       pipeline = List(
+        () => new aggregategeneric.Lowering {},
         () => new bool.Lowering {},
         () => new block.Lowering {},
         () => new disjunction.Lowering {},
@@ -39,7 +40,7 @@ object Mirco:
         () => new IRConstantOptimizer(false, true),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},
-        () => new IRTerminationAnalysis {}
+        //() => new IRTerminationAnalysis {}
       )
     )
 

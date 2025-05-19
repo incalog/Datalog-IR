@@ -1,7 +1,7 @@
 package inca.souffle.backend
 
 import inca.ir
-import inca.ir.{Name, RefByName, TAny, TermArg}
+import inca.ir.{Name, RefByName, TAny, TermArg, WildcardArg}
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}
 import inca.ir.extension.data.{CaseDefinition, TData}
 import inca.ir.extension.{data, string, aggregate as agg, arithmetic as arith}
@@ -101,6 +101,7 @@ object GenerateSouffle:
       val replacedArgs = args.patch(resultIdx, Seq(aggregatorVar.arg), 1)
       val callArgs = replacedArgs.map {
         case TermArg(t) => compileTerm(t)
+        case WildcardArg() => Term.Var("_")
       }
       val souffleAgg = op match
         case arith.ArithmeticAggregationOperator.MinInt => Aggregator.Min(Term.Var(cleanName(aggregatorVar.name)), Seq(Atom.Call(qualifyName(ref.name), callArgs)))
@@ -120,13 +121,14 @@ object GenerateSouffle:
       case s => s.replace("$", "_")
 
   private def compileArg(a: ir.Arg): Term = a match
-    case ir.TermArg(t) => compileTerm(t)
+    case TermArg(t) => compileTerm(t)
     case AggregateColumnArg(t) => compileTerm(t)
-    case ir.WildcardArg() =>
+    case WildcardArg() =>
       // Work around a souffle bug, where wildcards cause "Ungrounded ADT branch"
       // We can work around this by just using a fresh variable name instead of a wildcard
       // See: https://github.com/souffle-lang/souffle/pull/2483
-      Term.Var(cleanName(gensym.freshName(Name("_"))))
+      Term.Var("_")
+      //Term.Var(cleanName(gensym.freshName(Name("_"))))
 
   private def compileTerm(t: ir.Term): Term = t match
     case ir.Var(ref) => Term.Var(cleanName(ref.name))

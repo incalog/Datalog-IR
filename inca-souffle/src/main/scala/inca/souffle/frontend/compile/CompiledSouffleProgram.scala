@@ -2,7 +2,7 @@ package inca.souffle.frontend.compile
 
 import inca.ir
 import inca.ir.optimize
-import inca.ir.extension.{block, bool, disjunction, module, not}
+import inca.ir.extension.{aggregategeneric, block, bool, disjunction, module, not}
 import inca.ir.{CompiledProgram, CompiledUnit, ExtensionalRelation, Module, Name, Param, Relation}
 import inca.ir.visitors.{BaseIRVisitor, IRVisitor}
 import inca.souffle.syntax.{DirectiveValue, Parser, Program}
@@ -102,6 +102,7 @@ case class CompiledSouffleProgram(
 object CompiledSouffleProgram:
   val pipeline: List[() => BaseIRVisitor] =
     List(
+      () => new aggregategeneric.Lowering {},
       () => new bool.Lowering {},
       () => new block.Lowering {},
       () => new disjunction.Lowering {},
