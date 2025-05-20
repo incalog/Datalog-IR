@@ -34,5 +34,17 @@ trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Bo
       case ArithmeticAggregationOperator.SumDouble => doubleOps.add(accumulator, value)
       case _ => Value.Top
 
+    // TODO: This seems hacky... We need to decide if a relation is finite or not
     override def count(rel: RelationBase, rv: AbstractRelation): Value =
-      Value.Top
+      // If any of the values in the relation is top, the relation might be non-terminating
+      val filtered = relationOps.filter(rv) { row =>
+        val containsTopValue = row.contains(Value.Top)
+        Topped.Actual(containsTopValue)
+      }
+      if (relationOps.isEmpty(filtered) == Topped.Actual(true))
+        // we know the relation is finite
+        intOps.integerLit(5000) // TODO: Replace this with a symbolic number
+      else
+        // Possibly non-terminating, that is we can not count
+        throw IllegalStateException("Count is infinite")
+        //Value.Top

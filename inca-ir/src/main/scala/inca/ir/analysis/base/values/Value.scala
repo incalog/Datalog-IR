@@ -2,7 +2,7 @@ package inca.ir.analysis.base.values
 
 import inca.ir.analysis.base.effect.{BaseIRException, EmptyTable}
 import sturdy.effect.except.Except
-import sturdy.values.{Finite, Join, MaybeChanged}
+import sturdy.values.{Join, MaybeChanged}
 
 trait BaseCombineV:
   def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
@@ -28,8 +28,6 @@ trait RequireMeet[V]:
 
 trait RequireJoin[V]:
   val joinV: Join[V]
-
-class FiniteV extends Finite[Value]
 
 trait Value:
   def isConstant: Boolean

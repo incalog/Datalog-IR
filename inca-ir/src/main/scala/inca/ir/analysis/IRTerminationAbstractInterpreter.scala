@@ -189,7 +189,7 @@ class IRTerminationAbstractInterpreter(
           case _ => // nothing
         super.visitTerm(term)
     }.visitModule(m)
-    irWiden.intBounds = intLits
+    irWiden.intBounds = intLits + 5000 + 5001 // TODO: these are placeholders for symbolic values
     irWiden.doubleBounds = doubleLits
     super.evalModule(m)
 

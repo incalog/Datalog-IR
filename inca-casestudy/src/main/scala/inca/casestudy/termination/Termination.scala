@@ -221,9 +221,10 @@ object Termination:
           ExtensionalCall("DirectSuperclass", Seq(Var("type"), Var("supertype"))),
           Call("_MethodLookup_WithLen", Seq(Var("supertype"), Var("method"), Var("n0"))),
           Aggregate("TransitiveSuperclasses", Seq(Var("type").arg, AggregateColumnArg(Var("c"))), ArithmeticAggregationOperator.Count),
-          LE(Var("c"), Var("n0")),
+          LE(Var("n0"), Var("c")),
           ExtensionalCall("MethodImplemented", Seq(Var("type"), Var("_")), true),
-          Eq(Var("n"), Add(Var("n0"), IntNum(1)))
+          Eq(Var("n"), Add(Var("n0"), IntNum(1))),
+          //LT(Var("n"), Var("c"))
         ))
       ))
     ))

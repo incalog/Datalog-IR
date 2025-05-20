@@ -25,12 +25,17 @@ type DoubleInterval = NumericInterval[Double]
 val topIntInterval: IntInterval = NumericInterval.safe(Integer.MIN_VALUE, Integer.MAX_VALUE)
 val topDoubleInterval: DoubleInterval = NumericInterval.safe(Double.MinValue, Double.MaxValue)
 
-case class IntervalIntV(iv: IntInterval) extends Value:
+case class IntervalIntV(private val iv: IntInterval) extends Value:
   override def toString: String = iv.toString
   override def isConstant: Boolean = iv.isConstant
 
 object IntervalIntV:
   def constant(i: Int): IntervalIntV = new IntervalIntV(NumericInterval.constant(i))
+  def apply(iv: IntInterval): Value =
+    if (iv == topIntInterval)
+      Value.Top
+    else
+      new IntervalIntV(iv)
 
 case class IntervalDoubleV(iv: DoubleInterval) extends Value:
   override def toString: String = iv.toString
@@ -100,7 +105,7 @@ private class IntervalIntVOps(using failure: Failure, effects: EffectStack, exce
     using StandardIntervalIntegerOps
   )
   with IntOps[Int, Value]:
-  
+
   override def integerValue(v: Value): Option[Int] = v match
     case IntervalIntV(iv) if iv.isConstant => Some(iv.low)
     case _ => None
@@ -119,7 +124,12 @@ trait IntervalWidenV extends BaseWidenV:
   lazy val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
 
   override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
-    case (IntervalIntV(iv1), IntervalIntV(iv2)) => IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
+    case (IntervalIntV(iv1), IntervalIntV(iv2)) =>
+      //val iv1InIv2 = iv1.low >= iv2.low && iv1.high <= iv2.high
+      //val iv2InIv1 = iv2.low >= iv1.low && iv2.high <= iv1.high
+      //if (iv1InIv2) IntervalIntV(intIntervalWiden.apply(iv2, iv1).get)
+      //else IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
+      IntervalIntV(intIntervalWiden.apply(iv1, iv2).get)
     case (IntervalDoubleV(iv1), IntervalDoubleV(iv2)) => IntervalDoubleV(doubleIntervalWiden.apply(iv1, iv2).get)
     case _ => super.combine(lhs, rhs)
 
@@ -182,7 +192,6 @@ class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
       case BinaryArithmeticComparisonOperator.Lt =>
         (safe(l1, math.min(h1, math.nextDown(h2))), safe(math.max(l2, math.nextUp(l1)), h2))
 
-
   override def refine(v1: Value, v2: Value, op: BinaryArithmeticComparisonOperator): (Value, Value) = (v1, v2) match
     case (IntervalIntV(i1), IntervalIntV(i2)) =>
       val (refinedV1, refinedV2) = refineInt(i1, i2, op)
@@ -190,7 +199,19 @@ class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
     case (IntervalDoubleV(i1), IntervalDoubleV(i2)) =>
       val (refinedV1, refinedV2) = refineDouble(i1, i2, op)
       (IntervalDoubleV(refinedV1), IntervalDoubleV(refinedV2))
-    case (Value.Top, _) | (_, Value.Top) =>
+    case (Value.Top, IntervalIntV(i2)) =>
+      val (refinedV1, refinedV2) = refineInt(topIntInterval, i2, op)
+      (IntervalIntV(refinedV1), IntervalIntV(refinedV2))
+    case (IntervalIntV(i1), Value.Top) =>
+      val (refinedV1, refinedV2) = refineInt(i1, topIntInterval, op)
+      (IntervalIntV(refinedV1), IntervalIntV(refinedV2))
+    case (Value.Top, IntervalDoubleV(i2)) =>
+      val (refinedV1, refinedV2) = refineDouble(topDoubleInterval, i2, op)
+      (IntervalDoubleV(refinedV1), IntervalDoubleV(refinedV2))
+    case (IntervalDoubleV(i1), Value.Top) =>
+      val (refinedV1, refinedV2) = refineDouble(i1, topDoubleInterval, op)
+      (IntervalDoubleV(refinedV1), IntervalDoubleV(refinedV2))
+    case (Value.Top, Value.Top) =>
       (Value.Top, Value.Top)
     case _ =>
       throw IllegalArgumentException(s"Can not refine non-interval values! $v1 :: $v2")
