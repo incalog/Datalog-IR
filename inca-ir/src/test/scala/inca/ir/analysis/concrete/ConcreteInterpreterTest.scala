@@ -1249,16 +1249,15 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
         ))
       )),
       Relation("main", Seq(
-        Param("x", TInt),
+        Param("y", TInt),
       ), Seq(
         Body(Seq(
-          Aggregate(Name("edge"), Seq(WildcardArg(), AggregateColumnArg(Var("x"))), ArithmeticAggregationOperator.Count),
+          Aggregate(Name("edge"), Seq(WildcardArg(), AggregateColumnArg(Var("y"))), ArithmeticAggregationOperator.Count),
         )),
       )).addHint(MainHint),
     ))
 
     val res = interp(mod)
-    res.foreach(r => println(r._2.asTable))
     val edgeRel = res("edge")
     assert(edgeRel.size == 2)
     assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))

@@ -40,7 +40,6 @@ private class CAggregateOps(using failure: Failure, effects: EffectStack, intOps
     case _ => failure(UnknownAggregationOperator, s"Unsupported aggregation operator $op")
 
   override def count(rel: RelationBase, rv: ConcreteRelation[Value]): Value =
-    println(s"Count: ${rv.rows}")
     intOps.integerLit(rv.rows.size)
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:

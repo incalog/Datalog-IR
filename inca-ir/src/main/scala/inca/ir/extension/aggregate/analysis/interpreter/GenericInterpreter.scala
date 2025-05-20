@@ -63,9 +63,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val aggRes = op match
         case ArithmeticAggregationOperator.Count =>
           // special case for count aggregation
-          val colsWithAggColDropped = cols.patch(aggColumnIndex, Nil, 1)
           val aggRes = aggregateOps.count(r.asInstanceOf[ir.RelationBase], callRes)
-          relationOps.fold(callRes, Seq()) { case (acc, row) =>
+          relationOps.fold(callRes, Seq()) { case (_, row) =>
             row.updated(callAggColIndex, aggRes)
           }
         case _ =>
@@ -75,9 +74,16 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
             row.updated(callAggColIndex, aggValue)
           }
 
+      // Project everything away that was freshly bound.
+      // This is safe, since an aggregation does not bind variables.
+      val colsBefore = relationOps.columns(beforeCall) :+ aggColInfo.col
+      val colsAfter = relationOps.columns(aggRes)
+      val projected = relationOps.project(aggRes, colsAfter.intersect(colsBefore))
+
+      // If the aggregate column was bound, we need to compare the result.
       val filteredAggRes = expectedAggResult match
-        case Some(res) => relationOps.naturalJoin(aggRes, res)
-        case _ => aggRes
+        case Some(res) => relationOps.naturalJoin(projected, res)
+        case _ => projected
 
       relationOps.naturalJoin(beforeCall, filteredAggRes)
     }
