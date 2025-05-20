@@ -1,8 +1,10 @@
 package inca.ir.analysis
 
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
+import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
+import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.MinInt
 import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
-import inca.ir.extension.arithmetic.{Add, GT, IntNum, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.arithmetic.{Add, GT, IntNum, LE, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
 import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as boolIR}
 import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
@@ -33,7 +35,7 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
     abstractInterp.evalProgram(Seq(mod))
     abstractInterp.getIDB
 
-  test("Factorial") {
+  test("Generate numbers") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input", Seq(
         Param("n", TInt),
@@ -95,5 +97,38 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
         Topped.Actual(false)
       ), 
     ))
+    println(res)
+  }
+
+  test("Min Aggregation") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("input1", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(Eq(Var("n"), IntNum(1)))),
+        Body(Seq(Eq(Var("n"), IntNum(2)))),
+        Body(Seq(Eq(Var("n"), IntNum(3))))
+      )),
+      Relation("input2", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(Eq(Var("n"), IntNum(3)))),
+        Body(Seq(Eq(Var("n"), IntNum(4)))),
+        Body(Seq(Eq(Var("n"), IntNum(5))))
+      )),
+      Relation("main", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("input1", Seq(Var("m"))),
+          Aggregate("input2", Seq(AggregateColumnArg(Var("n"))), MinInt),
+          LE(Var("n"), Var("m"))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    assert(res("main").rows.head.isConstant) // should be constant 3
+    // input2 -> [3, 5] since we are calculating the min on the whole joined relation result and not after each body.
     println(res)
   }

@@ -1,8 +1,9 @@
 package inca.casestudy.doop
 
+import inca.ir.analysis.IRTerminationAnalysis
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
-import inca.ir.extension.{block, bool, disjunction, module, not, aggregategeneric}
+import inca.ir.extension.{aggregategeneric, block, bool, disjunction, module, not}
 import inca.ir.optimize.AliasElimination
 import inca.ir.{CompiledUnit, string2name}
 import inca.souffle.frontend.compile.CompiledSouffleProgram
@@ -15,8 +16,9 @@ object TwoTypeSensitiveHeap:
     val baseDir = "doop"
     val source = Source.fromResource(baseDir + "/" + file)
     val options = CompilerOptions.default
-    options.irLogging.logModule = true
-    options.irLogging.logLowerings = true
+    options.irLogging.logModule = false
+    options.irLogging.logLowerings = false
+    options.irLogging.logTypeInformation = false
     val compiled = CompiledSouffleProgram.fromSource("TwoTypeSensitiveHeap", source, options)
     compiled.setOptimizationPipeline(List())
     compiled.setPipeline(List(
@@ -26,10 +28,9 @@ object TwoTypeSensitiveHeap:
       () => new disjunction.Lowering {},
       () => new not.Lowering {},
       () => new AliasElimination {},
-      () => new module.Lowering {}
+      () => new module.Lowering {},
+      () => new IRTerminationAnalysis
     ))
-
-    println(compiled.mainUnit.compiled)
 
     println("Load edb from files...")
     val edbFacts = compiled.loadEdbInputs(baseDir)

@@ -61,7 +61,7 @@ trait FiniteStringJoinV extends BaseJoinV:
     case _ => super.combine(lhs, rhs)
 
 trait FiniteStringWidenV extends BaseWidenV:
-  var maxConcatDepth: Int = 15
+  var maxConcatDepth: Int = 20
 
   override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (f1: FiniteStringV, f2: FiniteStringV) =>

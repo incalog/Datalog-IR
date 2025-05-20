@@ -28,6 +28,7 @@ import inca.viatra.backend.Executor
 import java.io.IOException
 import scala.language.implicitConversions
 
+// Example used in our Paper: "Mono Types — First-Class Containers for Datalog" section 5.1
 object AbstractSyntaxGraphMono:
 
   implicit def embed[A](a: A): Seq[A] = Seq(a)

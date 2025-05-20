@@ -20,6 +20,7 @@ import inca.viatra.runtime.EnginePool
 import java.io.IOException
 import scala.language.implicitConversions
 
+// Example used in our Paper: "Mono Types — First-Class Containers for Datalog" section 5.1
 object AbstractSyntaxGraph:
 
   def t(s: String) = TData(s)

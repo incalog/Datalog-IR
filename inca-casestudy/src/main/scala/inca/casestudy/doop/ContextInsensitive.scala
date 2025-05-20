@@ -12,7 +12,9 @@ import inca.viatra.backend.Executor
 
 import scala.io.Source
 
-// TODO: Links, but not yet executable since GenerateIR for Souffle is missing features
+// Example used in our Paper: "Separate Compilation and Partial Linking: Modules for Datalog IR" section 5.2
+// Note: The example used in Section 5.3 to show interoperability was never merged into this branch since it is pretty
+// experimental. It remains in a separate branch.
 object ContextInsensitive:
   private def runContextInsensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "context-insensitive.dl"): Unit =
     val baseDir = "doop"

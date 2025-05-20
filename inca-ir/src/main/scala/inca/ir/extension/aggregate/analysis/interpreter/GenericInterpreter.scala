@@ -1,11 +1,13 @@
 package inca.ir.extension.aggregate.analysis.interpreter
 
 import inca.ir
-import inca.ir.analysis.base.effect.{InvalidBindings, NoParamRelation}
+import inca.ir.analysis.base.effect.{BaseIRFailure, InvalidBindings, NoParamRelation}
 import inca.ir.{Arg, Atom, ModuleEntry, Name, RefByName, Var}
 import inca.ir.analysis.base.interpreter.{Adorn, Adornment, BaseGenericInterpreter, BindingInfo, IndexPath, SupColumn}
 import inca.ir.extension.aggregate.*
 import sturdy.data.MayJoin
+
+case object UnknownAggregationOperator extends BaseIRFailure
 
 trait AggregateOps[V]:
   def init(op: AggregationOperator): V
@@ -49,7 +51,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       val expectedAggResult =
         if (aggColInfo.isBound)
-          Some(relationOps.project(relRes, Seq(aggColInfo.col)))
+          val relResAggCol = params(aggColumnIndex).name.name
+          //val relResAggCol = relationOps.columns(relRes)(aggColumnIndex)
+          Some(relationOps.project(relRes, Seq(relResAggCol)))
         else
           None
 

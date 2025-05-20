@@ -2,6 +2,7 @@ package inca.casestudy.termination
 
 import inca.casestudy.util.Util.{collectGarbage, toCSV}
 import inca.ir.*
+import inca.ir.analysis.IRTerminationAnalysis
 import inca.ir.execution.ThreadCount.Fixed
 import inca.ir.execution.{IRExecutor, UnitRelation}
 import inca.ir.extension.*
@@ -58,7 +59,8 @@ object Termination:
       () => new disjunction.Lowering {},
       () => new demand.Lowering {},
       () => new tuple.Lowering {},
-      () => new AliasElimination {}
+      () => new AliasElimination {},
+      () => new IRTerminationAnalysis
     ))
 
 

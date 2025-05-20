@@ -444,6 +444,7 @@ object Benchmark:
       )
     )
 
+  // Example used in our Paper: "Mono Types — First-Class Containers for Datalog" section 5.2
   def nestedWhileProgram(nestings: Int, repetitions: Int): edb.Stmt = {
     def nestedWhile(levels: Int): edb.Stmt =
       if (levels == 0)

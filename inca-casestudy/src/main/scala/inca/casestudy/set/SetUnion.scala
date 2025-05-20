@@ -30,6 +30,9 @@ import breeze.plot._
 
 import scala.language.implicitConversions
 
+// Example used in our Paper: "A Typed Multi-level Datalog IR" section 5.2
+// Show how optimizations on Sets are beneficial, instead of optimizing after lowering.
+
 def factorial(n: Int) = (1 to n).product
 
 object SetUnion:

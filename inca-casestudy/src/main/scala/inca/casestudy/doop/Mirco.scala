@@ -13,8 +13,8 @@ import inca.viatra.backend.Executor
 
 import scala.io.Source
 
+// Example used in our Paper: "A Typed Multi-level Datalog IR" section 5.1
 object Mirco:
-
   private def runMicroDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "micro.dl"): Unit =
     val baseDir = "doop/"
     val source = Source.fromResource(baseDir + file)

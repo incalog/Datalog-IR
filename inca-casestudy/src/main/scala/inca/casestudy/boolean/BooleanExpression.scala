@@ -30,9 +30,10 @@ import breeze.plot._
 
 import scala.language.implicitConversions
 
+// Example used in our Paper: "A Typed Multi-level Datalog IR" section 5.2
+// Show how optimizations on Booleans are beneficial compared to optimizations on ints.
 object BooleanExpression:
-
-
+  
   val inputMain = ExtensionalRelation(
     "input$main",
     Seq(

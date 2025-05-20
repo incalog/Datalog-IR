@@ -44,7 +44,7 @@ import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 
 import scala.language.implicitConversions
 
-
+// Example used in our Paper: "Mono Types — First-Class Containers for Datalog" section 5.2
 object IntervalAnalysisMono:
 
   def q(name: String): String = s"inca.casestudy.interval.edb.$name"

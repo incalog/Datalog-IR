@@ -62,7 +62,7 @@ class IRTerminationAbstractInterpreter(
     with irarith.interpreter.IntervalAbstractInterpreter
     with irstr.interpreter.FiniteStringAbstractInterpreter
     with irdata.interpreter.ConstantAbstractInterpreter
-    with iragg.interpreter.ConstantAbstractInterpreter
+    with iragg.interpreter.TerminationAbstractInterpreter
     with irtuple.interpreter.ConstantAbstractInterpreter
     with irbool.interpreter.ConstantAbstractInterpreter
     with irdemand.interpreter.ConstantAbstractInterpreter
@@ -177,9 +177,6 @@ class IRTerminationAbstractInterpreter(
   given Meet[Value] = IRMeetV(using except)
   override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new AbstractRelationOps(using except)
 
-  //override def entryPoints(m: ir.Module): Iterable[Relation] =
-  //  super.entryPoints(m).filter(_.name.name == "basic$Superinterface")
-
   override def evalModule(m: ir.Module)(using Fixed): Map[SupColumn, RV] =
     // Set up bounds for widening
     var intLits: Set[Int] = Set()
@@ -293,16 +290,14 @@ case class AnalysisFailed(msg: String) extends Exception:
 class IRTerminationAnalysis extends IRVisitor with Optimizer:
 
   // Configure
-  val edbConfig: EdbConfig[AbstractRelation] = new AbstractEdbConfig {
-    override def abstractExtensionalRelation(n: Name, params: Seq[Param]): AbstractRelation =
-      val (aCols, aRows) = params.map {
-        case Param(name, TInt) => (name.name, IntervalIntV.constant(5000))
-        case Param(name, TDouble) => (name.name, IntervalDoubleV.constant(5000))
-        case Param(name, TString) => (name.name, FiniteStringV.edb())
-        case Param(name, _) => (name.name, Value.Top)
-      }.unzip
-      AbstractRelation(aCols, aRows, Topped.Actual(false))
-  }
+  val edbConfig: EdbConfig[AbstractRelation] = (n: Name, params: Seq[Param]) =>
+    val (aCols, aRows) = params.map {
+      case Param(name, TInt) => (name.name, IntervalIntV.constant(5000))
+      case Param(name, TDouble) => (name.name, IntervalDoubleV.constant(5000))
+      case Param(name, TString) => (name.name, FiniteStringV.edb())
+      case Param(name, _) => (name.name, Value.Top)
+    }.unzip
+    AbstractRelation(aCols, aRows, Topped.Actual(false))
 
   val abstractInterpreter: BaseGenericInterpreter[Value, ?, AbstractRelation, ?, ?] =
     new IRTerminationAbstractInterpreter(false, false, true)
