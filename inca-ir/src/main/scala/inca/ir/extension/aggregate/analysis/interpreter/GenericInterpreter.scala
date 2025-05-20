@@ -49,42 +49,40 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       }
       val combinedInfo = filteredInfo.updated(aggColumnIndex, Seq(aggColInfo))
       val callRes = renameRelationResult(relRes, params, combinedInfo)
-      val callAggColIndex = relationOps.columnIndex(callRes, aggColInfo.col)
 
+      val aggCol = aggColInfo.col
       val expectedAggResult =
         if (aggColInfo.isBound)
-          Some(relationOps.project(callRes, Seq(aggColInfo.col)))
+          Some(relationOps.project(callRes, Seq(aggCol)))
         else
           None
 
-      // Perform the aggregation
-      val cols = relationOps.columns(callRes)
-
-      val aggRes = op match
-        case ArithmeticAggregationOperator.Count =>
-          // special case for count aggregation
-          val aggRes = aggregateOps.count(r.asInstanceOf[ir.RelationBase], callRes)
-          relationOps.fold(callRes, Seq()) { case (_, row) =>
-            row.updated(callAggColIndex, aggRes)
-          }
-        case _ =>
-          val initialRow = cols.indices.map(_ => aggregateOps.init(op))
-          relationOps.fold(callRes, initialRow) { case (acc, row) =>
-            val aggValue = aggregateOps.aggregate(acc(callAggColIndex), row(callAggColIndex), op)
-            row.updated(callAggColIndex, aggValue)
-          }
-
-      // Project everything away that was freshly bound.
+      // Project everything away that was freshly bound, except for the aggregate column.
       // This is safe, since an aggregation does not bind variables.
-      val colsBefore = relationOps.columns(beforeCall) :+ aggColInfo.col
-      val colsAfter = relationOps.columns(aggRes)
-      val projected = relationOps.project(aggRes, colsAfter.intersect(colsBefore))
+      val colsBefore = relationOps.columns(beforeCall) :+ aggCol
+      val colsAfter = relationOps.columns(callRes)
+      // Projected now only contains rows that are the same except for the aggCol.
+      val projected = relationOps.project(callRes, colsAfter.intersect(colsBefore))
+
+      // Perform the aggregation
+      val cols = relationOps.columns(projected)
+      val aggRes = relationOps.groupBy(projected, aggCol, cols.diff(Seq(aggCol)))(cols, { (groupByValues, accValues) =>
+          // This closure is evaluated exactly once, since all rows look the same except for the aggCol
+          val aggRes = op match
+            case ArithmeticAggregationOperator.Count =>
+              aggregateOps.count(r.asInstanceOf[ir.RelationBase], callRes)
+            case _ =>
+              accValues.foldLeft(aggregateOps.init(op))(aggregateOps.aggregate(_, _, op))
+          groupByValues :+ aggRes
+      })
 
       // If the aggregate column was bound, we need to compare the result.
       val filteredAggRes = expectedAggResult match
-        case Some(res) => relationOps.naturalJoin(projected, res)
-        case _ => projected
+        case Some(res) => relationOps.naturalJoin(aggRes, res)
+        case _ => aggRes
 
+      // filteredAggRes still contains the bound columns from before.
+      // We natural join to merge the results in.
       relationOps.naturalJoin(beforeCall, filteredAggRes)
     }
 

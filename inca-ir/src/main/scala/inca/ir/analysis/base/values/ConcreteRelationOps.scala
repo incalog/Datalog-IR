@@ -130,10 +130,6 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
     }
     ConcreteRelation(newCols, newRows.toSet)
 
-  def fold(initial: Seq[V])(f: (Seq[V], Seq[V]) => Seq[V]): ConcreteRelation[V] =
-    val foldedValue = rows.foldLeft(initial)(f)
-    ConcreteRelation(cols, Set(foldedValue))
-
   def filter(f: Seq[V] => Boolean): ConcreteRelation[V] =
     ConcreteRelation(cols, rows.filter(f))
   
@@ -214,9 +210,6 @@ class ConcreteRelationOps[V](using failure: Failure, eqOps: EqOps[V, Boolean])
   override def groupBy(rv: RV, accumulatorCols: Seq[String], groupByCols: Seq[String])
                       (newCols: Seq[String], f: (groupByValues: Row, accValues: Seq[Row]) => Row): RV =
     rv.groupBy(accumulatorCols, groupByCols)(newCols, f)
-
-  override def fold(rv: ConcreteRelation[V], initial: Row)(f: (Row, Row) => Row): ConcreteRelation[V] =
-    rv.fold(initial)(f)
 
   override def map(rv: ConcreteRelation[V], columnName: String)(f: Row => V): ConcreteRelation[V] =
     rv.map(columnName)(f)

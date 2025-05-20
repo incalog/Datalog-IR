@@ -126,12 +126,6 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
         if (newRows.size != newCols.size)
           throw IllegalStateException("Number of new columns must match arity of new rows.")
         AbstractRelation(newCols, newRows, empty)
-
-  override def fold(rv: AbstractRelation, initial: Row)(f: (Row, Row) => Row): AbstractRelation = rv match
-    case AbstractRelation.Empty(cols) =>
-      AbstractRelation(cols, initial, empty = Topped.Actual(false))
-    case AbstractRelation.NonEmpty(cols, rows, empty) =>
-      AbstractRelation(cols, f(initial, rows), empty = Topped.Actual(false))
   
   override def flatMap(rv: AbstractRelation)(f: Seq[Value] => AbstractRelation): AbstractRelation = rv match
     case AbstractRelation.Empty(cols) => naturalJoin(rv, f(Seq()))

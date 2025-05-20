@@ -38,8 +38,6 @@ trait RelationOps[V, B, RV]:
       f(groupedValues, accValues.flatten)
     })
 
-  def fold(rv: RV, initial: Row)(f: (Row, Row) => Row): RV
-
   /** may produce empty table */
   def flatMap(rv: RV)(f: Row => RV): RV
 
