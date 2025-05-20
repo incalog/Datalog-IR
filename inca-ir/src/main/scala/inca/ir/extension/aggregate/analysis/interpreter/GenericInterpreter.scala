@@ -61,13 +61,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       // This is safe, since an aggregation does not bind variables.
       val colsBefore = relationOps.columns(beforeCall) :+ aggCol
       val colsAfter = relationOps.columns(callRes)
-      // Projected now only contains rows that are the same except for the aggCol.
       val projected = relationOps.project(callRes, colsAfter.intersect(colsBefore))
 
       // Perform the aggregation
       val cols = relationOps.columns(projected)
-      val aggRes = relationOps.groupBy(projected, aggCol, cols.diff(Seq(aggCol)))(cols, { (groupByValues, accValues) =>
-          // This closure is evaluated exactly once, since all rows look the same except for the aggCol
+      val colsWithoutAggCol = cols.diff(Seq(aggCol))
+
+      val aggRes = relationOps.groupBy(projected, aggCol, colsWithoutAggCol)(cols, { (groupByValues, accValues) =>
           val aggRes = op match
             case ArithmeticAggregationOperator.Count =>
               aggregateOps.count(r.asInstanceOf[ir.RelationBase], callRes)
@@ -80,7 +80,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       val filteredAggRes = expectedAggResult match
         case Some(res) => relationOps.naturalJoin(aggRes, res)
         case _ => aggRes
-
+      
       // filteredAggRes still contains the bound columns from before.
       // We natural join to merge the results in.
       relationOps.naturalJoin(beforeCall, filteredAggRes)
