@@ -1233,6 +1233,42 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     assert(mainRel.entries.map(mainRel.flattenEntry).toSet.contains(Seq(1, 2)))
   }
 
+  test("Aggregate - count non recursive") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("edge", Seq(
+        Param("x", TInt),
+        Param("y", TInt)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1)),
+          Eq(Var("y"), IntNum(2))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2)),
+          Eq(Var("y"), IntNum(3))
+        ))
+      )),
+      Relation("main", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Aggregate(Name("edge"), Seq(WildcardArg(), AggregateColumnArg(Var("x"))), ArithmeticAggregationOperator.Count),
+        )),
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    res.foreach(r => println(r._2.asTable))
+    val edgeRel = res("edge")
+    assert(edgeRel.size == 2)
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(1, 2)))
+    assert(edgeRel.entries.map(edgeRel.flattenEntry).toSet.contains(Seq(2, 3)))
+
+    val mainRel = res("main")
+    assert(mainRel.size == 1)
+    assert(mainRel.entries.head == 2)
+  }
+
   /* demand */
 
   test("Fibonacci - demand input") {

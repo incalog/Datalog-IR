@@ -5,17 +5,19 @@ import inca.ir.analysis.base.effect.{BaseIRFailure, InvalidBindings, NoParamRela
 import inca.ir.{Arg, Atom, ModuleEntry, Name, RefByName, Var}
 import inca.ir.analysis.base.interpreter.{Adorn, Adornment, BaseGenericInterpreter, BindingInfo, IndexPath, SupColumn}
 import inca.ir.extension.aggregate.*
+import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import sturdy.data.MayJoin
 
 case object UnknownAggregationOperator extends BaseIRFailure
 
-trait AggregateOps[V]:
+trait AggregateOps[V, RV]:
   def init(op: AggregationOperator): V
   def aggregate(accumulator: V, value: V, op: AggregationOperator): V
+  def count(rel: ir.RelationBase, rv: RV): V
 
 
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
-  val aggregateOps: AggregateOps[V]
+  lazy val aggregateOps: AggregateOps[V, RV]
 
   override protected def extractBindingInfo(arg: ir.Arg)(using rec: Fixed): Seq[BindingInfo] = arg match
     case AggregateColumnArg(t) => extractBindingInfo(t)
@@ -51,22 +53,30 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       val expectedAggResult =
         if (aggColInfo.isBound)
-          val relResAggCol = params(aggColumnIndex).name.name
-          //val relResAggCol = relationOps.columns(relRes)(aggColumnIndex)
-          Some(relationOps.project(relRes, Seq(relResAggCol)))
+          Some(relationOps.project(callRes, Seq(aggColInfo.col)))
         else
           None
 
       // Perform the aggregation
       val cols = relationOps.columns(callRes)
-      val initialRow = cols.indices.map(_ => aggregateOps.init(op))
-      val aggRes = relationOps.fold(callRes, initialRow) { case (acc, row) =>
-        val aggValue = aggregateOps.aggregate(acc(callAggColIndex), row(callAggColIndex), op)
-        row.updated(callAggColIndex, aggValue)
-      }
+
+      val aggRes = op match
+        case ArithmeticAggregationOperator.Count =>
+          // special case for count aggregation
+          val colsWithAggColDropped = cols.patch(aggColumnIndex, Nil, 1)
+          val aggRes = aggregateOps.count(r.asInstanceOf[ir.RelationBase], callRes)
+          relationOps.fold(callRes, Seq()) { case (acc, row) =>
+            row.updated(callAggColIndex, aggRes)
+          }
+        case _ =>
+          val initialRow = cols.indices.map(_ => aggregateOps.init(op))
+          relationOps.fold(callRes, initialRow) { case (acc, row) =>
+            val aggValue = aggregateOps.aggregate(acc(callAggColIndex), row(callAggColIndex), op)
+            row.updated(callAggColIndex, aggValue)
+          }
 
       val filteredAggRes = expectedAggResult match
-        case Some(res) =>  relationOps.naturalJoin(aggRes, res)
+        case Some(res) => relationOps.naturalJoin(aggRes, res)
         case _ => aggRes
 
       relationOps.naturalJoin(beforeCall, filteredAggRes)
