@@ -15,10 +15,15 @@ case class CDataV(caseDef: CaseDefinitionReference, args: Seq[Value]) extends Va
 private class CDataVOps[R] extends DataOps[Value, R]:
   override def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): Value = CDataV(caseDef, args)
 
-  override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => R)(notMatching: => R): R = v match
-    case CDataV(`caseDef`, cArgs) => matching(cArgs)
-    case _ => notMatching
+  override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => R)(notMatching: => R): R =
+    v match
+      case CDataV(`caseDef`, cArgs) => matching(cArgs)
+      case _ => notMatching
 
+  override def deconstructNeg(v: Value, caseDef: CaseDefinitionReference)(possibleSuccess: Seq[Value] => R)(success: => R): R =
+    v match
+      case CDataV(`caseDef`, cArgs) => possibleSuccess(cArgs)
+      case CDataV(_, cArgs) => success
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val dataOps: DataOps[Value, ConcreteRelation[Value]] = new CDataVOps

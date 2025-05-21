@@ -1061,11 +1061,47 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
+    println(res.map(_._2.asTable))
     assert(res("main").size == 1)
   }
 
-  // The evaluation context of the recursive input_calc function is wrong after joining.
-  // Making the fixpoint parameter-sensitive could solve this problem.
+  test("ADT - Deconstruct negative different case") {
+    val TList = TData("TList")
+
+    val mod = Module("Termination", BaseIR.language + arithIR + boolIR, Seq(
+      DataDefinition("TList"),
+      CaseDefinition("TNil", Seq(), TList),
+      CaseDefinition("TCons", Seq(TInt, TList), TList),
+      Relation("main",
+        Seq(
+          Param("x", TList),
+        ),
+        Seq(
+          Body(Seq(
+            Call("buildList", Seq(Var("x")))
+          ))
+        )
+      ),
+      Relation("buildList",
+        Seq(
+          Param("y", TList),
+        ),
+        Seq(
+          Body(Seq(
+            Eq(Var("y"), Construct("TNil", Seq())),
+          )),
+          Body(Seq(
+            Call("buildList", Seq(Var("z"))),
+            Deconstruct(Var("z"), "TCons", Seq(WildcardArg(), WildcardArg()), true),
+            Eq(Var("y"), Construct("TCons", Seq(IntNum(0), Var("z"))))
+          ))
+        )
+      )
+    ))
+    val res = interp(mod)
+    res.foreach(r => println(r._2.asTable))
+  }
+
   test("Mutual Recursion, multiple call sites") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input_calc", Seq(

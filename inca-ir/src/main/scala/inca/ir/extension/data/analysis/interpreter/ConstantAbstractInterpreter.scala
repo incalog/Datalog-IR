@@ -70,3 +70,14 @@ trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boole
         } {
           notMatching
         }
+
+    override def deconstructNeg(v: Value, caseDef: CaseDefinitionReference)(possibleSuccess: Seq[Value] => AbstractRelation)(success: => AbstractRelation): AbstractRelation = v match
+      case ConstantDataV(`caseDef`, cArgs) => possibleSuccess(cArgs)
+      case ConstantDataV(_, _) => success
+      case Value.Top =>
+        // Could or could not match
+        effects.joinComputations {
+          possibleSuccess(caseDef.args.map(_ => Value.Top))
+        } {
+          success
+        }

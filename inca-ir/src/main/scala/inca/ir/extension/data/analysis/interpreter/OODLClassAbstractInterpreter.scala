@@ -76,3 +76,16 @@ trait OODLClassAbstractInterpreter
         } {
           notMatching
         }
+
+    override def deconstructNeg(v: Value, caseDef: CaseDefinitionReference)(possibleSuccess: Seq[Value] => AbstractRelation)(success: => AbstractRelation): AbstractRelation = v match
+      case OODLClassV(cls, true) if caseDef.data.ref.name.name == "ID" =>
+        possibleSuccess(stringOps.stringLit(cls) +: caseDef.args.tail.map(_ => Value.Top))
+      case OODLClassV(cls, false) if caseDef.data.ref.name.name == "ID" =>
+        possibleSuccess(caseDef.args.map(_ => Value.Top))
+      case Value.Top =>
+        // Could or could not match
+        effects.joinComputations {
+          possibleSuccess(caseDef.args.map(_ => Value.Top))
+        } {
+          success
+        }

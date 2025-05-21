@@ -100,7 +100,7 @@ object Termination:
         )),
         Body(Seq(
           Call("buildList", Seq(Var("z"))),
-          Deconstruct(Var("z"), "TCons", Seq(WildcardArg(), WildcardArg()), true),
+          //Deconstruct(Var("z"), "TCons", Seq(WildcardArg(), WildcardArg()), true),
           Eq(Var("y"), Construct("TCons", Seq(IntNum(0), Var("z"))))
         ))
       )

@@ -4,11 +4,10 @@ import inca.ir
 import inca.ir.analysis.base.values.Value
 import inca.ir.extension.data.{Construct, Deconstruct}
 import inca.ir.extension.data.analysis.interpreter.DataKindV
-import sturdy.values.{Top, Topped}
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.extension.datamatch.Match
-import inca.ir.optimize.{DataKindBaseIROptimizer, isFalse, isTrue}
+import inca.ir.optimize.DataKindBaseIROptimizer
 
 trait DataKindOptimizer extends DataKindBaseIROptimizer:
 

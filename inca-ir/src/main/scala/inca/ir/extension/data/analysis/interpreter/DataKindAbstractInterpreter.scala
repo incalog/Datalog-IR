@@ -100,6 +100,38 @@ trait DataKindAbstractInterpreter extends GenericInterpreter[Value, Topped[Boole
           notMatching
         }
 
+    override def deconstructNeg(v: Value, caseDef: CaseDefinitionReference)(possibleSuccess: Seq[Value] => AbstractRelation)(success: => AbstractRelation): AbstractRelation = v match
+      case DataKindV(caseDefs, false) =>
+        if (caseDefs.contains(caseDef))
+          effects.joinComputations {
+            possibleSuccess(caseDef.args.map(_ => Value.Top))
+          } {
+            success
+          }
+        else
+          success
+      case DataKindV(caseDefs, true) =>
+        if (caseDefs.contains(caseDef))
+          val dataRef = caseDefs.head.data
+          effects.joinComputations {
+            possibleSuccess(caseDef.args.map { ty =>
+              if (ty == dataRef) v
+              else Value.Top
+            })
+          } {
+            success
+          }
+        else
+          success
+      case Value.Top =>
+        // Could or could not match
+        effects.joinComputations {
+          possibleSuccess(caseDef.args.map(_ => Value.Top))
+        } {
+          success
+        }
+
+
   override def evalRelationOpen(r: Relation, adorn: Adornment)(using Fixed): AbstractRelation =
     val res = super.evalRelationOpen(r, adorn)
     // If we have a fold hint, we can conclude that the shape of the
