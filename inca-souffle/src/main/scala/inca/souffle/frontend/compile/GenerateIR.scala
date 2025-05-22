@@ -284,7 +284,7 @@ class GenerateIR extends GenerateIRContext:
     case Atom.Not(atom) =>
       irnot.WeakNot(compileAtom(atom))
     case call@Atom.Call(qname, args) =>
-      val compileArgs = args.map(compileTermAsArgument)
+      val compileArgs = args.map(compileArg)
       val decl = call.target.get
 
       // find the component in which this call is declared
@@ -322,11 +322,7 @@ class GenerateIR extends GenerateIRContext:
     case Atom.Contains(t1, t2) => ???
     case Atom.True => ir.Eq(BoolTrue, BoolTrue)
     case Atom.False => ir.Eq(BoolTrue, BoolFalse)
-
-  private def compileTermAsArgument(term: Term): ir.Arg = term match
-    case Term.Var("_") => ir.WildcardArg() // Souffle only allows wildcards at argument positions
-    case _ => compileTerm(term).arg
-
+  
   private def isBound(term: Term): Boolean = term match
     case Term.Var(name) => boundVariables.contains(name)
     case Term.Constr(_, args) => args.forall(isBound)

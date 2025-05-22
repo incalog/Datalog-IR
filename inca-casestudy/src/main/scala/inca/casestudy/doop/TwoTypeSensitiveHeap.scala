@@ -12,7 +12,7 @@ import inca.util.compileroptions.CompilerOptions
 import scala.io.Source
 
 object TwoTypeSensitiveHeap:
-  private def runContextSensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String = "2-type-sensitive+heap-flatten.dl"): Unit =
+  private def runContextSensitiveDL(createEngine: (compiled: CompiledUnit) => IRExecutor#Engine, file: String): Unit =
     val baseDir = "doop"
     val source = Source.fromResource(baseDir + "/" + file)
     val options = CompilerOptions.default
@@ -59,6 +59,15 @@ object TwoTypeSensitiveHeap:
   @main
   def runTwoTypeSensitiveHeapDL(): Unit = {
     runContextSensitiveDL(
-      compiled => inca.souffle.backend.Executor(Auto).instantiate(compiled)
+      compiled => inca.souffle.backend.Executor(Auto).instantiate(compiled),
+      "2-type-sensitive+heap-flatten.dl"
+    )
+  }
+
+  @main
+  def runTwoTypeSensitiveHeapDefensiveDL(): Unit = {
+    runContextSensitiveDL(
+      compiled => inca.souffle.backend.Executor(Auto).instantiate(compiled),
+      "2-type-sensitive+heap-flatten - Defensive.dl"
     )
   }
