@@ -217,6 +217,12 @@ case class Program(content: Seq[ProgramContent], outputRels: Seq[ProgramContent.
        |use serde::{Serialize, Serializer, Deserialize};
        |use serde::ser::SerializeSeq;
        |
+       |use regex::Regex;
+       |
+       |fn matches_pattern(pattern: &str, input: String) -> bool {
+       |    Regex::new(pattern).map(|re| re.is_match(&input)).unwrap_or(false)
+       |}
+       |
        |macro_rules! format_error_msg {
        |    ($$($$args:expr),*) => {
        |        format!("Failed to parse field {} into expected type", $$($$args),*)
@@ -377,6 +383,9 @@ enum Term:
   case TypeCast(t: Term, ty: FormatType)
   case CustomLit(dataName: String, caseName: String, param: Seq[Term])
   case Concat(t: Seq[Term])
+  case Ordinal(t: Term)
+  case StrLen(t: Term)
+  case Substring(t: Term, i: Term, len: Term)
   case ToString(t: Term)
   case Box(t: Term)
 
@@ -399,13 +408,15 @@ enum Term:
     case Concat(t) =>
       val s = "{}".repeat(t.size)
       s"format!(\"$s\",${t.mkString(",")})"
+    case Ordinal(t) => s"{ let mut h = std::collections::hash_map::DefaultHasher::new(); $t.hash(&mut h); h.finish() as i32 }"
+    case StrLen(t) => s"(($t).chars().count() as i32)"
+    case Substring(t: Term, i: Term, len: Term) => s"((&$t)[$i..($i + $len)]).to_string()"
   }
 
 enum Atom:
-  case Call(name: String, param: Seq[Term])
+  case Call(name: String, param: Seq[Term], neg: Boolean)
   case Let(v: Term, expr: Term)
   case Aggregator(name: String, agg: Aggregation, dom: Atom)
-  case Not(atom: Atom)
   case Deconstruct(t: Term, c: String, tmp: String, arg: Seq[Term], neg: Boolean)
 
   case Equal(t1: Term, t2: Term)
@@ -415,11 +426,14 @@ enum Atom:
   case GreaterThanEqual(t1: Term, t2: Term)
   case LesserThanEqual(t1: Term, t2: Term)
 
+  case RegexMatch(t: Term, pattern: Term, neg: Boolean)
+
   override def toString: String = this match {
-    case Call(name, param) => s"$name(${param.mkString(", ")})"
+    case Call(name, param, neg) =>
+      val prefix = if (neg) "!" else ""
+      s"$prefix$name(${param.mkString(", ")})"
     case Let(v, expr) => s"let $v = $expr"
     case Aggregator(name, agg, dom) => s"agg $name = $agg in $dom"
-    case Not(atom) => s"!$atom"
     case Deconstruct(t, c, tmp, args, neg) =>
       val cond = if (neg) s"if $tmp.is_none()" else s"if !$tmp.is_none()"
       val unpack = if (args.length == 1) args.mkString(", ") else args.mkString("(", ", ", ")")
@@ -430,6 +444,10 @@ enum Atom:
     case LesserThan(t1, t2) => s"if $t1 < $t2"
     case GreaterThanEqual(t1, t2) => s"if $t1 >= $t2"
     case LesserThanEqual(t1, t2) => s"if $t1 <= $t2"
+    case RegexMatch(t, pattern, neg) =>
+      val prefix = if (neg) "!" else ""
+      s"if ${prefix}matches_pattern(($pattern).as_str(), $t)"
+      //s"${prefix}(Regex::new(($pattern).as_str()).unwrap().is_match(&$t))"
   }
 
 enum BinOp:

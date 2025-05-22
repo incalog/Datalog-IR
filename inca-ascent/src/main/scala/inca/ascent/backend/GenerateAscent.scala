@@ -151,7 +151,8 @@ object GenerateAscent:
     }
     case ir.Eq(lhs, rhs, true) =>
       Seq(Atom.NotEqual(compileTerm(rhs, noClone = true), compileTerm(lhs, noClone = true)))
-    case string.RegexMatch(t, pattern, neg) => ???
+    case string.RegexMatch(t, pattern, neg) =>
+      Seq(Atom.RegexMatch(compileTerm(t, true), compileTerm(pattern, true), neg))
     case arith.BinCompare(lhs, rhs, "<") =>
       Seq(Atom.LesserThan(compileTerm(lhs), compileTerm(rhs)))
     case arith.BinCompare(lhs, rhs, ">") =>
@@ -160,22 +161,14 @@ object GenerateAscent:
       Seq(Atom.LesserThanEqual(compileTerm(lhs), compileTerm(rhs)))
     case arith.BinCompare(lhs, rhs, ">=") =>
       Seq(Atom.GreaterThanEqual(compileTerm(lhs), compileTerm(rhs)))
-    case ir.Call(name, args, false) =>
+    case ir.Call(name, args, neg) =>
       varRefs ++= collectVarRefs(args)
       val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
-      Seq(Atom.Call(cleanName(name.name), argParam))
-    case ir.ExtensionalCall(name, args, false) =>
+      Seq(Atom.Call(cleanName(name.name), argParam, neg))
+    case ir.ExtensionalCall(name, args, neg) =>
       varRefs ++= collectVarRefs(args)
       val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
-      Seq(Atom.Call(cleanName(name.name), argParam))
-    case ir.Call(name, args, true) =>
-      varRefs ++= collectVarRefs(args)
-      val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
-      Seq(Atom.Not(Atom.Call(cleanName(name.name), argParam)))
-    case ir.ExtensionalCall(name, args, true) =>
-      varRefs ++= collectVarRefs(args)
-      val argParam = args.map(a => compileArg(a, noDeref = true, noClone = true))
-      Seq(Atom.Not(Atom.Call(cleanName(name.name), argParam)))
+      Seq(Atom.Call(cleanName(name.name), argParam, neg))
     case data.Deconstruct(t, name, args, neg) =>
       val tmp = freshTmpName()
       var as: Seq[Atom] = Seq()
@@ -222,12 +215,12 @@ object GenerateAscent:
             case v@ir.Var(_) => cleanName(v.name)
             case _ => throw IllegalStateException(s"Found unexpected binding term in aggregation: $aggColTerm")
           Seq(
-            Atom.Aggregator(resultName, ascentAgg, Atom.Call(aggRelName, aggArgs))
+            Atom.Aggregator(resultName, ascentAgg, Atom.Call(aggRelName, aggArgs, false))
           )
         case Bound =>
           val tmpName = freshTmpName()
           Seq(
-            Atom.Aggregator(tmpName, ascentAgg, Atom.Call(aggRelName, aggArgs)),
+            Atom.Aggregator(tmpName, ascentAgg, Atom.Call(aggRelName, aggArgs, false)),
             Atom.Equal(Term.DeRef(Term.Var(tmpName)), compileTerm(aggColTerm))
           )
         case Collapse =>
@@ -282,9 +275,9 @@ object GenerateAscent:
     case arith.BinOp(lhs, rhs, op) => Term.Binary(compileTerm(lhs), compileBinOp(op), compileTerm(rhs))
     case string.StringLit(s) => Term.StringLit(s)
     case string.ToString(t) => Term.ToString(compileTerm(t, noDeref, noClone))
-    case string.Substring(t, index, length) => ???
-    case string.StringLength(t) => ???
-    case string.OrdinalNumber(t) => ???
+    case string.Substring(t, index, length) => Term.Substring(compileTerm(t, true), compileTerm(index), compileTerm(length))
+    case string.StringLength(t) => Term.StrLen(compileTerm(t, true))
+    case string.OrdinalNumber(t) => Term.Ordinal(compileTerm(t, true))
     case string.StringConcat(t1, t2) => Term.Concat(Seq(compileTerm(t1, true), compileTerm(t2, true)))
     case arith.UnOp(t, "-") => Term.Unary(Unop.neg, compileTerm(t))
     case data.Construct(ref, args) =>
