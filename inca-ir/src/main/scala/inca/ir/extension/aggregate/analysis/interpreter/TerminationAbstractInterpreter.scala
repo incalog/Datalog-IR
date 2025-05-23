@@ -2,20 +2,23 @@ package inca.ir.extension.aggregate.analysis.interpreter
 
 import inca.ir.RelationBase
 import inca.ir.analysis.base.effect.BaseIRException
-import inca.ir.analysis.base.values.{AbstractRelation, Value}
+import inca.ir.analysis.base.values.{FiniteAbstractRelation, FiniteAbstractRelationOps, Value}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.extension.aggregate.AggregationOperator
 import inca.ir.extension.arithmetic.analysis.interpreter.IntOps
 import sturdy.data.{MayJoin, WithJoin}
+import sturdy.values.booleans.BooleanBranching
 import sturdy.values.floating.FloatOps
 import sturdy.values.{Powerset, Topped}
 
 
-trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
+trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], FiniteAbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntOps[Int, Value]
   val doubleOps: FloatOps[Double, Value]
+  val relationOps: FiniteAbstractRelationOps[Powerset[BaseIRException]]
+  val branchOpsV: BooleanBranching[Topped[Boolean], Value]
 
-  override lazy val aggregateOps: AggregateOps[Value, AbstractRelation] = new AggregateOps[Value, AbstractRelation]:
+  override lazy val aggregateOps: AggregateOps[Value, FiniteAbstractRelation] = new AggregateOps[Value, FiniteAbstractRelation]:
     override def init(op: AggregationOperator): Value = op match
       case ArithmeticAggregationOperator.MinInt => intOps.integerLit(Int.MaxValue)
       case ArithmeticAggregationOperator.MaxInt => intOps.integerLit(Int.MinValue)
@@ -35,10 +38,15 @@ trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Bo
       case _ => Value.Top
 
     // TODO: How do we do this?
-    override def count(rel: RelationBase, rv: AbstractRelation): Value =
-      Value.Top
+    override def count(rel: RelationBase, rv: FiniteAbstractRelation): Value =
+      branchOpsV.boolBranch(relationOps.isFinite(rv)) {
+        intOps.integerLit(5000) // TODO: Replace this with a symbolic number
+      } {
+        Value.Top
+      }
 
-      // This is wrong, because:
+
+// This is wrong, because:
       // R(x: String, y: Int) :- x == "A", y == 0.
       // R(x: String, y: Int) :- R(x, z), y == z + 1.
       //

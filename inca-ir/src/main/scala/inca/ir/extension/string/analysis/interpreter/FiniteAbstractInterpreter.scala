@@ -2,7 +2,7 @@ package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
+import inca.ir.analysis.base.values.{FiniteAbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
 import inca.ir.extension.arithmetic.analysis.interpreter.IntOps
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
@@ -135,6 +135,6 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
     case _ => failure(InvalidStringValue, s"Value $v has no string value")
 
 
-trait FiniteStringAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
+trait FiniteStringAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], FiniteAbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntOps[Int, Value]
   lazy val stringOps: StringOps[Topped[Boolean], Value] = FiniteStringVOps(using failure, except, intOps)

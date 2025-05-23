@@ -33,33 +33,33 @@ import sturdy.values.*
 // Implicits
 import inca.ir.analysis.base.effect.{IRException, IRFailure}
 import inca.ir.analysis.base.interpreter.{CCombineFixOut, FiniteFixIn}
-import inca.ir.analysis.base.values.{JoinRV, WidenRV}
+import inca.ir.analysis.base.values.{FiniteJoinRV, FiniteWidenRV}
 import sturdy.data.given
 import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
 
 /**
- * An extensible constant analysis.
+ * An extensible termination analysis.
  */
 class IRTerminationAbstractInterpreter(
     val logTraversalTrace: Boolean = false,
     val logControlEvents: Boolean = false,
     override val interRelational: Boolean = false
   )
-  extends BaseGenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
+  extends BaseGenericInterpreter[Value, Topped[Boolean], FiniteAbstractRelation, Powerset[BaseIRException], WithJoin]
     with irarith.interpreter.IntervalAbstractInterpreter
     with irstr.interpreter.FiniteStringAbstractInterpreter
-    with irdata.interpreter.ConstantAbstractInterpreter
+    with irdata.interpreter.FiniteAbstractInterpreter
     with iragg.interpreter.TerminationAbstractInterpreter
     with DatalogControlObservable:
 
-  type RV = AbstractRelation
+  type RV = FiniteAbstractRelation
 
   private class IRJoinV extends Join[Value] with BaseJoinV
     with irarith.interpreter.IntervalJoinV
     with irstr.interpreter.FiniteStringJoinV
-    with irdata.interpreter.ConstantJoinV:
+    with irdata.interpreter.FiniteJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
       MaybeChanged(combine(v1, v2), v1)
@@ -67,7 +67,7 @@ class IRTerminationAbstractInterpreter(
   private class IRWidenV extends Widen[Value] with BaseWidenV
     with irarith.interpreter.IntervalWidenV
     with irstr.interpreter.FiniteStringWidenV
-    with irdata.interpreter.ConstantJoinV:
+    with irdata.interpreter.FiniteJoinV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
       MaybeChanged(combine(v1, v2), v1)
@@ -75,18 +75,20 @@ class IRTerminationAbstractInterpreter(
   private class IRMeetV(using except: Except[BaseIRException, ?, ?]) extends BaseMeetV(using except)
     with irarith.interpreter.IntervalMeetV
     with irstr.interpreter.FiniteStringMeetV
-    with irdata.interpreter.ConstantMeetV
+    with irdata.interpreter.FiniteMeetV
 
   private class IREqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps
     with irarith.interpreter.IntervalEqOps
     with irstr.interpreter.FiniteStringEqOps
-    with irdata.interpreter.ConstantEqOps(using boolOps)
+    with irdata.interpreter.FiniteEqOps(using boolOps)
 
   override lazy val topV: Value = Value.Top
 
   override lazy val except: Except[BaseIRException, Powerset[BaseIRException], WithJoin] = new JoinedExcept(using PowersetExceptional[BaseIRException])
 
   override val branchOps: BooleanBranching[Topped[Boolean], RV] = new ToppedBooleanBranching[Boolean, RV]
+
+  val branchOpsV: BooleanBranching[Topped[Boolean], Value] = new ToppedBooleanBranching[Boolean, Value]
 
   override lazy val failure: CollectedFailures[effect.BaseIRFailure] = new CollectedFailures with ObservableFailure(this)
 
@@ -103,18 +105,18 @@ class IRTerminationAbstractInterpreter(
   override val mayJoinV: WithJoin[Value] = implicitly
   override val joinRV: Join[RV] = implicitly
   override val mayJoinUnit: WithJoin[Unit] = implicitly
-  override lazy val mayJoinRV: MayJoin.WithJoin[AbstractRelation] = MakeJoined(using joinRV, effects)
+  override lazy val mayJoinRV: MayJoin.WithJoin[FiniteAbstractRelation] = MakeJoined(using joinRV, effects)
 
   private val irWiden = new IRWidenV
   given Widen[Value] = irWiden
-  given Widen[RV] = new WidenRV
+  given Widen[RV] = new FiniteWidenRV
   
-  override lazy val supplementaryTable: SupplementaryTable[AbstractRelation] = new AbstractSupplementaryTable[RV]() {
-    override def initialTable: RV = AbstractRelation(Seq(), Seq(), Topped.Actual(false))
+  override lazy val supplementaryTable: SupplementaryTable[FiniteAbstractRelation] = new AbstractSupplementaryTable[RV]() {
+    override def initialTable: RV = FiniteAbstractRelation(Seq(), Seq(), Topped.Actual(false), Topped.Actual(true))
   }
 
   given Meet[Value] = IRMeetV(using except)
-  override val relationOps: RelationOps[Value, Topped[Boolean], RV] = new AbstractRelationOps(using except)
+  override val relationOps: FiniteAbstractRelationOps[Powerset[BaseIRException]] = new FiniteAbstractRelationOps(using except)
 
   override def evalModule(m: ir.Module)(using Fixed): Map[SupColumn, RV] =
     // Set up bounds for widening
@@ -147,8 +149,8 @@ class IRTerminationAbstractInterpreter(
       if (relationOps.hasColumn(rv, supName))
         val termTRV = relationOps.project(rv, Seq(supName))
         termTRV match
-          case AbstractRelation.Empty(cs) => None
-          case AbstractRelation.NonEmpty(cs, rows, emp) =>
+          case FiniteAbstractRelation.Empty(cs) => None
+          case FiniteAbstractRelation.NonEmpty(cs, rows, emp, finite) =>
             assert(rows.size == 1)
             Some(rows.head)
       else
@@ -208,16 +210,16 @@ case class AnalysisFailed(msg: String) extends Exception:
 class IRTerminationAnalysis extends IRVisitor with Optimizer:
 
   // Configure
-  val edbConfig: EdbConfig[AbstractRelation] = (n: Name, params: Seq[Param]) =>
+  val edbConfig: EdbConfig[FiniteAbstractRelation] = (n: Name, params: Seq[Param]) =>
     val (aCols, aRows) = params.map {
       case Param(name, TInt) => (name.name, IntervalIntV.constant(5000))
       case Param(name, TDouble) => (name.name, IntervalDoubleV.constant(5000))
       case Param(name, TString) => (name.name, FiniteStringV.edb())
       case Param(name, _) => (name.name, Value.Top)
     }.unzip
-    AbstractRelation(aCols, aRows, Topped.Actual(false))
+    FiniteAbstractRelation(aCols, aRows, Topped.Actual(false), Topped.Actual(true))
 
-  val abstractInterpreter: BaseGenericInterpreter[Value, ?, AbstractRelation, ?, ?] =
+  val abstractInterpreter: BaseGenericInterpreter[Value, ?, FiniteAbstractRelation, ?, ?] =
     new IRTerminationAbstractInterpreter(false, false, true)
 
   private var analysisHasRun: Boolean = false

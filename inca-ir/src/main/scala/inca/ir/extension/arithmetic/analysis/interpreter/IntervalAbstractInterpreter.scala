@@ -4,7 +4,7 @@ import inca.ir
 import inca.ir.Term
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, BaseWidenV, FiniteAbstractRelation, Value}
 import inca.ir.visitors.IRVisitor
 import inca.ir.extension.arithmetic as irarith
 import sturdy.values.{Powerset, Topped}
@@ -217,7 +217,7 @@ class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
       throw IllegalArgumentException(s"Can not refine non-interval values! $v1 :: $v2")
 
 
-trait IntervalAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
+trait IntervalAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], FiniteAbstractRelation, Powerset[BaseIRException], WithJoin]:
   val intOps: IntOps[Int, Value] = IntervalIntVOps(using failure, effects, except)
   val doubleOps: FloatOps[Double, Value] = IntervalDoubleVOps(using failure, effects, except)
   val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = IntervalIntVOrderingOps(using except)
