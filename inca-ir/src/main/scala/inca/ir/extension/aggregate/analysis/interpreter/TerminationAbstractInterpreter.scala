@@ -43,7 +43,7 @@ trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Bo
       // R(x: String, y: Int) :- R(x, z), y == z + 1.
       //
       // Q(x: String) :- R(x, _).
-      // With the method above Q would be finite, even though R is infinite
+      // With the method above Q would be finite, even though R is infinite and therefore Q must also be infinite.
 
       // If any of the values in the relation is top, the relation might be non-terminating
       /*val filtered = relationOps.filter(rv) { row =>
