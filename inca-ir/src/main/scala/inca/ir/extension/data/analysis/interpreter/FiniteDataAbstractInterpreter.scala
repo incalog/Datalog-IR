@@ -21,6 +21,7 @@ import sturdy.values.integer.given_OrderingOps_Int_Boolean
 case class FiniteDataV(caseDef: CaseDefinitionReference, args: Seq[Value]) extends Value:
   override def toString: String = s"${caseDef.name}${args.mkString("(", ",", ")")}"
   override def isConstant: Boolean = args.forall(_.isConstant)
+  override def isFinite: Boolean = args.forall(_.isFinite)
 
 trait FiniteEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match

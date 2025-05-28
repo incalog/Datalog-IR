@@ -79,7 +79,7 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
     if (vals.isEmpty)
       FiniteAbstractRelation.empty(cols)
     else if (vals.size == 1)
-      val isFinite = !vals.contains(Value.Top)
+      val isFinite = vals.head.forall(_.isFinite)
       if (!isFinite) throw IllegalStateException()
       FiniteAbstractRelation(cols, vals.head, Topped.Actual(vals.isEmpty), Topped.Actual(isFinite))
     else
@@ -119,9 +119,7 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
       FiniteAbstractRelation.Empty(cols :+ columnName)
     case FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite) =>
       val newV = f(rows)
-      // TODO: We should refactor this somehow. Checking for top seems annoying
-      val isTop = newV == Value.Top
-      val newFinite = boolOps.and(Topped.Actual(!isTop), finite)
+      val newFinite = boolOps.and(Topped.Actual(newV.isFinite), finite)
       FiniteAbstractRelation.NonEmpty(cols :+ columnName, rows :+ newV, empty, newFinite)
 
   override def groupBy(rv: FiniteAbstractRelation, accumulatorCols: Seq[String], groupByCols: Seq[String])
@@ -136,9 +134,8 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
         val newRows = f(groupByValues, Seq(accValues))
         if (newRows.size != newCols.size)
           throw IllegalStateException("Number of new columns must match arity of new rows.")
-        // TODO: We should refactor this somehow. Checking for top seems annoying
-        val isTop = newRows.contains(Value.Top)
-        val newFinite = boolOps.and(Topped.Actual(!isTop), finite)
+        val isFinite = newRows.forall(_.isFinite)
+        val newFinite = boolOps.and(Topped.Actual(isFinite), finite)
         FiniteAbstractRelation(newCols, newRows, empty, newFinite)
   
   override def flatMap(rv: FiniteAbstractRelation)(f: Seq[Value] => FiniteAbstractRelation): FiniteAbstractRelation = rv match

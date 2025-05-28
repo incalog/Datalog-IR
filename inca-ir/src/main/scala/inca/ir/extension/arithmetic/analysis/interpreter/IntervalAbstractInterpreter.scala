@@ -22,15 +22,25 @@ import scala.math.Ordering.given
 type IntInterval = NumericInterval[Int]
 type DoubleInterval = NumericInterval[Double]
 
-val topIntInterval: IntInterval = NumericInterval.safe(Integer.MIN_VALUE, Integer.MAX_VALUE)
+val topIntInterval: IntInterval = NumericInterval.safe(scala.Int.MinValue, scala.Int.MaxValue)
 val topDoubleInterval: DoubleInterval = NumericInterval.safe(Double.MinValue, Double.MaxValue)
+
+val finiteUpperBound = scala.Int.MaxValue - 2
 
 case class IntervalIntV(private val iv: IntInterval) extends Value:
   override def toString: String = iv.toString
   override def isConstant: Boolean = iv.isConstant
+  override def isFinite: Boolean =
+    if (iv.low == scala.Int.MinValue)
+      false
+    else if (iv.high == scala.Int.MaxValue)
+      false
+    else
+      true
 
 object IntervalIntV:
   def constant(i: Int): IntervalIntV = new IntervalIntV(NumericInterval.constant(i))
+  def finite: IntervalIntV = new IntervalIntV(NumericInterval.constant(finiteUpperBound))
   def apply(iv: IntInterval): Value =
     if (iv == topIntInterval)
       Value.Top
@@ -40,9 +50,17 @@ object IntervalIntV:
 case class IntervalDoubleV(iv: DoubleInterval) extends Value:
   override def toString: String = iv.toString
   override def isConstant: Boolean = iv.isConstant
+  override def isFinite: Boolean =
+    if (iv.low == scala.Double.MinValue)
+      false
+    else if (iv.high == scala.Double.MaxValue)
+      false
+    else
+      true
 
 object IntervalDoubleV:
   def constant(d: Double): IntervalDoubleV = new IntervalDoubleV(NumericInterval.constant(d))
+  def finite: IntervalDoubleV = new IntervalDoubleV(NumericInterval.constant(finiteUpperBound))
 
 trait IntervalEqOps extends BaseEqOps:
   val intIntervalOps = new NumericIntervalEqOps[Int]
@@ -120,7 +138,7 @@ private class IntervalDoubleVOrderingOps(using except: Except[BaseIRException, ?
 trait IntervalWidenV extends BaseWidenV:
   var intBounds: Set[Int] = Set()
   var doubleBounds: Set[Double] = Set()
-  lazy val intIntervalWiden = new NumericIntervalWiden[Int](intBounds, Integer.MIN_VALUE, Integer.MAX_VALUE)
+  lazy val intIntervalWiden = new NumericIntervalWiden[Int](intBounds + (finiteUpperBound + 1) + (finiteUpperBound - 1), scala.Int.MinValue, scala.Int.MaxValue)
   lazy val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
 
   override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match

@@ -2,8 +2,8 @@ package inca.ir.extension.string.analysis.interpreter
 
 import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{FiniteAbstractRelation, BaseJoinV, BaseMeetV, BaseWidenV, Value}
-import inca.ir.extension.arithmetic.analysis.interpreter.IntOps
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, BaseWidenV, FiniteAbstractRelation, Value}
+import inca.ir.extension.arithmetic.analysis.interpreter.{IntOps, finiteUpperBound}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
@@ -27,6 +27,7 @@ case object Unknown extends Component:
 case class FiniteStringV(components: Seq[Component], concatDepth: Int) extends Value:
   override def isConstant: Boolean = !components.contains(Unknown)
   override def toString: String = s"\"${components.mkString("")}\" depth $concatDepth"
+  override def isFinite: Boolean = true
 
 object FiniteStringV:
   def apply(concatDepth: Int): FiniteStringV = new FiniteStringV(Seq(Unknown), concatDepth)
@@ -115,14 +116,14 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
 
   override def stringLength(v: Value): Value = v match
     case f: FiniteStringV if f.isConstant =>  intOps.integerLit(f.toString.length)
-    case f: FiniteStringV => intOps.integerLit(5000) // TODO: We might want to use a symbolic value here in the future
+    case f: FiniteStringV => intOps.integerLit(finiteUpperBound)
     case Value.Top => Value.Top
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")
 
   override def ordinalNumber(v: Value): Value = v match
     case Value.Top => Value.Top
     case f: FiniteStringV if f.isConstant => intOps.integerLit(f.toString.hashCode)
-    case f: FiniteStringV => intOps.integerLit(5000) // TODO: We might want to use a symbolic value here in the future
+    case f: FiniteStringV => intOps.integerLit(finiteUpperBound)
     case _ => failure(InvalidStringValue, s"Can not get ordinal number of $v")
 
   override def matches(v: Value, pattern: Value): Topped[Boolean] = (v, pattern) match

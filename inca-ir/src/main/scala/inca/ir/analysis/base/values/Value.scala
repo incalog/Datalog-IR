@@ -31,7 +31,9 @@ trait RequireJoin[V]:
 
 trait Value:
   def isConstant: Boolean
+  def isFinite: Boolean = true
 
 object Value:
   case object Top extends Value:
     override def isConstant: Boolean = false
+    override def isFinite: Boolean = false

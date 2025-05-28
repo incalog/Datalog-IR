@@ -130,7 +130,7 @@ class IRTerminationAbstractInterpreter(
           case _ => // nothing
         super.visitTerm(term)
     }.visitModule(m)
-    irWiden.intBounds = intLits + 5000 + 5001 // TODO: these are placeholders for symbolic values
+    irWiden.intBounds = intLits
     irWiden.doubleBounds = doubleLits
     super.evalModule(m)
 
@@ -212,8 +212,8 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
   // Configure
   val edbConfig: EdbConfig[FiniteAbstractRelation] = (n: Name, params: Seq[Param]) =>
     val (aCols, aRows) = params.map {
-      case Param(name, TInt) => (name.name, IntervalIntV.constant(5000))
-      case Param(name, TDouble) => (name.name, IntervalDoubleV.constant(5000))
+      case Param(name, TInt) => (name.name, IntervalIntV.finite)
+      case Param(name, TDouble) => (name.name, IntervalDoubleV.finite)
       case Param(name, TString) => (name.name, FiniteStringV.edb())
       case Param(name, _) => (name.name, Value.Top)
     }.unzip

@@ -1,14 +1,9 @@
 package inca.ir.analysis
 
-import inca.ir.analysis.base.values.{AbstractRelation, Value}
+import inca.ir.analysis.base.values.{FiniteAbstractRelation, Value}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.MinInt
-import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.extension.arithmetic.{Add, GT, IntNum, LE, Mul, Sub, TInt, IR as arithIR}
-import inca.ir.extension.bool.analysis.interpreter.ConstantBoolV
-import inca.ir.extension.bool.{AtomAsBool, BoolFalse, BoolTrue, TBoolean, IR as boolIR}
-import inca.ir.extension.data.{CaseDefinition, Construct, DataDefinition, Deconstruct, TData, IR as dataIR}
-import inca.ir.extension.demand.TDemand
 import inca.ir.extension.map.analysis.interpreter.{ConstantMapFunV, ConstantMapV}
 import inca.ir.extension.map.{MapComprehension, MapContains, MapFrom, MapLit, MapLookUp, MapPlus, MapUnion, TMap, IR as mapIR}
 import inca.ir.extension.not.Not
@@ -26,7 +21,7 @@ import sturdy.values.Topped
 
 class TerminationAnalysisTest extends AnyFunSuiteLike:
 
-  def interp(mod: Module, edb: Map[String, AbstractRelation] = Map()): Map[String, AbstractRelation] =
+  def interp(mod: Module, edb: Map[String, FiniteAbstractRelation] = Map()): Map[String, FiniteAbstractRelation] =
     val typechecker = new IRTypechecker
     typechecker.checkProgram(Seq(mod))
 
@@ -86,15 +81,17 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod, Map(
-      "DirectSuperclass" -> AbstractRelation(
+      "DirectSuperclass" -> FiniteAbstractRelation(
         Seq("type", "supertype"), 
         Seq(FiniteStringV.edb(), FiniteStringV.edb()), 
-        Topped.Actual(false)
+        Topped.Actual(false),
+        Topped.Actual(true)
       ),
-      "MethodImplemented" -> AbstractRelation(
+      "MethodImplemented" -> FiniteAbstractRelation(
         Seq("type", "supertype"),
         Seq(FiniteStringV.edb(), FiniteStringV.edb()),
-        Topped.Actual(false)
+        Topped.Actual(false),
+        Topped.Actual(true)
       ), 
     ))
     println(res)

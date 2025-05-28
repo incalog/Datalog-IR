@@ -5,7 +5,7 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.values.{FiniteAbstractRelation, FiniteAbstractRelationOps, Value}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.extension.aggregate.AggregationOperator
-import inca.ir.extension.arithmetic.analysis.interpreter.IntOps
+import inca.ir.extension.arithmetic.analysis.interpreter.{IntOps, finiteUpperBound}
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.values.booleans.BooleanBranching
 import sturdy.values.floating.FloatOps
@@ -37,31 +37,9 @@ trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Bo
       case ArithmeticAggregationOperator.SumDouble => doubleOps.add(accumulator, value)
       case _ => Value.Top
 
-    // TODO: How do we do this?
     override def count(rel: RelationBase, rv: FiniteAbstractRelation): Value =
       branchOpsV.boolBranch(relationOps.isFinite(rv)) {
-        intOps.integerLit(5000) // TODO: Replace this with a symbolic number
+        intOps.integerLit(finiteUpperBound)
       } {
         Value.Top
       }
-
-
-// This is wrong, because:
-      // R(x: String, y: Int) :- x == "A", y == 0.
-      // R(x: String, y: Int) :- R(x, z), y == z + 1.
-      //
-      // Q(x: String) :- R(x, _).
-      // With the method above Q would be finite, even though R is infinite and therefore Q must also be infinite.
-
-      // If any of the values in the relation is top, the relation might be non-terminating
-      /*val filtered = relationOps.filter(rv) { row =>
-        val containsTopValue = row.contains(Value.Top)
-        Topped.Actual(containsTopValue)
-      }
-      if (relationOps.isEmpty(filtered) == Topped.Actual(true))
-        // we know the relation is finite
-        intOps.integerLit(5000) // TODO: Replace this with a symbolic number
-      else
-        // Possibly non-terminating, that is we can not count
-        throw IllegalStateException("Count is infinite")
-        //Value.Top*/

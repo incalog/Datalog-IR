@@ -24,3 +24,12 @@ trait TypeAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean],
           }
         case _ => notMatching
 
+    override def deconstructNeg(v: Value, caseDef: CaseDefinitionReference)(possibleSuccess: Seq[Value] => AbstractRelation)(success: => AbstractRelation): AbstractRelation = v match
+      case TypeValue(tdata: TData) if tdata == caseDef.data =>
+        effects.joinComputations {
+          possibleSuccess(caseDef.args.map(TypeValue.apply))
+        } {
+          success
+        }
+      case _ => success
+
