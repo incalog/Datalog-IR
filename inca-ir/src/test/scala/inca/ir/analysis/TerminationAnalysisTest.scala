@@ -25,11 +25,11 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
 
   test("Generate numbers") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
-      Relation("input", Seq(
+      Relation("main", Seq(
         Param("n", TInt),
       ), Seq(
         Body(Seq(
-          Call("input", Seq(Var("m"))),
+          Call("main", Seq(Var("m"))),
           GT(Var("m"), IntNum(1)),
           Eq(Var("n"), Sub(Var("m"), IntNum(1)))
         )),
@@ -40,7 +40,9 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    assert(res("input").rows.head.isFinite)
+    val mainRel = res("main")
+    assert(mainRel.rows.head.isFinite)
+    assert(mainRel.finite.isActual && mainRel.finite.get)
     //println(res)
   }
 
@@ -72,7 +74,9 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    assert(res("main").rows.head.isFinite) // should be constant 3
+    val mainRel = res("main")
+    assert(mainRel.rows.head.isFinite) // should be constant 3
+    assert(mainRel.finite.isActual && mainRel.finite.get)
     // input2 -> [3, 5] since we are calculating the min on the whole joined relation result and not after each body.
     //println(res)
   }
