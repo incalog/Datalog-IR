@@ -110,6 +110,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
     scalaVersion := scalaVersionString,
 
     //resolvers += "Eclipse Releases" at "https://download.eclipse.org/viatra/updates/release",
+    resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/repositories/releases/",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
     libraryDependencies ++= Seq(
@@ -125,7 +126,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
       // Datalog query engine
       "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0",
       "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
-      "org.eclipse.viatra" % "viatra-query-runtime" % "2.9.1",
+      "org.eclipse.viatra" % "org.eclipse.viatra.query.runtime" % "2.9.1",
       // Required for runtime reflection and code execution
       //("org.scala-lang" %% "scala3-interfaces" % scalaVersion.value).cross(CrossVersion.disabled)
       "org.scala-lang" %% "scala3-staging" % scalaVersion.value,
