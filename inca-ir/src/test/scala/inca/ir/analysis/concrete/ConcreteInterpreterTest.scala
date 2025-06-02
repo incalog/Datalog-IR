@@ -1061,7 +1061,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
     ))
 
     val res = interp(mod)
-    println(res.map(_._2.asTable))
+    //println(res.map(_._2.asTable))
     assert(res("main").size == 1)
   }
 
@@ -1099,7 +1099,7 @@ class ConcreteInterpreterTest extends AnyFunSuiteLike:
       )
     ))
     val res = interp(mod)
-    res.foreach(r => println(r._2.asTable))
+    //res.foreach(r => println(r._2.asTable))
   }
 
   test("Mutual Recursion, multiple call sites") {

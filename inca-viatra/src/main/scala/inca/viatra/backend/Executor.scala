@@ -13,7 +13,7 @@ import org.apache.log4j.{BasicConfigurator, Level}
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.backend.IQueryBackendFactory
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.eclipse.viatra.query.runtime.util.ViatraQueryLoggingUtil
 
 object Executor:
