@@ -111,6 +111,5 @@ object CompiledFunctionalUnit:
     () => new optimize.ReplaceSingletonVariables {}, // helps with detecting exact duplicates
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.AliasElimination {},
-    () => new IRTerminationAnalysis {}
     //() => new optimize.InlineSimpleRelations {}
   )
