@@ -76,10 +76,10 @@ object GenerateSouffle:
   }
 
   private def compileAtom(atom: ir.Atom): Atom = atom match
-    case ir.Call(ref, args, false) => Atom.Call(qualifyName(ref.name), args.map(compileArg))
-    case ir.Call(ref, args, true) => Atom.Not(Atom.Call(qualifyName(ref.name), args.map(compileArg)))
-    case ir.ExtensionalCall(ref, args, false) => Atom.Call(qualifyName(ref.name), args.map(compileArg))
-    case ir.ExtensionalCall(ref, args, true) => Atom.Not(Atom.Call(qualifyName(ref.name), args.map(compileArg)))
+    case ir.Call(ref, args, false) => Atom.Call(qualifyName(ref.name), args.map(compileArg(_)))
+    case ir.Call(ref, args, true) => Atom.Not(Atom.Call(qualifyName(ref.name), args.map(compileArg(_))))
+    case ir.ExtensionalCall(ref, args, false) => Atom.Call(qualifyName(ref.name), args.map(compileArg(_)))
+    case ir.ExtensionalCall(ref, args, true) => Atom.Not(Atom.Call(qualifyName(ref.name), args.map(compileArg(_))))
     case ir.Eq(lhs, rhs, false) => Atom.Compare(compileTerm(lhs), Comparator.EQ, compileTerm(rhs))
     case ir.Eq(lhs, rhs, true) => Atom.Compare(compileTerm(lhs), Comparator.NEQ, compileTerm(rhs))
     case string.RegexMatch(t, pattern, neg) =>
@@ -89,8 +89,10 @@ object GenerateSouffle:
       val op = Parser.comparator.parseAll(c).toOption.get
       Atom.Compare(compileTerm(lhs), op, compileTerm(rhs))
     case data.Deconstruct(t, ref, args, false) =>
-      Atom.Compare(compileTerm(t), EQ, Term.Constr(qualifyName(ref.name), args.map(compileArg)))
-    case data.Deconstruct(t, name, args, true) => ???
+      Atom.Compare(compileTerm(t), EQ, Term.Constr(qualifyName(ref.name), args.map(compileArg(_, true))))
+    case data.Deconstruct(t, name, args, true) =>
+      // TODO: Negative deconstruct in Souffle are not supported, are they?
+      ???
     case agg.Aggregate(ref, args, op) =>
       val result = args.zipWithIndex.collect {
         case (col: AggregateColumnArg, idx) => col -> idx
@@ -120,15 +122,17 @@ object GenerateSouffle:
       case "input" => "_input"
       case s => s.replace("$", "_")
 
-  private def compileArg(a: ir.Arg): Term = a match
+  private def compileArg(a: ir.Arg, replaceWildcardWithUnboundVar: Boolean = false): Term = a match
     case TermArg(t) => compileTerm(t)
     case AggregateColumnArg(t) => compileTerm(t)
     case WildcardArg() =>
       // Work around a souffle bug, where wildcards cause "Ungrounded ADT branch"
       // We can work around this by just using a fresh variable name instead of a wildcard
       // See: https://github.com/souffle-lang/souffle/pull/2483
-      Term.Var("_")
-      //Term.Var(cleanName(gensym.freshName(Name("_"))))
+      if (replaceWildcardWithUnboundVar)
+        Term.Var(cleanName(gensym.freshName(Name("_"))))
+      else
+        Term.Var("_")
 
   private def compileTerm(t: ir.Term): Term = t match
     case ir.Var(ref) => Term.Var(cleanName(ref.name))
