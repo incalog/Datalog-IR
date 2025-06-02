@@ -244,9 +244,9 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
       }
 
       // TODO: Remove me after debugging
-      println(new IRDebugPrinter{}.prettyPrint(modules))
-      println(abstractInterpreter.getIDB)
-      System.exit(1)
+      //println(new IRDebugPrinter{}.prettyPrint(modules))
+      //println(abstractInterpreter.getIDB)
+      //System.exit(1)
 
       // Interpret result
       analysisRes match {
