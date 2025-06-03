@@ -56,6 +56,9 @@ object FiniteAbstractRelation:
     //assert(cols.size == rows.size) // column size matches row size
     FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite)
 
+  def finiteNonEmpty(cols: Seq[String], rows: Seq[Value]): FiniteAbstractRelation =
+    FiniteAbstractRelation.NonEmpty(cols, rows, Topped.Actual(false), Topped.Actual(true))
+
   def empty(cols: Seq[String]): FiniteAbstractRelation =
     //assert(cols.toSet.size == cols.size) // unique columns
     FiniteAbstractRelation.Empty(cols)
