@@ -257,7 +257,7 @@ given FiniteJoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]
         // If any of the two relations is definitely non-empty, then the result is also non-empty
         val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
-        val newFinite = boolOps.and(rv.finite, other.finite)
+        val newFinite = boolOps.and(boolOps.and(rv.finite, other.finite), Topped.Actual(newRows.forall(_.isFinite)))
         FiniteAbstractRelation(rv.cols, newRows, newEmpty, newFinite)
 
   override def apply(v1: FiniteAbstractRelation, v2: FiniteAbstractRelation): MaybeChanged[FiniteAbstractRelation] =
@@ -278,7 +278,7 @@ given FiniteWidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boole
         // If any of the two relations is definitely non-empty, then the result is also non-empty
         val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => widenV(v1, v2).get }
-        val newFinite = boolOps.and(rv.finite, other.finite)
+        val newFinite = boolOps.and(boolOps.and(rv.finite, other.finite), Topped.Actual(newRows.forall(_.isFinite)))
         FiniteAbstractRelation(rv.cols, newRows, newEmpty, newFinite)
 
   override def apply(v1: FiniteAbstractRelation, v2: FiniteAbstractRelation): MaybeChanged[FiniteAbstractRelation] =
