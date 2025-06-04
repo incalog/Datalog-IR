@@ -83,7 +83,6 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
       FiniteAbstractRelation.empty(cols)
     else if (vals.size == 1)
       val isFinite = vals.head.forall(_.isFinite)
-      if (!isFinite) throw IllegalStateException()
       FiniteAbstractRelation(cols, vals.head, Topped.Actual(vals.isEmpty), Topped.Actual(isFinite))
     else
       // It is not obvious if the implicit behaviour should be a meet or a join. Therefore, we throw an exception.
