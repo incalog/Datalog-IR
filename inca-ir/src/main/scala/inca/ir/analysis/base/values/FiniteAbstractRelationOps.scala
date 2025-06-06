@@ -82,8 +82,8 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
     if (vals.isEmpty)
       FiniteAbstractRelation.empty(cols)
     else if (vals.size == 1)
-      val isFinite = vals.head.forall(_.isFinite)
-      FiniteAbstractRelation(cols, vals.head, Topped.Actual(vals.isEmpty), Topped.Actual(isFinite))
+      val isFinite = if (vals.head.forall(_.isFinite)) Topped.Actual(true) else Topped.Top
+      FiniteAbstractRelation(cols, vals.head, Topped.Actual(vals.isEmpty), isFinite)
     else
       // It is not obvious if the implicit behaviour should be a meet or a join. Therefore, we throw an exception.
       throw IllegalStateException("Can not initialize constant relation with more than one row.")
@@ -121,7 +121,8 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
       FiniteAbstractRelation.Empty(cols :+ columnName)
     case FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite) =>
       val newV = f(rows)
-      val newFinite = boolOps.and(Topped.Actual(newV.isFinite), finite)
+      val newVIsFinite = if (newV.isFinite) Topped.Actual(true) else Topped.Top
+      val newFinite = boolOps.and(newVIsFinite, finite)
       FiniteAbstractRelation.NonEmpty(cols :+ columnName, rows :+ newV, empty, newFinite)
 
   override def groupBy(rv: FiniteAbstractRelation, accumulatorCols: Seq[String], groupByCols: Seq[String])
@@ -136,20 +137,18 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
         val newRows = f(groupByValues, Seq(accValues))
         if (newRows.size != newCols.size)
           throw IllegalStateException("Number of new columns must match arity of new rows.")
-        val isFinite = newRows.forall(_.isFinite)
-        val newFinite = boolOps.and(Topped.Actual(isFinite), finite)
+        val isFinite = if (newRows.forall(_.isFinite)) Topped.Actual(true) else Topped.Top
+        val newFinite = boolOps.and(isFinite, finite)
         FiniteAbstractRelation(newCols, newRows, empty, newFinite)
   
   override def flatMap(rv: FiniteAbstractRelation)(f: Seq[Value] => FiniteAbstractRelation): FiniteAbstractRelation = rv match
     case FiniteAbstractRelation.Empty(cols) => naturalJoin(rv, f(Seq()))
-    case FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite) =>
-      // TODO: This could also possible produce a top value, which might indicate an infinite relation
-      naturalJoin(rv, f(rows))
+    case FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite) => naturalJoin(rv, f(rows))
 
   override def filter(rv: FiniteAbstractRelation)(f: Seq[Value] => Topped[Boolean]): FiniteAbstractRelation = rv match
     case FiniteAbstractRelation.Empty(cols) => rv
     case rv@FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite) => f(rv.rows) match
-      case Topped.Top => rv.copy(emp = Topped.Top)
+      case Topped.Top => rv.copy(emp = Topped.Top) // finite flag is unchanged, either it's the same relation or empty
       case Topped.Actual(true) => rv // unchanged
       case Topped.Actual(false) => FiniteAbstractRelation.Empty(cols) // definitely empty
 
@@ -217,8 +216,9 @@ class FiniteAbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV
     (rv, other) match
       case (FiniteAbstractRelation.Empty(_), _) | (_, FiniteAbstractRelation.Empty(_)) => rv
       case (rv: FiniteAbstractRelation.NonEmpty, other: FiniteAbstractRelation.NonEmpty) =>
-        val newFinite = rv.finite match
-          case Topped.Actual(true) => Topped.Actual(true)
+        val newFinite = (rv.finite, other.finite) match
+          case (Topped.Actual(true), _) => Topped.Actual(true)
+          case (Topped.Actual(false), Topped.Actual(true)) => Topped.Actual(false)
           case _ => Topped.Top
         val sharedCols = rv.cols.intersect(other.cols)
         if (sharedCols.isEmpty)
@@ -259,7 +259,8 @@ given FiniteJoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]
         // If any of the two relations is definitely non-empty, then the result is also non-empty
         val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
-        val newFinite = boolOps.and(boolOps.and(rv.finite, other.finite), Topped.Actual(newRows.forall(_.isFinite)))
+        val isFinite =  if (newRows.forall(_.isFinite)) Topped.Actual(true) else Topped.Top
+        val newFinite = boolOps.and(boolOps.and(rv.finite, other.finite), isFinite)
         FiniteAbstractRelation(rv.cols, newRows, newEmpty, newFinite)
 
   override def apply(v1: FiniteAbstractRelation, v2: FiniteAbstractRelation): MaybeChanged[FiniteAbstractRelation] =
@@ -280,7 +281,8 @@ given FiniteWidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boole
         // If any of the two relations is definitely non-empty, then the result is also non-empty
         val newEmpty = boolOps.or(rv.empty, other.empty)
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => widenV(v1, v2).get }
-        val newFinite = boolOps.and(boolOps.and(rv.finite, other.finite), Topped.Actual(newRows.forall(_.isFinite)))
+        val isFinite =  if (newRows.forall(_.isFinite)) Topped.Actual(true) else Topped.Top
+        val newFinite = boolOps.and(boolOps.and(rv.finite, other.finite), isFinite)
         FiniteAbstractRelation(rv.cols, newRows, newEmpty, newFinite)
 
   override def apply(v1: FiniteAbstractRelation, v2: FiniteAbstractRelation): MaybeChanged[FiniteAbstractRelation] =
