@@ -98,6 +98,7 @@ object CompiledFunctionalUnit:
       else
         () => new demand.Lowering {},
       () => new tuple.Lowering {},
+      //() => new IRTerminationAnalysis {}
     ) // arith + string + data
 
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false) // arith + string + data

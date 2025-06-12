@@ -37,7 +37,7 @@ object Mirco:
         () => new IRConstantOptimizer(false, false),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},
-        () => new IRConstantOptimizer(false, true),
+        () => new IRConstantOptimizer(true, true),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},
         //() => new IRTerminationAnalysis {}

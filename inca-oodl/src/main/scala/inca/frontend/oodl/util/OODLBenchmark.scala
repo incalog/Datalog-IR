@@ -53,8 +53,8 @@ case class OODLBenchmark(override val name: String,
     engine.insert(edbEntry)
     engine
 
-  def measurePerformance(runs: Int, warmups: Int): Dataset =
-    measurePerformance(UnitRelation(main), runs, warmups)
+  def measurePerformance(runs: Int, warmups: Int, topK: Int = 3): Dataset =
+    measurePerformance(UnitRelation(main), runs, warmups, topK)
 
   def measureAndPlotPerformance(runs: Int, warmups: Int, timeUnit: TimeUnit = Second, openPlot: Boolean = true, xLabel: Option[String] = None): (Dataset, File) =
     val ds = measurePerformance(runs, warmups)

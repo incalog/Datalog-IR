@@ -135,11 +135,12 @@ trait Benchmark[Config <: BenchmarkConfig, CUnit <: CompiledUnit]:
       }
     }
 
-  def measurePerformance(readRel: Relation, runs: Int, warmups: Int): Dataset =
+  def measurePerformance(readRel: Relation, runs: Int, warmups: Int, topK: Int): Dataset =
     val rows = configs.flatMap { config =>
       val configValue = StringValue(config.name)
       val measurement = runPerformanceBenchmark(config, readRel, runs, warmups)
-      measurement.map(m => IndexedSeq(configValue, IntValue(m._1), LongValue(m._2)))
+      val topKMeasurements = 0.until(topK).zip(measurement.map(_._2).sorted.take(topK))
+      topKMeasurements.map(m => IndexedSeq(configValue, IntValue(m._1), LongValue(m._2)))
     }
     val ds = Dataset("Runtime", IndexedSeq("Config", "Run", "Ns"), rows)
     if (storeIntermediateFiles) FileUtil.writeFile(getOutFile(s"${name}_performance.csv"), ds.toCSV())
