@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir
-import inca.ir.{Name, Param, Term}
+import inca.ir.{Name, Param, Term, Type}
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.*
@@ -11,7 +11,8 @@ import inca.ir.analysis.base.values.*
 import inca.ir.extension.aggregate.analysis as iragg
 import inca.ir.extension.arithmetic.analysis.interpreter.{IntervalDoubleV, IntervalIntV}
 import inca.ir.extension.arithmetic.{DoubleNum, IntNum, TDouble, TInt, analysis as irarith}
-import inca.ir.extension.data.analysis as irdata
+import inca.ir.extension.data.analysis.interpreter.{FiniteCaseV, FiniteDataV}
+import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference, TData, analysis as irdata}
 import inca.ir.extension.string.{TString, analysis as irstr}
 import inca.ir.extension.string.analysis.interpreter.FiniteStringV
 import inca.ir.optimize.{AbstractEdbConfig, EdbConfig, Optimizer}
@@ -24,7 +25,7 @@ import sturdy.effect.failure.{AFallible, CollectedFailures, ObservableFailure}
 import sturdy.effect.{EffectStack, TrySturdy}
 import sturdy.fix
 import sturdy.fix.StackConfig.StackedStates
-import sturdy.fix.{HasFixpointCache, StackConfig}
+import sturdy.fix.{Combinator, Filter, HasFixpointCache, Log, StackConfig}
 import sturdy.values.MaybeChanged.Unchanged
 import sturdy.values.booleans.{BooleanBranching, BooleanOps, ToppedBooleanBranching, ToppedBooleanOps}
 import sturdy.values.ordering.EqOps
@@ -67,7 +68,7 @@ class IRTerminationAbstractInterpreter(
   private class IRWidenV extends Widen[Value] with BaseWidenV
     with irarith.interpreter.IntervalWidenV
     with irstr.interpreter.FiniteStringWidenV
-    with irdata.interpreter.FiniteJoinV:
+    with irdata.interpreter.FiniteDataWidenV:
 
     override def apply(v1: Value, v2: Value): MaybeChanged[Value] =
       MaybeChanged(combine(v1, v2), v1)
@@ -118,6 +119,28 @@ class IRTerminationAbstractInterpreter(
   given Meet[Value] = IRMeetV(using except)
   override val relationOps: FiniteAbstractRelationOps[Powerset[BaseIRException]] = new FiniteAbstractRelationOps(using except)
 
+  class AnalysisAnnotator
+    extends BaseAnalysisAnnotator[Value, RV, Value]
+      with irarith.logger.AnalysisAnnotator[Value, RV, Value]
+      with irdata.logger.AnalysisAnnotator[Value, RV, Value]
+      with irstr.logger.AnalysisAnnotator[Value, RV, Value]
+      with iragg.logger.AnalysisAnnotator[Value, RV, Value]:
+
+    override def extractColumns(rv: RV): Seq[SupColumn] =
+      relationOps.columns(rv)
+
+    override def extractTermValue(col: SupColumn, rv: RV): Option[Value] =
+      if (relationOps.hasColumn(rv, col))
+        val termTRV = relationOps.project(rv, Seq(col))
+        termTRV match
+          case FiniteAbstractRelation.Empty(cs) => None
+          case FiniteAbstractRelation.NonEmpty(cs, rows, emp, _) =>
+            assert(rows.size == 1)
+            Some(rows.head)
+      else
+        None
+
+
   override def evalModule(m: ir.Module)(using Fixed): Map[SupColumn, RV] =
     // Set up bounds for widening
     var intLits: Set[Int] = Set()
@@ -133,31 +156,6 @@ class IRTerminationAbstractInterpreter(
     irWiden.intBounds = intLits
     irWiden.doubleBounds = doubleLits
     super.evalModule(m)
-
-
-  class AnalysisAnnotator
-    extends BaseAnalysisAnnotator[Value, RV, Value]
-      with irarith.logger.AnalysisAnnotator[Value, RV, Value]
-      with irdata.logger.AnalysisAnnotator[Value, RV, Value]
-      with irstr.logger.AnalysisAnnotator[Value, RV, Value]
-      with iragg.logger.AnalysisAnnotator[Value, RV, Value]:
-
-    override def extractColumns(rv: RV): Seq[String] =
-      relationOps.columns(rv)
-      
-    override def extractTermValue(supName: SupColumn, rv: RV): Option[Value] =
-      if (relationOps.hasColumn(rv, supName))
-        val termTRV = relationOps.project(rv, Seq(supName))
-        termTRV match
-          case FiniteAbstractRelation.Empty(cs) => None
-          case FiniteAbstractRelation.NonEmpty(cs, rows, emp, finite) =>
-            assert(rows.size == 1)
-            Some(rows.head)
-      else
-        None
-
-  // annotate information about constants
-  val analysisAnnotator = new AnalysisAnnotator
 
   // log the control-flow graph
   private lazy val cfgLogger = new ControlEventLogger[Value, RV](this)
@@ -184,16 +182,19 @@ class IRTerminationAbstractInterpreter(
     }.toMap
     reduced
 
+
+  val analysisAnnotator = new AnalysisAnnotator
+
   type Ctx = Unit
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
-    var fixPt =
-        fix.log(analysisAnnotator,
-          fix.filter({case _: FixIn.EnterRelation => true; case _ => false},
+    var fixPt: Combinator[FixIn, FixOut[Value, RV]] =
+      fix.log(analysisAnnotator,
+          fix.filter[FixIn, FixOut[Value, RV]]({case _: FixIn.EnterRelation => true; case _ => false},
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
               setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
             )
           )
-        )
+      )
 
     if (logControlEvents)
       fixPt = fix.log(cfgLogger, fixPt)
@@ -209,15 +210,27 @@ case class AnalysisFailed(msg: String) extends Exception:
 
 class IRTerminationAnalysis extends IRVisitor with Optimizer:
 
-  // Configure
-  val edbConfig: EdbConfig[FiniteAbstractRelation] = (n: Name, params: Seq[Param]) =>
-    val (aCols, aRows) = params.map {
-      case Param(name, TInt) => (name.name, IntervalIntV.finite)
-      case Param(name, TDouble) => (name.name, IntervalDoubleV.finite)
-      case Param(name, TString) => (name.name, FiniteStringV.edb())
-      case Param(name, _) => (name.name, Value.Top)
-    }.unzip
-    FiniteAbstractRelation(aCols, aRows, Topped.Actual(false), Topped.Actual(true))
+  case class FiniteEdbConfig(data: Map[TData, Set[CaseDefinitionReference]])
+    extends EdbConfig[FiniteAbstractRelation]:
+
+    override def abstractExtensionalRelation(n: Name, params: Seq[Param]): FiniteAbstractRelation =
+      def abstractEDBValueForType(ty: Type): Value = ty match
+        case TInt => IntervalIntV.finite
+        case TDouble => IntervalDoubleV.finite
+        case TString => FiniteStringV.edb()
+        case d: TData =>
+          val cases = data(d)
+          val abstractCases = cases.map { c =>
+            val nonRecursiveArgs = c.args.filterNot(_ == d).map(abstractEDBValueForType)
+            FiniteCaseV(c, nonRecursiveArgs)
+          }
+          FiniteDataV(abstractCases, 10)
+        case _ => Value.Top
+
+      val (aCols, aRows) = params.map(p => (p.name.name, abstractEDBValueForType(p.ty))).unzip
+      println(aCols)
+      println(aRows)
+      FiniteAbstractRelation(aCols, aRows, Topped.Actual(false), Topped.Actual(true))
 
   val abstractInterpreter: BaseGenericInterpreter[Value, ?, FiniteAbstractRelation, ?, ?] =
     new IRTerminationAbstractInterpreter(false, false, true)
@@ -227,6 +240,17 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
     if (isClosedWorld)
       analysisHasRun = true
+
+      var adts: Map[TData, Set[CaseDefinitionReference]] = Map()
+      modules.foreach { m =>
+        m.entries.foreach {
+          case (_, c: CaseDefinitionReference) =>
+            adts += c.data -> (adts.getOrElse(c.data, Set()) + c)
+          case _ => // nothing
+        }
+      }
+
+      val edbConfig = FiniteEdbConfig(adts)
 
       // Fill edb
       modules.foreach { m =>
@@ -243,11 +267,6 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
         abstractInterpreter.evalProgram(modules)
       }
 
-      // TODO: Remove me after debugging
-      //println(new IRDebugPrinter{}.prettyPrint(modules))
-      //println(abstractInterpreter.getIDB)
-      //System.exit(1)
-
       // Interpret result
       analysisRes match {
         case AFallible.Failing(failures) =>
@@ -259,6 +278,17 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
           throw IllegalStateException()
         case _ => // nothing
       }
+
+    val idb = abstractInterpreter.getIDB
+    val definitelyTerminates = idb.forall { case (_, rel) =>
+      rel.finite.isActual && rel.finite.get && rel.rowsAreFinite
+    }
+
+    // TODO: Remove me after debugging
+    println(new IRDebugPrinter{}.prettyPrint(modules))
+    println(s"Definitely terminates: $definitelyTerminates")
+    println(abstractInterpreter.getIDB)
+    System.exit(1)
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
     if (!analysisHasRun && isClosedWorld)

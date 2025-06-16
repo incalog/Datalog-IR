@@ -2,7 +2,7 @@ package inca.ir.extension.data.analysis.interpreter
 
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
-import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, FiniteAbstractRelation, Value}
+import inca.ir.analysis.base.values.{BaseJoinV, BaseMeetV, BaseWidenV, FiniteAbstractRelation, Value}
 import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference}
 import sturdy.effect.{Effect, EffectStack}
 import sturdy.effect.failure.Failure
@@ -18,6 +18,7 @@ import sturdy.values.integer.given_OrderingOps_Int_Boolean
 
 case class FiniteCaseV(caseDef: CaseDefinitionReference, args: Seq[Value]):
   override def toString: String = s"${caseDef.name}${args.mkString("(", ",", ")")}"
+  def isFinite: Boolean = args.forall(_.isFinite)
 
 case class FiniteDataV(alternatives: Set[FiniteCaseV], depth: Int) extends Value:
   private lazy val alternativesMap: Map[CaseDefinitionReference, Seq[Value]] =
@@ -50,9 +51,9 @@ case class FiniteDataV(alternatives: Set[FiniteCaseV], depth: Int) extends Value
         h
     }
 
-
   override def isConstant: Boolean = false
-  override def toString: String = s"Data(${alternatives.mkString(",")} $depth)"
+  override def isFinite: Boolean = alternatives.forall(_.isFinite)
+  override def toString: String = s"Data({${alternatives.mkString(",")}} | $depth)"
 
 object FiniteDataV:
   def construct(caseDef: CaseDefinitionReference, args: Seq[Value]): FiniteDataV =
@@ -61,11 +62,16 @@ object FiniteDataV:
       case v: FiniteDataV => v.caseDefs.map(_.data).contains(caseDef.data)
       case _ => false
 
-    val argDepth = args.map {
-      case FiniteDataV(_, d) => d
-      case _ => 0
-    }.max
+    val innerDepths = args.flatMap{
+      case FiniteDataV(_, d) => Some(d)
+      case _ => None
+    }
+    val argDepth =
+      if (innerDepths.isEmpty) 0
+      else innerDepths.max
+
     new FiniteDataV(Set(FiniteCaseV(caseDef, args.filterNot(isRecursive))), argDepth + 1)
+
 
 trait FiniteEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
   override def equ(v1: Value, v2: Value): Topped[Boolean] = (v1, v2) match
@@ -87,6 +93,8 @@ trait FiniteEqOps(using boolOps: BooleanOps[Topped[Boolean]]) extends BaseEqOps:
 trait FiniteJoinV extends BaseJoinV:
   override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (i1@FiniteDataV(alts1, d1), i2@FiniteDataV(alts2, d2)) =>
+      //if (d1 != d2)
+      //  println(s"Join: $d1 :: $d2")
       val newDepth = d1.max(d2)
       val caseDefs = i1.caseDefs ++ i2.caseDefs
       val alts = caseDefs.map { c =>
@@ -100,11 +108,34 @@ trait FiniteJoinV extends BaseJoinV:
       FiniteDataV(alts, newDepth)
     case _ => super.combine(lhs, rhs)
 
+trait FiniteDataWidenV extends BaseWidenV:
+  var maxDepth: Int = 20
+
+  override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
+    case (i1@FiniteDataV(alts1, d1), i2@FiniteDataV(alts2, d2)) =>
+      //if (d1 != d2)
+      //  println(s"Widen: $d1 :: $d2")
+      val newDepth = d1.max(d2)
+      if (newDepth > maxDepth)
+        Value.Top
+      else
+        val caseDefs = i1.caseDefs ++ i2.caseDefs
+        val alts = caseDefs.map { c =>
+          val vs = (i1.nonRecursiveArgsForCase(c), i2.nonRecursiveArgsForCase(c)) match
+            case (None, Some(vs2)) => vs2
+            case (Some(vs1), None) => vs1
+            case (Some(vs1), Some(vs2)) => vs1.zip(vs2).map(combine(_, _))
+            case (None, None) => throw IllegalStateException("Not possible")
+          FiniteCaseV(c, vs)
+        }
+        FiniteDataV(alts, newDepth)
+    case _ => super.combine(lhs, rhs)
+
 trait FiniteMeetV extends BaseMeetV:
   override def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (i1@FiniteDataV(alts1, d1), i2@FiniteDataV(alts2, d2)) =>
       val newDepth = d1.min(d2)
-      val caseDefs = i1.caseDefs ++ i2.caseDefs
+      val caseDefs = i1.caseDefs.intersect(i2.caseDefs)
       val alts = caseDefs.map { c =>
         val vs = (i1.nonRecursiveArgsForCase(c), i2.nonRecursiveArgsForCase(c)) match
           case (None, Some(vs2)) => vs2
@@ -124,11 +155,7 @@ trait FiniteAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean
 
     override def deconstruct(v: Value, caseDef: CaseDefinitionReference)(matching: Seq[Value] => FiniteAbstractRelation)(notMatching: => FiniteAbstractRelation): FiniteAbstractRelation = v match
       case i1: FiniteDataV if i1.caseDefs.contains(caseDef) =>
-        effects.joinComputations {
-          matching(i1.argsForCase(caseDef))
-        } {
-          notMatching // edb data over approximates the number of cases
-        }
+        matching(i1.argsForCase(caseDef))
       case i1: FiniteDataV =>
         notMatching
       case Value.Top =>
@@ -141,11 +168,7 @@ trait FiniteAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean
 
     override def deconstructNeg(v: Value, caseDef: CaseDefinitionReference)(possibleSuccess: Seq[Value] => FiniteAbstractRelation)(success: => FiniteAbstractRelation): FiniteAbstractRelation = v match
       case i1: FiniteDataV if i1.caseDefs.contains(caseDef) =>
-        effects.joinComputations {
-          possibleSuccess(i1.argsForCase(caseDef))
-        } {
-          success
-        }
+        possibleSuccess(i1.argsForCase(caseDef))
       case _: FiniteDataV =>
         success
       case Value.Top =>

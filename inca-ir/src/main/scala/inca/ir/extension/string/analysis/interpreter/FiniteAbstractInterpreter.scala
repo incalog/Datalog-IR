@@ -26,7 +26,7 @@ case object Unknown extends Component:
 
 case class FiniteStringV(components: Seq[Component], concatDepth: Int) extends Value:
   override def isConstant: Boolean = !components.contains(Unknown)
-  override def toString: String = s"\"${components.mkString("")}\" depth $concatDepth"
+  override def toString: String = s"\"${components.mkString("")}\" | $concatDepth"
   override def isFinite: Boolean = true
 
 object FiniteStringV:

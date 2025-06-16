@@ -28,6 +28,10 @@ enum FiniteAbstractRelation:
     case FiniteAbstractRelation.Empty(cols) => Topped.Actual(true)
     case FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite) => empty
 
+  def rowsAreFinite: Boolean = this match
+    case FiniteAbstractRelation.Empty(_) => true
+    case FiniteAbstractRelation.NonEmpty(_, rows, _, _) => rows.forall(_.isFinite)
+
   def finite: Topped[Boolean] = this match
     case FiniteAbstractRelation.Empty(cols) => Topped.Actual(true)
     case FiniteAbstractRelation.NonEmpty(cols, rows, empty, finite) => finite
