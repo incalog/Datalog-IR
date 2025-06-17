@@ -47,6 +47,46 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
     //println(res)
   }
 
+  test("Generate numbers - 2") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      Relation("A", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(5)),
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(100)),
+        )),
+      )),
+      Relation("B", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(0)),
+        )),
+        Body(Seq(
+          Call("A", Seq(IntNum(6))),
+          Call("B", Seq(Var("y"))),
+          Eq(Var("x"), Add(Var("y"), IntNum(1))),
+        )),
+      )),
+      Relation("main", Seq(
+        Param("n", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("B", Seq(Var("n"))),
+        ))
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    println(res)
+    val mainRel = res("main")
+    assert(mainRel.rows.head.isFinite)
+    assert(mainRel.finite.isActual && mainRel.finite.get)
+  }
+
   test("Min Aggregation") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       Relation("input1", Seq(
