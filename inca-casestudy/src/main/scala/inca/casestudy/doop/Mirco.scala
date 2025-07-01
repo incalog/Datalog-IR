@@ -22,7 +22,8 @@ object Mirco:
     options.irLogging.logOptimizationStats = false
     options.irLogging.logStatsBeforeOptimizations = true
     options.irLogging.logStatsAfterOptimizations = true
-    //options.irLogging.logLowerings = true
+    options.irLogging.logLowerings = true
+    options.irLogging.logOptimizations = true
     val compiled = CompiledSouffleProgram.fromSource("micro", source, options,
       pipeline = List(
         () => new aggregategeneric.Lowering {},
@@ -30,7 +31,7 @@ object Mirco:
         () => new block.Lowering {},
         () => new disjunction.Lowering {},
         () => new not.Lowering {},
-        () => new AliasElimination {},
+        //() => new AliasElimination {},
         () => new module.Lowering {}
       ),
       optimizationPipeline = List(

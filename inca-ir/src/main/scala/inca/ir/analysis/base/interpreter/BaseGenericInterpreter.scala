@@ -236,6 +236,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       relationOps.make(paramNames, Seq())
     else
       except.tryCatch {
+        // Join the result of all bodies together
+        // In case of the Concrete interpreter this `join`
+        // is a union operation, inferred from `joinRV: Join[RV]`.
         mapJoin(r.bodies.indices, { ix =>
           evalBody(r, ix, paramNames)
         })

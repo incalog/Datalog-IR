@@ -1,10 +1,6 @@
 package inca.ascent.backend
 
-import inca.ascent.backend.GenerateAscent.cleanName
-import inca.ascent.syntax.Term.{NumberLit, Var}
-import inca.ascent.syntax.Unop.neg
 import inca.ascent.syntax.Aggregation.Count
-import inca.ascent.syntax.BinOp.Add
 import inca.ascent.syntax.*
 import inca.ir
 import inca.ir.extension.aggregate.{AggregateColumnArg, AggregationOperator}

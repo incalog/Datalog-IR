@@ -1,15 +1,10 @@
 package inca.souffle.frontend.compile
 
 import inca.ir
-import inca.ir.extension.aggregate.AggregateColumnArg
-import inca.ir.{ExtensionalRelationSubstitution, Import, Language, ProvideRelation, RelationSubstitution, Require, RequireRelation, WildcardArg}
-import inca.ir.extension.arithmetic.IntNum
-import inca.ir.extension.block.Block
+import inca.ir.{ExtensionalRelationSubstitution, Language, RelationSubstitution, Require, RequireRelation, WildcardArg}
 import inca.ir.extension.bool.{BoolFalse, BoolTrue}
-import inca.ir.extension.data.{RequireCaseDefinition, RequireDataDefinition}
 import inca.ir.extension.{aggregategeneric as iraggGeneric, block, aggregate as iragg, arithmetic as irarith, bool as irbool, data as irdata, disjunction as irdis, not as irnot, string as irstring}
 import inca.ir.typing.Resolvable
-import inca.souffle.frontend.compile.{SouffleInputHint, SouffleOutputHint, SouffleQueryPlanHint}
 import inca.souffle.syntax.*
 import inca.souffle.syntax.Aggregator.Min
 import inca.souffle.syntax.ProgramContent.{ComponentDecl, RelationDecl}
@@ -17,7 +12,6 @@ import inca.souffle.syntax.TypeDeclConstraint.ADTType
 import inca.util.Gensym
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{AbstractSet, SortedSet}
 
 implicit def ordering[A <: ProgramContent]: Ordering[A] = (x: A, y: A) => (x, y) match
   case (_: ProgramContent.ComponentDecl, _: ProgramContent.ComponentDecl) => 0
@@ -248,6 +242,9 @@ class GenerateIR extends GenerateIRContext:
   private def compileAttribute(attr: Attribute): ir.Param =
     ir.Param(cleanParamName(attr.name), compileType(attr.ty))
 
+  private var bodyIdCounter = 0
+  private var bodyIDs: Map[ProgramContent.Rule, Int] = Map()
+
   private def compileRule(decl: ProgramContent.RelationDecl, rule: ProgramContent.Rule, relName: String): Seq[ir.Body] =
     val ProgramContent.Rule(heads, bodyAtom, queryPlanOption) = rule
     // need to consider that there could be multiple heads for the same rule
@@ -256,6 +253,15 @@ class GenerateIR extends GenerateIRContext:
       case Atom.Call(QualifiedName(ns), terms) if ns.last == relName => Some(terms)
       case _ => None
     }
+
+    val bodyID = bodyIDs.get(rule) match
+      case Some(id) => id
+      case _ =>
+        val counter = bodyIdCounter
+        bodyIDs += rule -> counter
+        bodyIdCounter += 1
+        counter
+
     headTermsPerRule.map { headTerms =>
       boundVariables = Set()
 
@@ -266,6 +272,8 @@ class GenerateIR extends GenerateIRContext:
       }
 
       val body = ir.Body(compiledBody +: renameAtoms)
+      body.addHint(SouffleBodyHint(bodyID))
+      
       queryPlanOption match
         case Some(qp) => body.addHint(SouffleQueryPlanHint(qp))
         case None => body
