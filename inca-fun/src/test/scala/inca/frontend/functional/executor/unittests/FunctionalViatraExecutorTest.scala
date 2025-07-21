@@ -172,11 +172,13 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
 
   // With our current design main must not be recursive
   /*test("Fix function") {
-    val code = FileUtil.readFile("functional/unittests/FixFunction.finca")
-    val compiled = exec.compileFunction(code)
+    val code = FileUtil.readFileFromResource("functional/unittests/FixFunction.finca")
+    val compiled = exec.compileFunction(code, options)
+    compiled.setPipeline(CompiledFunctionalUnit.pipeline)
+    compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(1))
-    assertResult(13)(res.entries.head)
+    assertResult(1)(res.entries.head)
   }*/
 
   // ADT-tests

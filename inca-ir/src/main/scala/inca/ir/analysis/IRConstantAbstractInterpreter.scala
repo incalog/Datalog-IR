@@ -195,14 +195,16 @@ class IRConstantAbstractInterpreter(
   private lazy val cfgLogger = new ControlEventLogger[Value, RV](this)
 
   //fix.Fixpoint.DEBUG = true
+  //fix.Fixpoint.DEBUG_PRIOR_OUTPUT = true
 
   //(new PrintingControlObserver()(println))
   val graphBuilder: ControlEventGraphBuilder[Long, Long, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
 
   private val stackConfig: StackConfig = if (logControlEvents)
-    StackedStates(storeNonrecursiveOutput = true).withObservers(Seq(triggerControlEvent))
+    StackedStates(readPriorOutput = true, storeNonrecursiveOutput = true, storeIntermediateOutput = true)
+      .withObservers(Seq(triggerControlEvent))
   else
-    StackedStates(storeNonrecursiveOutput = true)
+    StackedStates(readPriorOutput = true, storeNonrecursiveOutput = true, storeIntermediateOutput = true)
 
   var looper: HasFixpointCache[FixIn, FixOut[Value, RV]] = null
   def setLooper[A <: HasFixpointCache[FixIn, FixOut[Value, RV]]](a: A): A =
@@ -233,7 +235,8 @@ class IRConstantAbstractInterpreter(
 //            fix.contextSensitive(
 //              parameters,
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
-              setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
+              setLooper(fix.iter.innermost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
+              //setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
               //setLooper(fix.iter.outermost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
             )
           )

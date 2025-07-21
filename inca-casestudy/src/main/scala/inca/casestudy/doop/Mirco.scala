@@ -1,11 +1,13 @@
 package inca.casestudy.doop
 
-import inca.ir.analysis.{IRConstantAbstractInterpreter, IRTerminationAnalysis}
+import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
+import inca.ir.analysis.base.values.{AbstractRelation, Value}
+import inca.ir.analysis.{IRConstantAbstractInterpreter, IRMeasureConstantAnalysis, IRMeasureInterpreter, IRTerminationAnalysis}
 import inca.ir.{CompiledUnit, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{aggregategeneric, block, bool, disjunction, module, not}
-import inca.ir.optimize.{AliasElimination, IRConstantOptimizer, IdentityCastElimination}
+import inca.ir.optimize.{AbstractEdbConfig, AliasElimination, EdbConfig, IRConstantOptimizer, IdentityCastElimination}
 import inca.souffle.frontend.compile.CompiledSouffleProgram
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend
@@ -20,10 +22,10 @@ object Mirco:
     val source = Source.fromResource(baseDir + file)
     val options = CompilerOptions.default
     options.irLogging.logOptimizationStats = false
-    options.irLogging.logStatsBeforeOptimizations = true
-    options.irLogging.logStatsAfterOptimizations = true
-    options.irLogging.logLowerings = true
-    options.irLogging.logOptimizations = true
+    options.irLogging.logStatsBeforeOptimizations = false
+    options.irLogging.logStatsAfterOptimizations = false
+    options.irLogging.logLowerings = false
+    options.irLogging.logOptimizations = false
     val compiled = CompiledSouffleProgram.fromSource("micro", source, options,
       pipeline = List(
         () => new aggregategeneric.Lowering {},
@@ -35,10 +37,11 @@ object Mirco:
         () => new module.Lowering {}
       ),
       optimizationPipeline = List(
+        //() => new IRMeasureConstantAnalysis
         () => new IRConstantOptimizer(false, false),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},
-        () => new IRConstantOptimizer(true, true),
+        () => new IRConstantOptimizer(false, true),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},
         //() => new IRTerminationAnalysis {}

@@ -19,6 +19,15 @@ val scalaTestVersionString = "3.2.16"
 
 val truediffVersion = "0.1.5-SNAPSHOT"
 
+// Use for local debugging
+//val sturdy = uri(s"file:///Users/David/Desktop/sturdy.scala")
+
+val benchmarkingCommit = "9d15aaab433db34a029770fe5e7d6698f179595e"
+val benchmarking = uri(s"https://gitlab.rlp.net/plmz/benchmark-scala.git#$benchmarkingCommit")
+
+val sturdyCommit = "d6c5ceb323ff759f62f23bd8ef3cfd19e13ea682"
+val sturdy = uri(s"https://gitlab.rlp.net/plmz/sturdy.scala.git#$sturdyCommit")
+
 lazy val inca_ir = (project in file("inca-ir"))
   .settings(
     scalaVersion := scalaVersionString,
@@ -28,14 +37,17 @@ lazy val inca_ir = (project in file("inca-ir"))
     libraryDependencies ++= Seq(
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
 
-      "de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1",
+      //"de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1",
       "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
-      "de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
+      //"de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
       //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
     )
   )
+  .dependsOn(ProjectRef(sturdy, "sturdy_core") % "compile->compile;test->test")
+  .dependsOn(RootProject(benchmarking) % "compile->compile;test->test")
+
 
 lazy val inca_fun = (project in file("inca-fun"))
   .dependsOn(inca_ir % "compile->compile")
