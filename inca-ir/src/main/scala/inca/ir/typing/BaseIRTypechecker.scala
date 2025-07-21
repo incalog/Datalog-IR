@@ -7,6 +7,7 @@ import inca.ir.visitors.BaseIRVisitor
 
 import scala.collection.immutable.Seq
 import scala.reflect.ClassTag
+import scala.compiletime.uninitialized
 
 // We assume that every variable that is used is introduced beforehand (left-to-right)
 trait BaseIRTypechecker extends BaseIRTypeContext:
@@ -33,14 +34,14 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
     val negativeCycles = dependencyGraph.negativeCycles
     negativeCycles.foreach(cycle =>
       val cycleS = dependencyGraph.prettyPrintCycle(cycle.map(_._1))
-      error(s"Negative cycle is not allowed:\n  $cycleS", program: _*)
+      error(s"Negative cycle is not allowed:\n  $cycleS", program*)
     )
 
     this.failOnError()
   }
 
-  protected var currentModule: Module = _
-  protected var currentEntry: ModuleEntry = _
+  protected var currentModule: Module = uninitialized
+  protected var currentEntry: ModuleEntry = uninitialized
 
   def addCallDependency(to: ModuleEntry, neg: Boolean = false): Unit =
     addDependency(currentEntry, to, if (neg) DependencyInfo.NegativeCall else DependencyInfo.PositiveCall)
@@ -104,7 +105,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           }
         case _ => error(s"Unresolved module $moduleRef", imp)
 
-  protected def checkSubstitution[T <: Require](imp: Import, importable: Substitution[T, _]): Unit = importable match
+  protected def checkSubstitution[T <: Require](imp: Import, importable: Substitution[T, ?]): Unit = importable match
     case RelationSubstitution(to, toSig, from, fromSig) =>
       // Make sure the to and from signature match
       if toSig.size != fromSig.size then
@@ -260,7 +261,7 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
           withErrors(checkTerm(t, ty, mode)) match
             case (m, Nil) => m
             case (_, errsCheck) =>
-              errsInfer.foreach(e => error(e.msg, e.sourceLocations: _*))
+              errsInfer.foreach(e => error(e.msg, e.sourceLocations*))
               tt.mode
       TermType(ty, m)
     case _ => throw IllegalArgumentException(s"Can not typecheck unknown term: $term")
@@ -299,64 +300,64 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
             lookupModuleByAlias(moduleName)(lastMod) match
               case Some(mod) => Some(mod)
               case _ =>
-                error(s"Could not resolve module $moduleName", s: _*)
+                error(s"Could not resolve module $moduleName", s*)
                 None
         }.getOrElse(currentModule)
       case _ => currentModule
 
   protected def inferRelationRef[R <: ModuleEntry](ref: Ref[R], isExtensional: Boolean, locations: SourceLocation*): Seq[Type] =
-    val targetModule = lookupModuleByPath(ref, locations: _*)
+    val targetModule = lookupModuleByPath(ref, locations*)
     val (rel, tys) = if targetModule != currentModule then
       // definitions outside the current module must be provided
-      if isExtensional then
-        val providedRel = lookupProvideRef[ProvideExtensionalRelation](ref, targetModule, locations: _*)
+      if (isExtensional)
+        val providedRel = lookupProvideRef[ProvideExtensionalRelation](ref, targetModule, locations*)
         val tyOption = providedRel.map(_.params.map(_.ty))
         (providedRel, tyOption.getOrElse(Seq()))
       else
-        val providedRel = lookupProvideRef[ProvideRelation](ref, targetModule, locations: _*)
+        val providedRel = lookupProvideRef[ProvideRelation](ref, targetModule, locations*)
         val tyOption = providedRel.map(_.params.map(_.ty))
         (providedRel, tyOption.getOrElse(Seq()))
     else
       // definitions inside the module can either be a relation or a requirement
-      lookupRelationRef[R](ref, isExtensional, locations: _*)
+      lookupRelationRef[R](ref, isExtensional, locations*)
     rel.map(r => ref.resolved(r.asInstanceOf[R]))
     tys
 
-  protected def lookupProvideRef[P <: Provide[_]](ref: Ref[_], module: Module, locations: SourceLocation*)(implicit tag: ClassTag[P]): Option[P] =
+  protected def lookupProvideRef[P <: Provide[?]](ref: Ref[?], module: Module, locations: SourceLocation*)(implicit tag: ClassTag[P]): Option[P] =
     lookupProvide[P](ref.unqualifiedName, module) match
       case Some(prov) => Some(prov)
       case _ =>
-        error(s"Could not resolve entry provided by: ${ref.name}", locations: _*)
+        error(s"Could not resolve entry provided by: ${ref.name}", locations*)
         None
 
   // lookup a relation in a module given a name
   private def lookupRelationRef[R <: ModuleEntry](ref: Ref[R], isExtensional: Boolean, s: SourceLocation*): (Option[R], Seq[Type]) =
     lookupModuleEntry(ref.unqualifiedName) match
       case Some(rel@Relation(_, _, _)) if isExtensional =>
-        error(s"Expected an extensional relation, but got relation ${ref.name}", s: _*)
+        error(s"Expected an extensional relation, but got relation ${ref.name}", s*)
         (None, Seq())
       case Some(rel@Relation(_, params, _)) =>
         (Some(rel.asInstanceOf[R]), params.map(_.ty))
       case Some(rel@ExtensionalRelation(_, _)) if !isExtensional =>
-        error(s"Expected a relation, but got extensional relation ${ref.name}", s: _*)
+        error(s"Expected a relation, but got extensional relation ${ref.name}", s*)
         (None, Seq())
       case Some(rel@ExtensionalRelation(_, params)) =>
         (Some(rel.asInstanceOf[R]), params.map(_.ty))
       case Some(req@RequireRelation(_, params)) if isExtensional =>
-        error(s"Expected a relation, but got extensional relation ${ref.name}", s: _*)
+        error(s"Expected a relation, but got extensional relation ${ref.name}", s*)
         (None, Seq())
       case Some(req@RequireRelation(_, params)) =>
         (Some(req.asInstanceOf[R]), params.map(_.ty))
       case Some(req@RequireExtensionalRelation(_, params)) if !isExtensional =>
-        error(s"Expected an extensional relation, but got relation ${ref.name}", s: _*)
+        error(s"Expected an extensional relation, but got relation ${ref.name}", s*)
         (None, Seq())
       case Some(req@RequireExtensionalRelation(_, params)) =>
         (Some(req.asInstanceOf[R]), params.map(_.ty))
       case None =>
-        error(s"Undefined relation ${ref.name}", s: _*)
+        error(s"Undefined relation ${ref.name}", s*)
         (None, Seq())
       case entry =>
-        error(s"Expected a relation ${ref.name} but found $entry", s: _*)
+        error(s"Expected a relation ${ref.name} but found $entry", s*)
         (None, Seq())
 
   protected def checkAtom(atom: Atom, mode: Mode): Unit = atom match
@@ -381,8 +382,8 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
             case (TermType(rty, _), Nil) => checkTerm(lhs, rty, mode)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)
-              lerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
-              rerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
+              lerrs.foreach(e => error(e.msg, e.sourceLocations*))
+              rerrs.foreach(e => error(e.msg, e.sourceLocations*))
 
     case Eq(lhs, rhs, true) =>
       val action = startContextTransaction()
@@ -396,14 +397,14 @@ trait BaseIRTypechecker extends BaseIRTypeContext:
             case (TermType(rty, _), Nil) => checkTerm(lhs, rty, mode.inverted)
             case (_, rerrs) =>
               error(s"Ill-typed equation, cannot infer closed type for either side", atom)
-              lerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
-              rerrs.foreach(e => error(e.msg, e.sourceLocations: _*))
+              lerrs.foreach(e => error(e.msg, e.sourceLocations*))
+              rerrs.foreach(e => error(e.msg, e.sourceLocations*))
 
     case _ =>
       throw IllegalStateException(s"Can not typecheck unknown atom: $atom")
 
 
-  private def assignType(term: Typeable[TermType] with SourceLocation)(computeType: => TermType): TermType =
+  private def assignType(term: Typeable[TermType] & SourceLocation)(computeType: => TermType): TermType =
     val inferred = computeType
     term.typed(inferred, force = true)
     inferred

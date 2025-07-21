@@ -35,14 +35,14 @@ trait BaseIRVisitor:
     Seq(Import(visitRef(imp.module), imp.as, imp.subst.flatMap(visitSubstitution)))
   }
 
-  def visitSubstitution(importable: Substitution[_, _]): Seq[Substitution[_, _]] = importable match
+  def visitSubstitution(importable: Substitution[?, ?]): Seq[Substitution[?, ?]] = importable match
     case RelationSubstitution(to, toSig, from, fromSig) =>
       Seq(RelationSubstitution(visitRef(to), toSig.flatMap(visitParam), visitRef(from), fromSig.flatMap(visitParam)))
     case ExtensionalRelationSubstitution(to, toSig, from, fromSig) =>
       Seq(ExtensionalRelationSubstitution(visitRef(to), toSig.flatMap(visitParam), visitRef(from), fromSig.flatMap(visitParam)))
     case _ => throw IllegalStateException(s"Can not visit unknown entry: $importable")
 
-  def visitProvide[T <: ModuleEntry](provide: Provide[T]): Seq[Provide[_]] = preserveHints(provide) {
+  def visitProvide[T <: ModuleEntry](provide: Provide[T]): Seq[Provide[?]] = preserveHints(provide) {
     provide match
       case ProvideRelation(exportRef, params) => Seq(ProvideRelation(visitRef(exportRef), params.flatMap(visitParam)))
       case ProvideExtensionalRelation(exportRef, params) => Seq(ProvideExtensionalRelation(visitRef(exportRef), params.flatMap(visitParam)))

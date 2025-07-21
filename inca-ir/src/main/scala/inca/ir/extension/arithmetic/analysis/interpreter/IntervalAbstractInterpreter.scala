@@ -85,29 +85,6 @@ private def valueAsNumericDoubleInterval(v: Value)(using except: Except[BaseIREx
   case Value.Top => topDoubleInterval
   case _ => throw IllegalArgumentException(s"Can not convert $v to int")
 
-private class IntervalDoubleVOps(using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
-  extends LiftedFloatOps[Double, Value, DoubleInterval](valueAsNumericDoubleInterval, numericDoubleIntervalToValue) (
-    using new FloatOps[Double, DoubleInterval] {
-      // TODO: Implement these
-      override def floatingLit(f: Double): DoubleInterval = ???
-      override def randomFloat(): DoubleInterval = ???
-      override def add(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
-      override def sub(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
-      override def mul(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
-      override def div(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
-      override def min(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
-      override def max(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
-      override def absolute(v: DoubleInterval): DoubleInterval = ???
-      override def negated(v: DoubleInterval): DoubleInterval = ???
-      override def sqrt(v: DoubleInterval): DoubleInterval = ???
-      override def ceil(v: DoubleInterval): DoubleInterval = ???
-      override def floor(v: DoubleInterval): DoubleInterval = ???
-      override def truncate(v: DoubleInterval): DoubleInterval = ???
-      override def nearest(v: DoubleInterval): DoubleInterval = ???
-      override def copysign(v: DoubleInterval, sign: DoubleInterval): DoubleInterval = ???
-    }
-  )
-
 private def numericIntIntervalToValue(value: IntInterval): Value = value match
   case iv if iv == topIntInterval => Value.Top
   case iv => IntervalIntV(iv)
@@ -116,23 +93,6 @@ private def valueAsNumericIntInterval(v: Value)(using except: Except[BaseIRExcep
   case IntervalIntV(iv) => iv
   case Value.Top => topIntInterval
   case _ => throw IllegalArgumentException(s"Can not convert $v to int")
-
-
-private class IntervalIntVOps(using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
-  extends LiftedIntegerOps[Int, Value, IntInterval](valueAsNumericIntInterval, numericIntIntervalToValue) (
-    using StandardIntervalIntegerOps
-  )
-  with IntOps[Int, Value]:
-
-  override def integerValue(v: Value): Option[Int] = v match
-    case IntervalIntV(iv) if iv.isConstant => Some(iv.low)
-    case _ => None
-
-private class IntervalIntVOrderingOps(using except: Except[BaseIRException, ?, ?])
-  extends LiftedOrderingOps[Value, Topped[Boolean], IntInterval, Topped[Boolean]](valueAsNumericIntInterval, identity)
-
-private class IntervalDoubleVOrderingOps(using except: Except[BaseIRException, ?, ?])
-  extends LiftedOrderingOps[Value, Topped[Boolean], DoubleInterval, Topped[Boolean]](valueAsNumericDoubleInterval, identity)
 
 
 trait IntervalWidenV extends BaseWidenV:
@@ -236,8 +196,40 @@ class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
 
 
 trait IntervalAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], FiniteAbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntOps[Int, Value] = IntervalIntVOps(using failure, effects, except)
-  val doubleOps: FloatOps[Double, Value] = IntervalDoubleVOps(using failure, effects, except)
-  val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = IntervalIntVOrderingOps(using except)
-  val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = IntervalDoubleVOrderingOps(using except)
+  val intOps: IntOps[Int, Value] = new LiftedIntegerOps[Int, Value, IntInterval](valueAsNumericIntInterval(_)(using except), numericIntIntervalToValue) (
+      using StandardIntervalIntegerOps
+    )
+    with IntOps[Int, Value]:
+
+    override def integerValue(v: Value): Option[Int] = v match
+      case IntervalIntV(iv) if iv.isConstant => Some(iv.low)
+      case _ => None
+
+  val doubleOps: FloatOps[Double, Value] = LiftedFloatOps[Double, Value, DoubleInterval](valueAsNumericDoubleInterval(_)(using except), numericDoubleIntervalToValue) (
+    using new FloatOps[Double, DoubleInterval] {
+      // TODO: Implement these
+      override def floatingLit(f: Double): DoubleInterval = ???
+      override def randomFloat(): DoubleInterval = ???
+      override def add(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
+      override def sub(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
+      override def mul(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
+      override def div(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
+      override def min(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
+      override def max(v1: DoubleInterval, v2: DoubleInterval): DoubleInterval = ???
+      override def absolute(v: DoubleInterval): DoubleInterval = ???
+      override def negated(v: DoubleInterval): DoubleInterval = ???
+      override def sqrt(v: DoubleInterval): DoubleInterval = ???
+      override def ceil(v: DoubleInterval): DoubleInterval = ???
+      override def floor(v: DoubleInterval): DoubleInterval = ???
+      override def truncate(v: DoubleInterval): DoubleInterval = ???
+      override def nearest(v: DoubleInterval): DoubleInterval = ???
+      override def copysign(v: DoubleInterval, sign: DoubleInterval): DoubleInterval = ???
+    }
+  )
+
+
+  val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = new LiftedOrderingOps[Value, Topped[Boolean], IntInterval, Topped[Boolean]](valueAsNumericIntInterval(_)(using except), identity)
+
+  val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = new LiftedOrderingOps[Value, Topped[Boolean], DoubleInterval, Topped[Boolean]](valueAsNumericDoubleInterval(_)(using except), identity)
+
   val arithmeticRefinementOps: ArithmeticRefinementOps[Value] = IntervalArithmeticRefinementOps()

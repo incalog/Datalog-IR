@@ -15,7 +15,7 @@ trait Printer extends BaseIRPrinter:
     case ProvideCaseDefinition(exportRef, args, data) => s"provide case ${prettyPrint(exportRef)}(${args.map(prettyPrint).mkString(", ")})"
     case _ => super.prettyPrint(moduleEntry)
 
-  override def prettyPrint(subst: Substitution[_, _]): String = subst match
+  override def prettyPrint(subst: Substitution[?, ?]): String = subst match
     case DataDefinitionSubstitution(to, from) => s"data ${prettyPrint(to)} = data ${prettyPrint(from)}"
     case CaseDefinitionSubstitution(to, toSig, from, fromSig) =>
       s"case ${prettyPrint(to)}(${toSig.map(prettyPrint).mkString(", ")}) = case ${prettyPrint(from)}(${fromSig.map(prettyPrint).mkString(", ")})"

@@ -10,7 +10,7 @@ import inca.ir.term2Arg
 
 class NotBoundednessTest extends AnyFunSuiteLike:
 
-  def module(relations: Relation*)(using typechecker: BaseIRTypechecker with not.Typechecker): Module =
+  def module(relations: Relation*)(using typechecker: BaseIRTypechecker & not.Typechecker): Module =
     val mod = Module("M", BaseIR.language, relations)
     //println(mod)
     typechecker.checkProgram(Seq(mod))
@@ -18,7 +18,7 @@ class NotBoundednessTest extends AnyFunSuiteLike:
 
   test("not call requires bound arguments") {
     assertThrows[TypeErrorException] {
-      implicit val typechecker: BaseIRTypechecker with not.Typechecker = new BaseIRTypechecker with not.Typechecker {}
+      implicit val typechecker: BaseIRTypechecker & not.Typechecker = new BaseIRTypechecker with not.Typechecker {}
       module(
         Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
           Not(Call("T", Seq(Var("p1"), Var("p2"))))
@@ -29,7 +29,7 @@ class NotBoundednessTest extends AnyFunSuiteLike:
   }
 
   test("not neg call binds arguments") {
-    implicit val typechecker: BaseIRTypechecker with not.Typechecker = new BaseIRTypechecker with not.Typechecker {}
+    implicit val typechecker: BaseIRTypechecker & not.Typechecker = new BaseIRTypechecker with not.Typechecker {}
     module(
       Relation("R", Seq(Param("p1", TAny), Param("p2", TAny)), Seq(Body(Seq(
         Not(Call(Name("T"), Seq(Var("p1").arg, Var("p2").arg), true))

@@ -34,7 +34,7 @@ trait Typechecker extends BaseIRTypechecker:
       case Some(cd: EdbFieldDefinition) =>
         Some((Seq(), cd))
       case _ =>
-        error(s"Could not find field $name", locations: _*)
+        error(s"Could not find field $name", locations*)
         None
 
   override def checkModuleEntry(moduleEntry: ModuleEntry): Unit = moduleEntry match
@@ -70,14 +70,14 @@ trait Typechecker extends BaseIRTypechecker:
     case Link.Prev | Link.Next => srcTy match
       case TEdbList(ety) => ety
       case ty =>
-        error(s"Cannot lookup field $link on $ty", locations: _*)
+        error(s"Cannot lookup field $link on $ty", locations*)
         ty
     case Link.Field(field) => srcTy match
       case TEdbNode(node) => lookupEdbField(edbFieldName(node, field)) match
         case Some((_, EdbFieldDefinition(_, _, target))) => target
         case _ => TAny // error produced by lookupEdbConstruct
     case _ =>
-      error(s"Cannot lookup field $link on $srcTy", locations: _*)
+      error(s"Cannot lookup field $link on $srcTy", locations*)
       srcTy
 
   protected override def inferTermExtend(term: Term, mode: Mode): TermType = term match

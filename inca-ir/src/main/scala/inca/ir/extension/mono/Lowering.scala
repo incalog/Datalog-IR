@@ -15,6 +15,7 @@ import inca.ir.extension.set.SetComprehension
 import inca.ir.extension.string.{StringLit, TString}
 import inca.ir.extension.tuple.{Project, TTuple, TupleLit}
 import inca.ir.lowering.BaseLowering
+import scala.compiletime.uninitialized
 
 trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
   override val name: String = s"Mono(optimize = $optimizeMono)"
@@ -184,9 +185,9 @@ trait Lowering(optimizeMono: Boolean = true) extends BaseLowering:
     Seq(Eq(project, Var(Name("output"))))
 
 
-  var monoDefs: Set[(MonoDefinition, Seq[Type])] = _
-  var monoTypes: Set[TMono] = _
-  var mapMonoColl: Set[Relation] = _
+  var monoDefs: Set[(MonoDefinition, Seq[Type])] = uninitialized
+  var monoTypes: Set[TMono] = uninitialized
+  var mapMonoColl: Set[Relation] = uninitialized
 
   override def visitModule(module: ir.Module): ir.Module = preserveHints(module) {
     monoDefs = Set()

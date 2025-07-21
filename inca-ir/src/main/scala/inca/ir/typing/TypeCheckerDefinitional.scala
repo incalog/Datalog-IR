@@ -32,7 +32,7 @@ object TypeCheckerDefinitional:
     case Bound
     case Binding
 
-    def join(that: Boundness): Boundness =
+    infix def join(that: Boundness): Boundness =
       if (this == Binding || that == Binding)
         Binding
       else

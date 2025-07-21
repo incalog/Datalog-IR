@@ -55,26 +55,6 @@ private def toppedDoubleAsConstantDouble(v: Value)(using except: Except[BaseIREx
     case Value.Top => Topped.Top
     case _ => throw IllegalArgumentException(s"Can not convert $v to double")
 
-private class ConstantDoubleVOps (using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
-  extends LiftedFloatOps[Double, Value, Topped[Double]] (toppedDoubleAsConstantDouble, constantDoubleFromToppedDouble) (
-    using ToppedFloatOps[Double, Double] (using implicitly) //  failure and effects are not needed... why?
-  )
-
-private class ConstantIntVOps(using failure: Failure, effects: EffectStack, except: Except[BaseIRException, ?, ?])
-  extends LiftedIntegerOps[Int, Value, Topped[Int]](toppedIntAsConstantInt, constantIntFromToppedInt) (
-    using ToppedIntegerOps[Int, Int](using implicitly, failure, effects)
-  )
-  with IntOps[Int, Value]:
-  override def integerValue(v: Value): Option[Int] = v match
-    case ConstantIntV(i) => Some(i)
-    case _ => None
-
-private class ConstantIntVOrderingOps(using except: Except[BaseIRException, ?, ?])
-  extends LiftedOrderingOps[Value, Topped[Boolean], Topped[Int], Topped[Boolean]](toppedIntAsConstantInt, identity)
-
-private class ConstantDoubleVOrderingOps(using except: Except[BaseIRException, ?, ?])
-  extends LiftedOrderingOps[Value, Topped[Boolean], Topped[Double], Topped[Boolean]](toppedDoubleAsConstantDouble, identity)
-
 trait ConstantJoinV extends BaseJoinV:
   override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (ConstantIntV(i1), ConstantIntV(i2)) if i1 == i2 => lhs
@@ -93,8 +73,20 @@ class ConstantArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
     (v1, v2)
 
 trait ConstantAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntOps[Int, Value] = ConstantIntVOps(using failure, effects, except)
-  val doubleOps: FloatOps[Double, Value] = ConstantDoubleVOps(using failure, effects, except)
-  val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantIntVOrderingOps(using except)
-  val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = ConstantDoubleVOrderingOps(using except)
+  val intOps: IntOps[Int, Value] = new LiftedIntegerOps[Int, Value, Topped[Int]](toppedIntAsConstantInt(_)(using except), constantIntFromToppedInt) (
+      using ToppedIntegerOps[Int, Int](using implicitly, failure, effects)
+    )
+    with IntOps[Int, Value]:
+    override def integerValue(v: Value): Option[Int] = v match
+      case ConstantIntV(i) => Some(i)
+      case _ => None
+      
+  val doubleOps: FloatOps[Double, Value] = new LiftedFloatOps[Double, Value, Topped[Double]] (toppedDoubleAsConstantDouble(_)(using except), constantDoubleFromToppedDouble) (
+    using ToppedFloatOps[Double, Double] (using implicitly) //  failure and effects are not needed... why?
+  )
+  
+  val intOrderingOps: OrderingOps[Value, Topped[Boolean]] = new LiftedOrderingOps[Value, Topped[Boolean], Topped[Int], Topped[Boolean]](toppedIntAsConstantInt(_)(using except), identity)
+  
+  val doubleOrderingOps: OrderingOps[Value, Topped[Boolean]] = new LiftedOrderingOps[Value, Topped[Boolean], Topped[Double], Topped[Boolean]](toppedDoubleAsConstantDouble(_)(using except), identity)
+  
   val arithmeticRefinementOps: ArithmeticRefinementOps[Value] = ConstantArithmeticRefinementOps()

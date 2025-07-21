@@ -5,12 +5,13 @@ import inca.ir.{Atom, Call, Name, Relation}
 import inca.ir.extension.aggregate.Aggregate
 import inca.ir.extension.impure.{Impure, ImpurityKind}
 import inca.ir.visitors.IRVisitor
+import scala.compiletime.uninitialized
 
 /** Transitively collect all relations affected by impurities */
 class CollectImpurityAffectedRelations extends IRVisitor:
   var affectedRelations: Map[ImpurityKind, Set[Name]] = Map()
   private var affectedMainRelations: Map[ImpurityKind, Set[Name]] = Map()
-  private var currentRelation: Relation = _
+  private var currentRelation: Relation = uninitialized
 
   private def addAffectedRelation(rel: Name, kind: ImpurityKind): Unit =
     val previousAffectedRelations = affectedRelations.getOrElse(kind, Set())

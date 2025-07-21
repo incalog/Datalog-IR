@@ -87,7 +87,7 @@ case class CaseDefinition(name: Name, args: Seq[Type], data: TData) extends Case
   def withName(name: String): CaseDefinition = this.copy(name = Name(name))
   override def toString: String = s"""case $name(${args.mkString(",")}): $data"""
 
-case class Construct(caseRef: Ref[_ <: CaseDefinitionReference], args: Seq[Term]) extends Term:
+case class Construct(caseRef: Ref[? <: CaseDefinitionReference], args: Seq[Term]) extends Term:
   override def toString: String = s"!$caseRef(${args.mkString(", ")})"
   override def vars: Seq[Var] = args.flatMap(_.vars)
   override def commonVars: Set[Var] = args.flatMap(_.commonVars).toSet
@@ -101,7 +101,7 @@ object Construct:
     else
       new Construct(RefByQualifiedName(caseName), args)
 
-case class Deconstruct(t: Term, caseRef: Ref[_ <: CaseDefinitionReference], args: Seq[Arg], neg: Boolean) extends Atom:
+case class Deconstruct(t: Term, caseRef: Ref[? <: CaseDefinitionReference], args: Seq[Arg], neg: Boolean) extends Atom:
   override def toString: String =
     val ifArgs = if (args.isEmpty) "" else ", "
     val negPrefix = if (neg) "~" else ""

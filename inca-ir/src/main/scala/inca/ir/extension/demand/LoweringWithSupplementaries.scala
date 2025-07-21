@@ -12,6 +12,7 @@ import scala.annotation.tailrec
 import scala.collection.immutable.{AbstractSeq, LinearSeq, ListSet}
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.compiletime.uninitialized
 
 trait LoweringWithSupplementaries extends BaseLowering:
   override val name: String = "Demand With Outlining"
@@ -22,7 +23,7 @@ trait LoweringWithSupplementaries extends BaseLowering:
     case InsertDemandGuards
     case DeriveDemandRules
 
-  private var phase: Phase = _
+  private var phase: Phase = uninitialized
 
   private var demandPrefix: Map[Name, (Name, Seq[Atom], Seq[Param])] = Map()
 
@@ -68,7 +69,7 @@ trait LoweringWithSupplementaries extends BaseLowering:
       Relation(demandRelationName(rel), params, bodies)
     }
 
-  private var currentModule: ir.Module = _
+  private var currentModule: ir.Module = uninitialized
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
     if isClosedWorld then super.visitProgram(modules) else modules
@@ -84,7 +85,7 @@ trait LoweringWithSupplementaries extends BaseLowering:
     m2.copy(contents = m2.contents ++ demandPrefixRels ++ demandRels)
   }
 
-  private var currentRelation: Relation = _
+  private var currentRelation: Relation = uninitialized
 
   override def visitRelation(rel: Relation): Seq[Relation] = preserveHints(rel) {
     currentRelation = rel

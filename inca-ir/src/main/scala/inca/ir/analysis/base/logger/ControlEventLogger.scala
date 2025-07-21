@@ -27,6 +27,7 @@ class ControlEventLogger[V, RV](observable: DatalogControlObservable)(using effe
       observable.triggerControlEvent(BasicControlEvent.BeginSection(rel.id)(rel.name.name))
     case FixIn.Assign(_, _) =>
       // nothing, captured by atom
+    case _ => throw IllegalStateException(s"Unhandled dom $dom in enter")
 
   override def exit(dom: FixIn, codom: TrySturdy[FixOut[V, RV]]): Unit = dom match
     case FixIn.Term(_) => // nothing
@@ -35,3 +36,4 @@ class ControlEventLogger[V, RV](observable: DatalogControlObservable)(using effe
     case FixIn.Body(_, _, _) => observable.triggerControlEvent(BasicControlEvent.EndSection())
     case FixIn.EnterRelation(_, _) => observable.triggerControlEvent(BasicControlEvent.EndSection())
     case FixIn.Assign(_, _) => // nothing
+    case _ => throw IllegalStateException(s"Unhandled dom $dom in exit")

@@ -11,7 +11,7 @@ object PrefixModuleEntries:
 import PrefixModuleEntries.prefixName
 
 // modify a provided Module to be imported in the main module
-private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[_, _]]) extends IRVisitor:
+private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[?, ?]]) extends IRVisitor:
   private var renamings: Map[Name, Name] = Map()
   // if we provide a required entry we just created an alias
   private var aliases: Map[Name, Name] = Map()
@@ -22,7 +22,7 @@ private case class ExtractModuleContent(prefix: String, subst: Seq[Substitution[
   private def updateModuleEntryName(moduleEntry: ModuleEntry): ModuleEntry =
     moduleEntry.withName(prefixName(moduleEntry.name, prefix))
 
-  private def pathComponents(ref: Ref[_]): (Seq[Name], Name) = ref match
+  private def pathComponents(ref: Ref[?]): (Seq[Name], Name) = ref match
     case RefByName(n) => (Seq(), n)
     case RefByQualifiedName(ns) =>
       (ns.dropRight(1), ns.last)

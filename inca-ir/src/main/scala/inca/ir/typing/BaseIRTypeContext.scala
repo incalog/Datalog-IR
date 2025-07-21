@@ -9,7 +9,7 @@ trait BaseIRTypeContext extends TypeIO:
 
   // (module, imported module) -> module alias name
   var moduleImports: Map[(Module, Name), Name] = Map()
-  var provides: Map[(Module, Name), Provide[_]] = Map()
+  var provides: Map[(Module, Name), Provide[?]] = Map()
   var requires: Map[(Module, Name), Require] = Map()
 
   // (module, entry name) -> entry
@@ -85,7 +85,7 @@ trait BaseIRTypeContext extends TypeIO:
         case _ => error(s"Could not resolve module ${moduleRef.name}", imp)
       moduleImports += ((module, imp.as) -> moduleRef.name)
 
-  def registerProvide(entry: Provide[_])(implicit module: Module): Unit = {
+  def registerProvide(entry: Provide[?])(implicit module: Module): Unit = {
     val name = entry.name
     provides.get((module, name)).foreach { bound =>
       error(s"Found multiple provides with same name $name", name, bound.name)
@@ -131,7 +131,7 @@ trait BaseIRTypeContext extends TypeIO:
       case Some(req) => Some(req.asInstanceOf[R])
       case _ => None
 
-  def lookupProvide[P <: Provide[_]](name: Name, module: Module)(implicit tag: ClassTag[P]): Option[P] =
+  def lookupProvide[P <: Provide[?]](name: Name, module: Module)(implicit tag: ClassTag[P]): Option[P] =
     provides.get((module, name)) match
       case Some(prov) if !tag.runtimeClass.isInstance(prov) => None // not the kind of requirement we expected
       case Some(prov) => Some(prov.asInstanceOf[P])

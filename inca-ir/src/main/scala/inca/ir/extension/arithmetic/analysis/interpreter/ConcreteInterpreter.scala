@@ -36,8 +36,6 @@ private def asDouble(v: Value): Double = v match
     case CDoubleV(d) => d
     case _ => throw IllegalArgumentException(s"Can not convert $v to double")
 
-private class CDoubleVOps (using failure: Failure, effects: EffectStack) 
-  extends LiftedFloatOps[Double, Value, Double] (asDouble, fromDouble)
 
 private class CIntVOps (using failure: Failure, effects: EffectStack) 
   extends LiftedIntegerOps[Int, Value, Int] (asInt, fromInt)
@@ -61,7 +59,7 @@ private class CArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
 
 trait ConcreteInterpreter extends GenericInterpreter[Value, Boolean, ConcreteRelation[Value], BaseIRException, NoJoin]:
   val intOps: IntOps[Int, Value] = CIntVOps(using failure, effects)
-  val doubleOps: FloatOps[Double, Value] = CDoubleVOps(using failure, effects)
+  val doubleOps: FloatOps[Double, Value] = new LiftedFloatOps[Double, Value, Double](asDouble, fromDouble)
   val intOrderingOps: OrderingOps[Value, Boolean] = CIntVOrderingOps()
   val doubleOrderingOps: OrderingOps[Value, Boolean] = CDoubleVOrderingOps()
   val arithmeticRefinementOps: ArithmeticRefinementOps[Value] = CArithmeticRefinementOps()

@@ -8,8 +8,8 @@ import inca.ir.extension.bool.TBoolean
 import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.failure.Failure
 import sturdy.values.{Powerset, Topped}
-import sturdy.values.floating.{FloatOps, LiftedFloatOps, TypeFloatOps}
-import sturdy.values.integer.{IntegerOps, LiftedIntegerOps, TypeIntegerOps}
+import sturdy.values.floating.{FloatOps, LiftedFloatOps, BaseTypeFloatOps}
+import sturdy.values.integer.{IntegerOps, LiftedIntegerOps, BaseTypeIntegerOps}
 import sturdy.values.ordering.{LiftedOrderingOps, OrderingOps}
 import sturdy.values.types.{BaseType, given}
 

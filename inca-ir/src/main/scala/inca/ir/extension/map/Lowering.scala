@@ -12,7 +12,7 @@ import inca.ir.lowering.BaseLowering
 import inca.util.namify
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
-
+import scala.compiletime.uninitialized
 
 trait Lowering extends BaseLowering:
   override val name: String = "Map"
@@ -98,7 +98,7 @@ trait Lowering extends BaseLowering:
     val rel = Relation(relName, Seq(mapParam, keyParam, valParam), rules.flatten)
     (data +: cases, rel)
 
-  private var currentModule: Module = _
+  private var currentModule: Module = uninitialized
 
   override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module

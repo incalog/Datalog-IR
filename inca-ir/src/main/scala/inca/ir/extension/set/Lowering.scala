@@ -9,6 +9,7 @@ import inca.ir.extension.disjunction.{Disjunction, DisjunctionAlternative}
 import inca.ir.extension.tuple.TupleLit
 import inca.ir.lowering.BaseLowering
 import inca.util.namify
+import scala.compiletime.uninitialized
 
 /*
  * Represent set with IDs expressed as ADTs
@@ -122,7 +123,7 @@ trait Lowering extends BaseLowering:
     val rel = Relation(relName, Seq(setParam, elemParam), rules.flatten)
     (data +: cases, rel)
 
-  private var currentModule: Module = _
+  private var currentModule: Module = uninitialized
 
   override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module

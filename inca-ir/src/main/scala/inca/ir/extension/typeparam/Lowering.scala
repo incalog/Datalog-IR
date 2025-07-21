@@ -6,13 +6,14 @@ import inca.ir.Hint.preserveHints
 
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.collection.mutable.ListBuffer
+import scala.compiletime.uninitialized
 
 trait Lowering extends BaseLowering:
   override val name: String = "TypeParam"
   override val loweredIRs: Set[BaseIR] = Set(IR)
   override val requiredIRs: Set[BaseIR] = Set()
 
-  private var groundUsages: Map[Name, Set[Seq[Type]]] = _
+  private var groundUsages: Map[Name, Set[Seq[Type]]] = uninitialized
 
   def monoNameSuffix(usage: Seq[Type]): String =
     if (usage.isEmpty)

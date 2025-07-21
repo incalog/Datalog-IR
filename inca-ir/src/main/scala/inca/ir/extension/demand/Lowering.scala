@@ -8,6 +8,7 @@ import inca.ir.{Atom, BaseIR, Body, Call, Eq, Name, Param, RefByName, Relation, 
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
+import scala.compiletime.uninitialized
 
 // This lowering is expected to be run after the disjunction lowering!
 trait Lowering extends BaseLowering:
@@ -19,7 +20,7 @@ trait Lowering extends BaseLowering:
     case InsertDemandGuards
     case DeriveDemandRules
 
-  private var phase: Phase = _
+  private var phase: Phase = uninitialized
 
   private var demandRules: Map[Name, ListBuffer[(Seq[Atom], Seq[Term])]] = Map()
 
@@ -51,7 +52,7 @@ trait Lowering extends BaseLowering:
       Relation(demandRelationName(rel), params, bodies.toSet.toSeq)
     }
 
-  private var currentModule: ir.Module = _
+  private var currentModule: ir.Module = uninitialized
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module] = Seq()): Seq[ir.Module] =
     if isClosedWorld then super.visitProgram(modules) else modules

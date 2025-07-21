@@ -11,6 +11,7 @@ import inca.ir.lowering.BaseLowering
 import inca.ir.typing.Mode
 
 import scala.collection.mutable.ListBuffer
+import scala.compiletime.uninitialized
 
 trait Lowering extends BaseLowering:
   override val name: String = "AggregateSet"
@@ -19,7 +20,7 @@ trait Lowering extends BaseLowering:
 
   var newrels: ListBuffer[Relation] = ListBuffer.empty
 
-  private var currentModule: ir.Module = _
+  private var currentModule: ir.Module = uninitialized
 
   override def visitModule(module: Module): Module = preserveHints(module) {
     currentModule = module

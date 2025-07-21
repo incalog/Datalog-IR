@@ -53,6 +53,7 @@ case class BoolTable(t: Term):
             val terms = varAssignment.map {
               case (varName, Value.True) => Var(varName)
               case (varName, Value.False) => BoolNot(Var(varName))
+              case _ => throw IllegalStateException()
             }
             val conjunction = terms.fold(BoolTrue) {
               case (BoolTrue, t) => t

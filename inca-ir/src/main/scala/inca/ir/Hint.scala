@@ -44,7 +44,7 @@ object Hint {
   def preserveHints[T <: Hints](hints: Seq[Hints])(f: => Seq[T]): Seq[T] = {
     val t = f
     val hs = hints.flatMap(_.hints).toMap
-    t.map(_.addHint(hs.values.toSeq:_*))
+    t.map(_.addHint(hs.values.toSeq*))
     t
   }
 
@@ -56,7 +56,7 @@ object Hint {
   def preserveHints[T <: Hints](hints: Seq[Hints])(f: => T): T = {
     val t = f
     val hs = hints.flatMap(_.hints).toMap
-    t.addHint(hs.values.toSeq: _*)
+    t.addHint(hs.values.toSeq*)
     t
   }
 }
