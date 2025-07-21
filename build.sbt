@@ -1,6 +1,8 @@
 
 name := "inca"
 
+val isCI = sys.env.get("CI").contains("true")
+
 ThisBuild / organization := "de.uni-mainz.informatik.pl"
 ThisBuild / version := "0.1"
 
@@ -28,25 +30,43 @@ val benchmarking = uri(s"https://gitlab.rlp.net/plmz/benchmark-scala.git#$benchm
 val sturdyCommit = "d6c5ceb323ff759f62f23bd8ef3cfd19e13ea682"
 val sturdy = uri(s"https://gitlab.rlp.net/plmz/sturdy.scala.git#$sturdyCommit")
 
-lazy val inca_ir = (project in file("inca-ir"))
-  .settings(
-    scalaVersion := scalaVersionString,
-
-    resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-
-    libraryDependencies ++= Seq(
-      ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
-
-      //"de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1",
-      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
-      //"de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
-      "org.typelevel" %% "cats-parse" % "0.3.9",
-      "org.typelevel" %% "cats-core" % "2.9.0",
-      //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
-    )
+val libDeps = Seq(
+    ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
+    "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
+    "org.typelevel" %% "cats-parse" % "0.3.9",
+    "org.typelevel" %% "cats-core" % "2.9.0",
+    //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
   )
-  .dependsOn(ProjectRef(sturdy, "sturdy_core") % "compile->compile;test->test")
-  .dependsOn(RootProject(benchmarking) % "compile->compile;test->test")
+val ciDeps =
+  if (isCI)
+    Seq(
+      "de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
+      "de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1"
+    )
+  else
+    Seq()
+
+lazy val inca_ir = {
+  // To not run out of memory and speedup compilation,
+  // we use locally published dependencies in the CI pipeline.
+  if (isCI) {
+    (project in file("inca-ir"))
+      .settings(
+        scalaVersion := scalaVersionString,
+        resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+        libraryDependencies ++= libDeps ++ ciDeps
+      )
+  } else {
+    (project in file("inca-ir"))
+      .settings(
+        scalaVersion := scalaVersionString,
+        resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+        libraryDependencies ++= libDeps
+      )
+      .dependsOn(ProjectRef(sturdy, "sturdy_core") % "compile->compile;test->test")
+      .dependsOn(RootProject(benchmarking) % "compile->compile;test->test")
+  }
+}
 
 
 lazy val inca_fun = (project in file("inca-fun"))
