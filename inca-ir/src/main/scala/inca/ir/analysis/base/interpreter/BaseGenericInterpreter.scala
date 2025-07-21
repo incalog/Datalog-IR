@@ -323,8 +323,8 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   protected def stepIndex(v: V, index: Index): V =
     throw IllegalStateException(s"Unknown index $index")
 
-  protected final def process(rv: RV, info: Seq[BindingInfo], from: SupColumn): RV =
-    info.foldLeft(rv) { (accSup, info) =>
+  protected final def process(rv: RV, infos: Seq[BindingInfo], from: SupColumn): RV =
+    infos.foldLeft(rv) { (accSup, info) =>
       if (info.isBound)
         check(accSup, info, from)
       else

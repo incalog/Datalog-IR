@@ -213,6 +213,51 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assert(mainRelType.cols == Seq("x", "y"))
     assertResult(Topped.Actual(true))(mainRelType.empty)
   }
+  
+  test("Interrelational reasoning") {
+    val mod = Module("TypeExample", BaseIR.language + dataIR, Seq(
+      Relation("isClassType", Seq(
+        Param("t", TString)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("t"), StringLit("java.lang.Object"))
+        )),
+        Body(Seq(
+          Eq(Var("t"), StringLit("java.lang.String"))
+        ))
+      )),
+
+      Relation("isReferenceType", Seq(
+        Param("t", TString)
+      ), Seq(
+        Body(Seq(
+          Call("isClassType", Seq(Var("t")))
+        ))
+      )),
+
+      Relation("isType", Seq(
+        Param("t", TString)
+      ), Seq(
+        Body(Seq(
+          Call("isReferenceType", Seq(Var("t")))
+        ))
+      )),
+
+      Relation("main", Seq(
+        Param("objectType", TString)
+      ), Seq(
+        Body(Seq(
+          Eq(Var("objectType"), StringLit("java.lang.Object")),
+          Call("isType", Seq(Var("objectType")))
+        ))
+      )).addHint(MainHint)
+    ))
+    val constRes = interp(mod)
+    val mainRelType = constRes("main")
+    assert(mainRelType.cols == Seq("objectType"))
+    assert(mainRelType.rows == Seq(ConstantStringV("java.lang.Object")))
+    assertResult(Topped.Actual(false))(mainRelType.empty)
+  }
 
   test("Two relations") {
     val mod = Module("Test2", BaseIR.language + arithIR, Seq(
