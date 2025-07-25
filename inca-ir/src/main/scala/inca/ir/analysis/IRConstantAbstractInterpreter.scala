@@ -224,7 +224,7 @@ class IRConstantAbstractInterpreter(
   private val stackConfig: StackConfig = StackedStates(
     readPriorOutput = true,
     storeNonrecursiveOutput = true,
-    storeIntermediateOutput = false
+    storeIntermediateOutput = true
   ).withObservers(
     if (logControlEvents)
       Seq(triggerControlEvent)
