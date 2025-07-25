@@ -144,7 +144,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
       case rv@AbstractRelation.NonEmpty(cols, rows, empty) => f(rv.rows) match
         case Topped.Top => AbstractRelation(cols, refine(rows), Topped.Top)
         case Topped.Actual(true) => AbstractRelation(cols, refine(rows), empty)
-        case Topped.Actual(false) => AbstractRelation(cols, refine(rows), Topped.Actual(true)) // definitely empty
+        case Topped.Actual(false) => AbstractRelation.empty(cols) //AbstractRelation(cols, refine(rows), Topped.Actual(true)) // definitely empty
 
   def filterEq(rv: AbstractRelation, col: String, col2: String): AbstractRelation =
     val lix = columnIndex(rv, col)

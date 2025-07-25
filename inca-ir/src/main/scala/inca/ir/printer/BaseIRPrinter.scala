@@ -50,7 +50,7 @@ trait BaseIRPrinter extends GenericPrinter:
     case _ => subst.toString // fallback
 
   override def prettyPrint(body: Body): String =
-    s"${body.atoms.map(prettyPrint).mkString("\t", "\n\t", "")} :: ${body.hints}"
+    s"${body.atoms.map(prettyPrint).mkString("\t", "\n\t", "")}" // :: ${body.hints}"
 
   override def prettyPrint(arg: Arg): String = arg match
     case TermArg(t) => prettyPrint(t)

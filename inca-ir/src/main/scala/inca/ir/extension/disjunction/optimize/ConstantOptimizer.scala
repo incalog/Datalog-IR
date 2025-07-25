@@ -16,6 +16,7 @@ trait ConstantOptimizer extends ConstantBaseIROptimizer:
           val dis = DisjunctionAlternative(Body(alt.body.atoms.flatMap(visitAtom)))
           Some(dis)
         } catch { case FailedBody =>
+          logOptimizationStat("constant failed disjunction body", 1, _+1)
           None
         }
       }))

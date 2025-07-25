@@ -27,7 +27,7 @@ val truediffVersion = "0.1.5-SNAPSHOT"
 val benchmarkingCommit = "9d15aaab433db34a029770fe5e7d6698f179595e"
 val benchmarking = uri(s"https://gitlab.rlp.net/plmz/benchmark-scala.git#$benchmarkingCommit")
 
-val sturdyCommit = "d6c5ceb323ff759f62f23bd8ef3cfd19e13ea682"
+val sturdyCommit = "b6b47d5db28dc9f049f2ef21dbc996bf9e7b80c3"
 val sturdy = uri(s"https://gitlab.rlp.net/plmz/sturdy.scala.git#$sturdyCommit")
 
 val libDeps = Seq(

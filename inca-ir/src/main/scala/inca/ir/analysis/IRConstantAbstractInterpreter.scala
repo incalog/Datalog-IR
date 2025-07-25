@@ -197,14 +197,7 @@ class IRConstantAbstractInterpreter(
   //fix.Fixpoint.DEBUG = true
   //fix.Fixpoint.DEBUG_PRIOR_OUTPUT = true
 
-  //(new PrintingControlObserver()(println))
   val graphBuilder: ControlEventGraphBuilder[Long, Long, BaseIRException, (FixIn, List[Any])] = addControlObserver(new ControlEventGraphBuilder)
-
-  private val stackConfig: StackConfig = if (logControlEvents)
-    StackedStates(readPriorOutput = true, storeNonrecursiveOutput = true, storeIntermediateOutput = true)
-      .withObservers(Seq(triggerControlEvent))
-  else
-    StackedStates(readPriorOutput = true, storeNonrecursiveOutput = true, storeIntermediateOutput = true)
 
   var looper: HasFixpointCache[FixIn, FixOut[Value, RV]] = null
   def setLooper[A <: HasFixpointCache[FixIn, FixOut[Value, RV]]](a: A): A =
@@ -227,6 +220,18 @@ class IRConstantAbstractInterpreter(
 //      case AbstractRelation.NonEmpty(cs, rs, _) => cs.zip(rs.map(getValueKind)).toMap
 //    )
 //  }
+
+  private val stackConfig: StackConfig = StackedStates(
+    readPriorOutput = true,
+    storeNonrecursiveOutput = true,
+    storeIntermediateOutput = false
+  ).withObservers(
+    if (logControlEvents)
+      Seq(triggerControlEvent)
+    else
+      Seq()
+  )
+
   type Ctx = Unit
   override val fixpoint: EffectStack ?=> fix.Fixpoint[FixIn, FixOut[Value, RV]] =
     var fixPt =
