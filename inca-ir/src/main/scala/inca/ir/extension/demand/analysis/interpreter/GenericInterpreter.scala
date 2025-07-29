@@ -2,7 +2,7 @@ package inca.ir.extension.demand.analysis.interpreter
 
 import inca.ir
 import inca.ir.*
-import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
+import inca.ir.analysis.base.interpreter.{BaseGenericInterpreter, IndexedBindingInfo}
 import inca.ir.extension.demand.TDemand
 import sturdy.data.MayJoin
 
@@ -12,7 +12,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
     def provideValueForDemandedParam(param: ir.Param): V
 
-    override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, ArgBindingInfo) =
+    override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, IndexedBindingInfo) =
         // This might occur if we query a relation with demanded params without demand (See: DemandIgnoreCallHint)
         // E.g. a field read
         val (evalContext, info) = super.evaluationContextForCall(r, params, args)

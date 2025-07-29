@@ -4,6 +4,7 @@ import inca.ir
 import inca.ir.analysis.base.effect.*
 import inca.ir.analysis.{RelationOps, SupplementaryTable}
 import inca.ir.analysis.base.effect
+import inca.ir.analysis.base.interpreter.Adorn.{b, f}
 import inca.ir.hints.MainHint
 import inca.ir.{Atom, ModuleEntry}
 import inca.util.Gensym
@@ -20,15 +21,28 @@ import sturdy.values.ordering.EqOps
 trait Index
 type IndexPath = Seq[Index]
 
+/**
+ * A data structure to store information about binding information in the current supplementary.
+ * @param col The column in the supplementary we are referencing.
+ * @param indexPath The index path into a possible nested data structure. E.g. If `col` refers to a non-nested data
+ *                  structure, such as an `Int`, the index path is empty. However, if the `col` refers to a nested
+ *                  structure, such as `((Int, Int), Int)`, index path tells which element we are referencing.
+ * @param isBound True, if the binding information is referencing an already bound column in the supplementary.
+ *                False, if the binding information refers to a column that does not yet exist in the supplementary.
+ */
 case class BindingInfo(col: SupColumn, indexPath: IndexPath, isBound: Boolean):
+  /** `True` if the data referenced by `col` is top-level aka not nested. `False`, otherwise */
   def isToplevel: Boolean = indexPath.isEmpty
+  /** `True` if the data referenced by `col` is nested e.g. a tuple. `False`, otherwise */
   def isNested: Boolean = indexPath.nonEmpty
+
   def asBinding: BindingInfo = BindingInfo(col, indexPath, false)
   def asBound: BindingInfo = BindingInfo(col, indexPath, true)
 
-  // `col` might reference to a nested Value, such as a tuple. In this case, the indexPath is none-empty.
-  // This method will project the value from the nested structure by following the indexPath.
-  // If the data structure is not nested, the projected value is the input value.
+  /**
+   * This method will project the value from the nested structure by following the indexPath.
+   * If the data structure is not nested, the projected value is the input value.
+   */
   def projectNestedValue[V](value: V, resolveIndex: (V, Index) => V): V =
     indexPath.foldLeft(value)(resolveIndex(_, _))
 
@@ -43,6 +57,34 @@ enum Adorn:
 case class Adornment(as: Seq[Adorn]):
   override def toString: String = as.mkString("")
   lazy val unboundIndices: Seq[Int] = as.zipWithIndex.collect { case (Adorn.f, idx) => idx }
+
+/**
+ * Store a sequence of binding information based on an index.
+ * E.g. If you have a call with multiple arguments, such as R((x, y), z), you can store this class to store binding
+ * information for each position.
+ */
+case class IndexedBindingInfo(bindingInfos: Seq[Seq[BindingInfo]]):
+  lazy val columns: Seq[String] = bindingInfos.flatMap(_.map(_.col))
+
+  lazy val topLevelBindings: Seq[Option[BindingInfo]] = bindingInfos.map { bindings =>
+    // Consider R((x, 4), 3) where x is unbound.
+    // Here, the first index does not have a toplevel binding.
+    // The second index does have a toplevel binding, namely 3.
+    val toplevelEntries = bindings.filter(_.isToplevel)
+    if (toplevelEntries.size > 1)
+      throw IllegalStateException("Got more than one toplevel binding. This should not happen!")
+    toplevelEntries.headOption
+  }
+
+  lazy val adornment: Adornment = Adornment(topLevelBindings.map(b => if (b.isDefined && b.get.isBound) Adorn.b else Adorn.f))
+
+  def apply(index: Int): Seq[BindingInfo] = bindingInfos(index)
+
+  def update(f: (Int, Seq[BindingInfo]) => Seq[BindingInfo]): IndexedBindingInfo =
+    IndexedBindingInfo(bindingInfos.zipWithIndex.map((bindings, idx) => f(idx, bindings)))
+
+  def associateWith[T](other: Seq[T]): Seq[(Seq[BindingInfo], T)] = bindingInfos.zip(other)
+
 
 enum FixIn:
   // logging only
@@ -314,6 +356,28 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     case ir.WildcardArg() => Seq()
     case _ => throw IllegalStateException(s"Unknown binding arg $arg")
 
+  /**
+   * Given a term, and a relative index, this method extracts the binding information. If the term can be evaluated,
+   * it is evaluated and the binding information is marked as `bound`. Otherwise, the binding information is marked as
+   * `binding`. The term is not evaluated, since it can not be evaluated. Consider the following example for an
+   * `IntNum`, which can always be evaluated and a `Var("x")` that can not yet be evaluated, since `x` is unbound:
+   * {{{
+   * // Value of IntNum(1) can be determined
+   * extractBindingInfo(IntNum(1), Seq()) ~> Seq(BindingInfo("result$0", Seq(), true)) // true, value is bound
+   * // Assume x is unbound in the supplementary
+   * extractBindingInfo(Var("x"), Seq()) ~> Seq(BindingInfo("x", Seq(), false)) // false, value is unbound
+   * }}}
+   *
+   * The index path will be relevant for extensions such as tuple. Here, the second index argument is actually used as
+   * an accumulator to update the relative index while traversing. Consider the following more advanced example:
+   * {{{
+   * extractBindingInfo(TupleLit(TupleLit(IntNum(1), Var("x")), IntNum(3)), Seq()) ~> Seq(
+   *   BindingInfo("result$0", Seq(TupleIndex(0), TupleIndex(0)), true),
+   *   BindingInfo("x", Seq(TupleIndex(0), TupleIndex(1)), false),
+   *   BindingInfo("result$1", Seq(TupleIndex(1)), true),
+   * )
+   * }}}
+   */
   protected def extractBindingInfo(term: ir.Term, indexPath: IndexPath = Seq())(using rec: Fixed): Seq[BindingInfo] =
     term match
       case ir.Var(ref) =>
@@ -382,9 +446,14 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
   protected def boundInSupplementary(s: String): Boolean =
     relationOps.hasColumn(supplementaryTable.getTable, s)
 
-  // This method assumes that all of our programs are well-typed.
-  // Subclasses, e.g. for Blocks or Sets should override this method to correctly
-  // handle arguments, such as SetComprehension to indicate that they can be computed.
+  /**
+   * This method assumes that all of our programs are well-typed.
+   * Subclasses, e.g. for blocks or sets should override this method to correctly handle arguments, such as
+   * SetComprehension to indicate that they can be computed. In particular, SetComprehension might contain a bound or
+   * unbound argument.
+   * @param t Term argument.
+   * @return `True` if the term can be evaluated, `False` otherwise.
+   */
   protected def canDetermineValue(t: ir.Term): Boolean = t match
     case ir.Var(ref) => boundInSupplementary(ref.name.name)
     case ir.Cast(t, _) => canDetermineValue(t)
@@ -398,33 +467,24 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       case (_, false, false) => evalAssign(rhs, lhs)
       case _ => failure(InvalidBindings, s"Equality with binding term in negation: $lhs and $rhs")
 
-  // One `Seq` entry for each argument
-  type ArgBindingInfo = Seq[Seq[BindingInfo]]
-
-  def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg])(using Fixed): (RV, ArgBindingInfo) =
+  def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg])(using Fixed): (RV, IndexedBindingInfo) =
     // Relation with no parameters... This should not happen, even though some engines support it
     if (params.isEmpty)
       failure(NoParamRelation, s"Relation ${r.name} has no parameters!")
 
-    val info = args.map(extractBindingInfo)
-    val argToParamMapping = params.zip(info).flatMap {
-      case (p, Seq(binding)) if binding.isBound && binding.isToplevel =>
-        // We can only directly pass top-level, fully evaluated args.
-        // In particular, this excludes partially evaluated tuples,
-        // such as (x, 5) where x is unbound.
-        Some(binding.col -> p.name.name)
-      case _ =>
-        None
+    val info = IndexedBindingInfo(args.map(extractBindingInfo))
+    // We can only directly pass top-level, fully evaluated args.
+    // In particular, this excludes partially evaluated tuples, such as (x, 5) where x is unbound.
+    val argToParamMapping = info.topLevelBindings.zip(params).flatMap {
+      case (Some(binding), p) if binding.isBound => Some(binding.col -> p.name.name)
+      case _ => None
     }
     val multiMapping = argToParamMapping.groupBy(_._1).view.mapValues(_.map(_._2)).toMap
+    // The multiple alias part here is important. E.g. consider a Relation R(x: Int, y: Int) and call R(z, z).
+    // The supplementary will contain ONE entry that maps z -> V. However, just renaming the column z would lead to
+    // an evalContext that either looks like this y -> V or that x -> V. But, we need two entries x -> V, y -> V.
     val evalContext = relationOps.projectAndRenameWithMultipleAliases(supplementaryTable.getTable, multiMapping)
     (evalContext, info)
-
-  protected final def calculateAdornment(argMapping: ArgBindingInfo): Adornment =
-    Adornment(argMapping.map {
-      case Seq(binding) if binding.isBound && binding.isToplevel => Adorn.b
-      case _ => Adorn.f
-    })
 
   protected final def evalRelationEntry[R <: ModuleEntry](r: R, params: Seq[ir.Param], adornment: Adornment, evalContext: RV)(using Fixed): RV =
     scopedSupplementary { _ =>
@@ -444,9 +504,9 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
           throw IllegalArgumentException(s"Can not determine relation parameters for unknown relation type $relCls")
     }
 
-  def renameRelationResult(relRes: RV, params: Seq[ir.Param], argBindingInfo: ArgBindingInfo)(using Fixed): RV =
+  def renameRelationResult(relRes: RV, params: Seq[ir.Param], argBindingInfo: IndexedBindingInfo)(using Fixed): RV =
     val paramNames = params.map(_.name.name)
-    val argColumns = argBindingInfo.flatMap(_.map(_.col))
+    val argColumns = argBindingInfo.columns
 
     val localGensym = Gensym()
     localGensym.register(paramNames)
@@ -457,16 +517,12 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val renamedRelRes = relationOps.rename(relRes, resultCols)
 
     // This is effectively a renaming combined with an unpacking.
-    // In particular, that means partially bound tuples R((x, 3), 5)
-    // are bound afterward.
-    val extendedRelRes = paramNames
-      .zip(argBindingInfo)
-      .foldLeft(renamedRelRes) { case (rv, (p, infos)) =>
-        val from = resultCols(p)
-        infos.foldLeft(rv) { (accSup, info) =>
-          bind(accSup, info.asBinding, from)
-        }
-    }
+    // In particular, that means partially bound tuples R((x, 3), 5) are bound afterward.
+    val extendedRelRes = argBindingInfo
+      .associateWith(paramNames)
+      .foldLeft(renamedRelRes) { case (rv, (infos, paramName)) =>
+        bindOrCheck(rv, infos.map(_.asBinding), resultCols(paramName))
+      }
     relationOps.project(extendedRelRes, argColumns)
 
     // We need to filter all partial tuples.
@@ -487,7 +543,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
 
   protected final def evalCall[R <: ModuleEntry](r: R, params: Seq[ir.Param], args: Seq[ir.Arg], neg: Boolean)(using Fixed): Unit =
     val (evalContext, argBindingInfo) = evaluationContextForCall(r, params, args)
-    val adornment = calculateAdornment(argBindingInfo)
+    val adornment = argBindingInfo.adornment
 
     updateSupplementaryChecked { beforeCall =>
       val relRes = evalRelationEntry(r, params, adornment, evalContext)

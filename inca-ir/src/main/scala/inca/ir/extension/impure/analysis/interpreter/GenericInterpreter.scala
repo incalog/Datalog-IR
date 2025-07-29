@@ -3,7 +3,7 @@ package inca.ir.extension.impure.analysis.interpreter
 import inca.ir
 import inca.ir.*
 import inca.ir.extension.impure.{Impure, ImpurityKind}
-import inca.ir.analysis.base.interpreter.{Adornment, BaseGenericInterpreter, SupColumn}
+import inca.ir.analysis.base.interpreter.{Adornment, BaseGenericInterpreter, IndexedBindingInfo, SupColumn}
 import inca.ir.extension.impure.util.CollectImpurityAffectedRelations
 import inca.ir.hints.MainHint
 import inca.util.Gensym
@@ -135,12 +135,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       super.relationParams(r)
 
   // Add the new impurity vars to the evaluation context
-  override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, ArgBindingInfo) =
+  override def evaluationContextForCall[R <: ModuleEntry](r: R, params: Seq[Param], args: Seq[Arg])(using Fixed): (RV, IndexedBindingInfo) =
     super.evaluationContextForCall(r, params, args ++ additionalArgs(r))
-
-  // Add the impurity variables to correctly bind the output counter after a call
-  override def renameRelationResult(relRes: RV, params: Seq[ir.Param], argBindingInfo: ArgBindingInfo)(using Fixed): RV =
-    super.renameRelationResult(relRes, params, argBindingInfo)
 
   override def evalAtomOpen(at: Atom)(using Fixed): Unit = at match
     case Impure(v, Seq(), update, kind) if !update.vars.map(_.name).contains(v.name) =>

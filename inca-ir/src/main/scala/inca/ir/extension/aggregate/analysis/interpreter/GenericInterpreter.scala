@@ -29,7 +29,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     val Seq(aggColumnIndex) = aggColumns
 
     val (evalContext, argBindingInfo) = evaluationContextForCall(r, params, args)
-    val adornment = calculateAdornment(argBindingInfo)
+    val adornment = argBindingInfo.adornment
 
     // eval the actual call in a new scoped environment
     updateSupplementaryChecked { beforeCall =>
@@ -43,12 +43,13 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       // Do not bind anything, just keep everything that was bound before
       // and the aggregate column.
-      val filteredInfo = argBindingInfo.zipWithIndex.map {
-        case (infos, idx) if idx != aggColumnIndex => infos.filter(_.isBound)
-        case _ => Seq()
+      val filteredInfo = argBindingInfo.update { case (idx, infos) => 
+        if (idx == aggColumnIndex)
+          Seq(aggColInfo)
+        else
+          infos.filter(_.isBound)
       }
-      val combinedInfo = filteredInfo.updated(aggColumnIndex, Seq(aggColInfo))
-      val callRes = renameRelationResult(relRes, params, combinedInfo)
+      val callRes = renameRelationResult(relRes, params, filteredInfo)
 
       val aggCol = aggColInfo.col
       val expectedAggResult =

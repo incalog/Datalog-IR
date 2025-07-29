@@ -28,7 +28,12 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   override protected def extractBindingInfo(term: ir.Term, indexPath: IndexPath = Seq())(using rec: Fixed): Seq[BindingInfo] =
     term match
       case TupleLit(ts) =>
-        ts.zipWithIndex.flatMap { (t, i) => extractBindingInfo(t, indexPath :+ TupleIndex(i)) }
+        val eleInfo = ts.zipWithIndex.flatMap { (t, i) => extractBindingInfo(t, indexPath :+ TupleIndex(i)) }
+        if (canDetermineValue(term))
+          val sup = evalTerm(term)
+          BindingInfo(sup, indexPath, true) +: eleInfo
+        else
+          eleInfo
       case _ =>
         super.extractBindingInfo(term, indexPath)
 
