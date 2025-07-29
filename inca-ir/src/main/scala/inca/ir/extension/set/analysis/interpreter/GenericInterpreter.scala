@@ -118,7 +118,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
           }
 
           // bind or check the member columns
-          process(tmpSup, info, tmpRes)
+          bindOrCheck(tmpSup, info, tmpRes)
         }
       }
     case _ => super.evalAtomOpen(at)

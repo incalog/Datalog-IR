@@ -37,7 +37,7 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
 
       // Make sure we have a well-defined aggregation column
       val aggColInfos = argBindingInfo(aggColumnIndex)
-      if ((aggColInfos.size != 1) || !aggColInfos.head.isToplevel)
+      if ((aggColInfos.size != 1) || aggColInfos.head.isNested)
         failure(InvalidBindings, "Aggregation with partially bound nested values is not supported.")
       val aggColInfo = aggColInfos.head
 

@@ -22,7 +22,15 @@ type IndexPath = Seq[Index]
 
 case class BindingInfo(col: SupColumn, indexPath: IndexPath, isBound: Boolean):
   def isToplevel: Boolean = indexPath.isEmpty
+  def isNested: Boolean = indexPath.nonEmpty
   def asBinding: BindingInfo = BindingInfo(col, indexPath, false)
+  def asBound: BindingInfo = BindingInfo(col, indexPath, true)
+
+  // `col` might reference to a nested Value, such as a tuple. In this case, the indexPath is none-empty.
+  // This method will project the value from the nested structure by following the indexPath.
+  // If the data structure is not nested, the projected value is the input value.
+  def projectNestedValue[V](value: V, resolveIndex: (V, Index) => V): V =
+    indexPath.foldLeft(value)(resolveIndex(_, _))
 
 enum Adorn:
   case b
@@ -320,10 +328,10 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
         else
           throw IllegalStateException(s"Unknown binding term $term")
 
-  protected def stepIndex(v: V, index: Index): V =
+  protected def resolveNestedAtIndex(v: V, index: Index): V =
     throw IllegalStateException(s"Unknown index $index")
 
-  protected final def process(rv: RV, infos: Seq[BindingInfo], from: SupColumn): RV =
+  protected final def bindOrCheck(rv: RV, infos: Seq[BindingInfo], from: SupColumn): RV =
     infos.foldLeft(rv) { (accSup, info) =>
       if (info.isBound)
         check(accSup, info, from)
@@ -336,7 +344,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       throw IllegalArgumentException(s"Can not bind already bound column ${info.col}")
     val fromColIdx = relationOps.columnIndex(rv, from)
     relationOps.map(rv, info.col) { row =>
-      info.indexPath.foldLeft(row(fromColIdx))(stepIndex(_, _))
+      info.projectNestedValue(row(fromColIdx), resolveNestedAtIndex)
     }
 
   protected final def check(rv: RV, info: BindingInfo, from: SupColumn): RV =
@@ -345,7 +353,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val lhsColIdx = relationOps.columnIndex(rv, from)
     val lhsCol = gensym.fresh("result")
     val newRv = relationOps.map(rv, lhsCol) { row =>
-      info.indexPath.foldLeft(row(lhsColIdx))(stepIndex(_, _))
+      info.projectNestedValue(row(lhsColIdx), resolveNestedAtIndex)
     }
     relationOps.filterEq(newRv, lhsCol, info.col)
 
@@ -358,7 +366,7 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
     val bindingInfos = extractBindingInfo(to)
     // things in tuples might be bound as well and not just binding
     updateSupplementaryUnchecked { sup =>
-      process(sup, bindingInfos, fromCol)
+      bindOrCheck(sup, bindingInfos, fromCol)
     }
 
   private final def evalCompare(lhs: ir.Term, rhs: ir.Term, neg: Boolean)(using Fixed): Unit =

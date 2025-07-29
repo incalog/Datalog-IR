@@ -32,9 +32,9 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
       case _ =>
         super.extractBindingInfo(term, indexPath)
 
-  override protected def stepIndex(v: V, index: Index): V = index match
+  override protected def resolveNestedAtIndex(v: V, index: Index): V = index match
     case TupleIndex(i) => tupleOps.project(v, i)
-    case _ => super.stepIndex(v, index)
+    case _ => super.resolveNestedAtIndex(v, index)
 
   override def evalTermOpen(term: ir.Term)(using Fixed): SupColumn = term match
     case TupleLit(ts) => naryOp(ts.map(evalTerm))(tupleOps.tupleLit)
