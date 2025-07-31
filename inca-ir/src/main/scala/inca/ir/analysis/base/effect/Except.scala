@@ -5,7 +5,5 @@ import sturdy.values.Finite
 trait BaseIRException
 
 case object EmptySupplementary extends BaseIRException
-case object EmptyTable extends BaseIRException
-case class AtomFailed(msg: String) extends BaseIRException
 
 given IRException: Finite[BaseIRException] with {}

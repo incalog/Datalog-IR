@@ -1,6 +1,6 @@
 package inca.ir.analysis.base.values
 
-import inca.ir.analysis.base.effect.{BaseIRException, EmptyTable}
+import inca.ir.analysis.base.effect.{BaseIRException, EmptySupplementary}
 import sturdy.effect.except.Except
 import sturdy.values.{Join, MaybeChanged}
 
@@ -16,7 +16,7 @@ trait Meet[V]:
   def apply(lhs: V, rhs: V): MaybeChanged[V] = MaybeChanged(meet(lhs, rhs), lhs)
 
 trait BaseMeetV(using except: Except[BaseIRException, ?, ?]) extends Meet[Value]:
-  def throwBotException(): Value = except.throws(EmptyTable)
+  def throwBotException(): Value = except.throws(EmptySupplementary)
 
   def meet(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (Value.Top, _) => rhs

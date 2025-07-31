@@ -2,7 +2,7 @@ package inca.ir.analysis
 
 import inca.ir
 import inca.ir.analysis.base.effect
-import inca.ir.analysis.base.effect.{BaseIRException, EmptyTable}
+import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.*
 import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, DatalogControlObservable, PrintLogger}
 import inca.ir.analysis.base.ordering.BaseEqOps

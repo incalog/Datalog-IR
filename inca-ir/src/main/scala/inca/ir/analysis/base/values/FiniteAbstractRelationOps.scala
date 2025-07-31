@@ -1,7 +1,7 @@
 package inca.ir.analysis.base.values
 
 import inca.ir.analysis.RelationOps
-import inca.ir.analysis.base.effect.{BaseIRException, EmptyTable}
+import inca.ir.analysis.base.effect.BaseIRException
 import sturdy.data.WithJoin
 import sturdy.effect.except.Except
 import sturdy.values.Topped.Top

@@ -1,7 +1,7 @@
 package inca.ir.extension.aggregate.analysis.interpreter
 
 import inca.ir.RelationBase
-import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
+import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, Value}
 import inca.ir.extension.aggregate.{AggregationOperator, AggregationOperatorBuiltIn, AggregationOperatorUserDefined}

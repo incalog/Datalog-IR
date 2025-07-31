@@ -1,6 +1,6 @@
 package inca.ir.extension.string.analysis.interpreter
 
-import inca.ir.analysis.base.effect.{AtomFailed, BaseIRException}
+import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.{AbstractRelation, BaseJoinV, BaseMeetV, Value}
 import inca.ir.extension.arithmetic.analysis.interpreter.IntOps
