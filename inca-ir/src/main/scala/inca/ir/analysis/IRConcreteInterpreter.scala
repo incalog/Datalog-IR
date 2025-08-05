@@ -68,7 +68,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   // Concrete interpretation must always be inter-relational
   override val interRelational: Boolean = true
 
-  override lazy val topV: Value = throw IllegalStateException("Concrete concrete does not support top value!")
+  override lazy val topV: Value = throw IllegalStateException("Concrete interpreter does not support top value!")
 
   // We don't join excepts in the concrete interpreter, because there is no case where we would need to join
   override lazy val mayJoinRV: MayJoin.NoJoin[ConcreteRelation[Value]] = noJoin
@@ -82,7 +82,6 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
   given BooleanOps[Boolean] = boolOps
 
   override val branchOps: BooleanBranching[Boolean, CRV] = ConcreteBooleanBranching
-
 
   override lazy val eqOps: EqOps[Value, Boolean] = new EqOps[Value, Boolean] {
     def equ(v1: Value, v2: Value): Boolean = v1 == v2
@@ -118,7 +117,7 @@ class IRConcreteInterpreter(val enableLogging: Boolean = false)
     }.toMap
     reduced
 
-  val stackConfig: StackConfig = StackedStates(storeNonrecursiveOutput = true)
+  val stackConfig: StackConfig = StackedStates(storeNonrecursiveOutput = true, storeIntermediateOutput = true)
 
   //fix.Fixpoint.DEBUG = true
 

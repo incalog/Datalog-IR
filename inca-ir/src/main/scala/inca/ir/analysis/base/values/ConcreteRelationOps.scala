@@ -22,6 +22,7 @@ case class ConcreteRelation[V](cols: Seq[String], rows: Set[Seq[V]]):
       if (cols == other.cols) {
         rows ++ other.rows
       } else {
+        // Same columns but different order
         val indexMap = cols.map(other.cols.indexOf)
         if (indexMap.contains(-1))
           throw IllegalArgumentException(s"Not possible to union: $cols <-> ${other.cols}")
