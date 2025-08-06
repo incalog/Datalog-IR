@@ -13,7 +13,6 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     case Disjunction(alternatives) =>
       updateSupplementaryChecked { supBefore =>
         val colsBefore = relationOps.columns(supBefore)
-
         val boundAfterDisjunction = (at.commonVars.map(_.name.name) ++ colsBefore).toSeq
 
         mapJoin(alternatives, { alt =>

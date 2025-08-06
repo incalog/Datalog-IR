@@ -15,12 +15,11 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
   override def evalTermOpen(term: Term)(using Fixed): SupColumn = term match
     case Block(ats, t) =>
       val resultCol = gensym.fresh("result")
-      updateSupplementaryChecked { _ =>
-        evalAtoms(ats)
-        // while technically not necessary, we copy the result to a new column to nicely separate the block result
-        // from its encapsulated term result. This is also necessary for the annotator to work correctly.
-        val termRes = evalTerm(t)
-        val sup = supplementaryTable.getTable
+      evalAtoms(ats)
+      // while technically not necessary, we copy the result to a new column to nicely separate the block result
+      // from its encapsulated term result. This is also necessary for the annotator to work correctly.
+      val termRes = evalTerm(t)
+      updateSupplementaryChecked { sup =>
         relationOps.copyColumn(sup, termRes, resultCol)
       }
       resultCol
