@@ -79,7 +79,7 @@ class AbstractRelationOps[ExcV](using except: Except[BaseIRException, ExcV, With
       AbstractRelation(cols, vals.head, Topped.Actual(vals.isEmpty))
     else
       // It is not obvious if the implicit behaviour should be a meet or a join. Therefore, we throw an exception.
-      throw IllegalStateException("Can not initialize constant relation with more than one row.")
+      throw IllegalStateException("Can not initialize abstract relation with more than one row.")
       //val joinedVals = vals.tail.foldLeft[Row](vals.head)((v1, v2) => v1.zip(v2).map((t1, t2) => meetV(t1, t2).get))
       //AbstractRelation(cols, joinedVals, Topped.Actual(vals.isEmpty))
 
@@ -234,7 +234,11 @@ given JoinRV(using joinV: Join[Value], boolOps: BooleanOps[Topped[Boolean]], eqO
         val others2Rows = rv.cols.map(other.cols.indexOf)
         assert(others2Rows.map(other.cols.apply) == rv.cols)
         // If any of the two relations is definitely non-empty, then the result is also non-empty
-        val newEmpty = boolOps.or(rv.empty, other.empty)
+        val newEmpty = (rv.empty, other.empty) match
+          case (Topped.Top, _) | (_, Topped.Top) => Topped.Top
+          case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
+          case _ => throw IllegalStateException(s"Unexpected empty value: ${rv.empty} u ${other.empty}")
+        //boolOps.or(rv.empty, other.empty) <- this is the same
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => joinV(v1, v2).get }
         AbstractRelation(rv.cols, newRows, newEmpty)
 
@@ -254,7 +258,10 @@ given WidenRV(using widenV: Widen[Value], boolOps: BooleanOps[Topped[Boolean]], 
         val others2Rows = rv.cols.map(other.cols.indexOf)
         assert(others2Rows.map(other.cols.apply) == rv.cols)
         // If any of the two relations is definitely non-empty, then the result is also non-empty
-        val newEmpty = boolOps.or(rv.empty, other.empty)
+        val newEmpty = (rv.empty, other.empty) match
+          case (Topped.Top, _) | (_, Topped.Top) => Topped.Top
+          case (Topped.Actual(false), Topped.Actual(false)) => Topped.Actual(false)
+          case _ => throw IllegalStateException(s"Unexpected empty value: ${rv.empty} u ${other.empty}")
         val newRows = rv.rows.zip(others2Rows.map(other.rows.apply)).map { (v1, v2) => widenV(v1, v2).get }
         AbstractRelation(rv.cols, newRows, newEmpty)
 

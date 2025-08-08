@@ -5,8 +5,8 @@ import inca.ir.*
 /** Introduces a block {atoms, t} that allows atoms embedded in terms t.
  * The lowering will lift these atoms to the surrounding rule body.
  *
- * Important: No disjunctions may exist when blocks are being lowered, since the
- * lowering assumes conjunctive atoms.
+ * Important: No disjunctions may exist when blocks are being lowered,
+ * since the lowering assumes conjunctive atoms.
  */
 trait IR extends BaseIR:
   override val name: String = "Block"
