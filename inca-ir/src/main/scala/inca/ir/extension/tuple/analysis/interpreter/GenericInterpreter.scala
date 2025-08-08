@@ -20,6 +20,13 @@ case class TupleIndex(i: Int) extends Index
 trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGenericInterpreter[V, B, RV, ExcV, J]:
   val tupleOps: TupleOps[V]
 
+  /**
+   * A tuple can only be evaluated, if all of its value can be determined.
+   * This is in accordance to our type system.
+   * We always require at least one side to be fully bound in an equality constraint.
+   * @param t Term argument.
+   *  @return `True` if the term can be evaluated, `False` otherwise.
+   */
   override protected def canDetermineValue(t: Term): Boolean = t match
     case TupleLit(ts) => ts.forall(canDetermineValue)
     case Project(t, idx) => canDetermineValue(t)
@@ -29,6 +36,8 @@ trait GenericInterpreter[V, B, RV, ExcV, J[_] <: MayJoin[?]] extends BaseGeneric
     term match
       case TupleLit(ts) =>
         val eleInfo = ts.zipWithIndex.flatMap { (t, i) => extractBindingInfo(t, indexPath :+ TupleIndex(i)) }
+        // We might have a partially bound tuple.
+        // That is, evaluate things that we can evaluate.
         if (canDetermineValue(term))
           val sup = evalTerm(term)
           BindingInfo(sup, indexPath, true) +: eleInfo
