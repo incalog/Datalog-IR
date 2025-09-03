@@ -11,8 +11,9 @@ import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
 import inca.foreign.scala.ir.primitive
 import inca.foreign.scala.ir.primitive.ConversionElimination
 import inca.frontend.oodl.compile.CompiledOODLUnit.{createOptimizationPipeline, createPipeline}
+import inca.ir.extension.tuple.analysis.AbstractEdbConfig
 import inca.ir.optimize as iroptimize
-import inca.ir.optimize.{AbstractEdbConfig, IROODLClassOptimizer, IdentityCastElimination, OODLEdbConfig, Optimizer}
+import inca.ir.optimize.{IROODLClassOptimizer, IdentityCastElimination, OODLEdbConfig, Optimizer}
 import inca.ir.typing.{BaseIRTypechecker, IRTypechecker}
 import inca.util.printStep
 

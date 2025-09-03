@@ -3,7 +3,7 @@ package inca.frontend.oodl.executor.casestudies
 import inca.frontend.oodl.compile.{CompiledOODLUnit, OODLCompilerOptions}
 import inca.frontend.oodl.executor.{OODLExecutor, TypeCastException}
 import inca.ir.execution.{Relation, UnitRelation}
-import inca.ir.optimize.AbstractEdbConfig
+import inca.ir.extension.tuple.analysis.AbstractEdbConfig
 import inca.util.FileUtil
 import inca.viatra.backend.Executor
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory

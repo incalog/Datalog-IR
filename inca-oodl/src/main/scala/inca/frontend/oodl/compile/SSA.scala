@@ -109,6 +109,8 @@ class SSA:
         env = env + (name -> ((newName, thnType)))
         VarPhiAssign(newName, thnType, ifStmt, thnName, elsName)
       }
+    case _ =>
+      throw IllegalStateException()
 
   def visitExpression(e: Expression)(implicit gensym: Gensym): Expression = e match
     case Var(name) =>

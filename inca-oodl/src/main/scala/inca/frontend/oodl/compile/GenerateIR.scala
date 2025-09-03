@@ -31,6 +31,7 @@ import inca.frontend.oodl.syntax.Type.signatureString
 import inca.ir.extension.mono.{MonoDefinition, MonoTypes, UserDefinedMonoDefinition}
 import inca.foreign.scala.ir.primitive as irscala
 import inca.ir.hints.MainHint
+import scala.compiletime.uninitialized
 
 // TODO: Classes with same method name, but different params names that do not inherit from
 //  each other do not work, because dynamic dispatch only includes signature, but not the name of the base class
@@ -338,6 +339,8 @@ class GenerateIR:
         ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this").arg, compileExpression(f.body.get).arg))
       case f: FieldDef if !f.immutable =>
         ir.Call(s"${classDef.name}$$$$${f.name}", Seq(ir.Var("this").arg, compileExpression(f.body.get).arg, irarith.IntNum(0).arg))
+      case _ =>
+        throw IllegalStateException("Unexpected field!")
     }
     ir.Relation(className, thisParam +: params, Seq(ir.Body(compileStatements(body, unusedResultVar) ++ assignUserFields)))
   //.addHint(Hints.Pure)
@@ -411,6 +414,8 @@ class GenerateIR:
           val thnDecl = VarDeclare(name, Some(typ), Some(Var(thnName)), true)
           val elsDecl = VarDeclare(name, Some(typ), Some(Var(elsName)), true)
           (thnDecl, elsDecl)
+        case _ =>
+          throw IllegalStateException("Not a phi node!")
       }.unzip
       // Merge remaining stmts to correctly handle return
       // Note: This generates a lot of duplicated atoms
@@ -418,7 +423,10 @@ class GenerateIR:
       val elsStmts = els ++ elsDeclarations ++ remainingStmts
       val ifAtom = compileStatement(If(cnd, thnStmts, elsStmts), resultVar)
       Seq(ifAtom)
-    case stm :: rest => compileStatement(stm, resultVar) +: compileStatements(rest, resultVar)
+    case stm :: rest =>
+      compileStatement(stm, resultVar) +: compileStatements(rest, resultVar)
+    case _ =>
+      throw IllegalStateException("Unexpected statement")
 
   def compileStatement(stm: Statement, resultVar: Name): ir.Atom = stm match
     case Expr(expression) =>
@@ -466,11 +474,13 @@ class GenerateIR:
       ))
     case VarPhiAssign(name, typ, If(cnd, _, _), thnName, elsName) =>
       throw IllegalStateException(s"Encountered unexpected VarPhiAssign for name: '$name'")
+    case _ =>
+      throw IllegalStateException()
 
   /** Expression */
 
   private def generateSetFoldRelation(sty: Type): ir.Relation = {
-    val TSet(ty) = sty
+    val TSet(ty) = sty: @unchecked
     val name = gensym.fresh("setCollect")
     ir.Relation(
       name,
@@ -485,11 +495,11 @@ class GenerateIR:
   }
 
   var userDefinedMonos: Map[Name, irmono.MonoDefinition] = Map()
-  var genScala: GenerateScala = _
+  var genScala: GenerateScala = uninitialized
 
   def compileUserDefinedMono(classDef: ClassDef): Unit = {
     val monoName = classDef.name
-    val Seq(TName(Name("mono.Type"), Seq(inTy, stateTy, outTy))) = classDef.parentCls
+    val Seq(TName(Name("mono.Type"), Seq(inTy, stateTy, outTy))) = classDef.parentCls: @unchecked
 
     def genClosure(methodDef: MethodDef) =
       val inArgs = methodDef.params.map(p => s"${p.name}: ${genScala.transType(p.typ)}").mkString("(", ",", ")")
@@ -524,7 +534,7 @@ class GenerateIR:
     case Name("mono.Set") => scalaSetMonoDefinition(compileType(tyArgs.head))
     case Name("mono.Map") =>
       val kArg = tyArgs.head
-      val TName(monoName, monoArgs) = tyArgs.last
+      val TName(monoName, monoArgs) = tyArgs.last: @unchecked
       irmono.MapMonoDefinition(compileType(kArg), generateMonoDefinition(monoName, monoArgs))
     case name => userDefinedMonos(name)
   }
@@ -672,7 +682,7 @@ class GenerateIR:
             case Name("result") =>
               val readMono = irmono.ReadMono(compileExpression(recv))
               if (classDef.parentCls.nonEmpty)
-                val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = classDef.parentCls
+                val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = classDef.parentCls: @unchecked
                 ir.Cast(readMono, compileType(outTy))
               else
                 // Handle built in mono, such as count mono
@@ -782,7 +792,7 @@ class GenerateIR:
         compileType(TSet(ty))
       case t: TName =>
         val cls = t.target.get.asInstanceOf[ClassDef]
-        val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
+        val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls: @unchecked
         val generateScala = new GenerateScala {}
         irscala.ScalaType(generateScala.transType(outTy))
       case t => throw IllegalStateException(s"Found none class type $t in mono map")
@@ -797,7 +807,7 @@ class GenerateIR:
         compileType(ty)
       case t: TName =>
         val cls = t.target.get.asInstanceOf[ClassDef]
-        val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
+        val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls: @unchecked
         compileType(outTy)
       case t => throw IllegalStateException(s"Found none class type $t in mono map")
     irtuple.TTuple(Seq(compileType(mono.tyArgs.head), outTy))
@@ -822,7 +832,7 @@ class GenerateIR:
           //val outTy = compileType(tyArgs.last)
           irmono.TMono(compileInTypeFromMonoMap(t), compileOutTypeFromMonoMap(t), Seq())
         case _ =>
-          val Seq(TName(Name("mono.Type"), Seq(inTy, _, outTy))) = cls.parentCls
+          val Seq(TName(Name("mono.Type"), Seq(inTy, _, outTy))) = cls.parentCls: @unchecked
           irmono.TMono(compileType(inTy), irscala.ScalaType(genScala.transType(outTy)), Seq())
       }
       case Some(cls: ClassDef) => irdata.TData("ID")

@@ -97,7 +97,7 @@ trait TypeContext extends TypeIO:
     case set if set.size >= 2 =>
       val modules = set.toSeq.map(_._1)
       val modulesStr = modules.map(_.name).mkString(", ")
-      error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
+      error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules)*)
       None
     case _ =>
       error(s"Undefined class $name", name)
@@ -141,11 +141,11 @@ trait TypeContext extends TypeIO:
   def lookupField(classDef: ClassDef, fieldName: Name, getParentDefinition: Boolean, location: SourceLocation*): Option[(ClassDef, FieldDef)] = {
     val fieldCandidates = lookupFieldCandidates(classDef, fieldName, getParentDefinition)
     if (fieldCandidates.isEmpty) {
-      error(s"Undefined field '$fieldName' for class '${classDef.name}'", location: _*)
+      error(s"Undefined field '$fieldName' for class '${classDef.name}'", location*)
       None
     } else if (fieldCandidates.size > 1) {
       val (parentClass, _) = fieldCandidates.head
-      error(s"Field '$fieldName' shadows previously defined field in class '${parentClass.name}'", location: _*)
+      error(s"Field '$fieldName' shadows previously defined field in class '${parentClass.name}'", location*)
       None
     } else {
       fieldCandidates.headOption

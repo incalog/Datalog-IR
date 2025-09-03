@@ -117,7 +117,7 @@ class Typechecker extends TypeContext with TypeIO:
     // Note: We only allow a single constructor
     classDef.contentMap.foreach {
       case (_, cs) if cs.size > 1 =>
-        error(s"Ambiguous names in class '${classDef.name}'", cs: _*)
+        error(s"Ambiguous names in class '${classDef.name}'", cs*)
       case _ => // nothing
     }
 
@@ -241,7 +241,7 @@ class Typechecker extends TypeContext with TypeIO:
       error(s"Expected '$ty2', but got '$ty1'", loc)
   }
 
-  def assignType(term: TypeCastable[Type] with SourceLocation, expected: Option[Type])(computeType: => Type): Type = {
+  def assignType(term: TypeCastable[Type] & SourceLocation, expected: Option[Type])(computeType: => Type): Type = {
     val inferred = computeType
     typecheckTy(inferred)
 
@@ -315,7 +315,7 @@ class Typechecker extends TypeContext with TypeIO:
 
     methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
-        error(s"Ambiguous parameter names in method '${methodDef.name}'", cs: _*)
+        error(s"Ambiguous parameter names in method '${methodDef.name}'", cs*)
     }
 
     methodDef.params.foreach { p =>
@@ -350,7 +350,7 @@ class Typechecker extends TypeContext with TypeIO:
 
     constructorDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
-        error(s"Ambiguous parameter names in constructor '${classDef.name}'", cs: _*)
+        error(s"Ambiguous parameter names in constructor '${classDef.name}'", cs*)
     }
 
     constructorDef.body.foreach {
@@ -367,9 +367,9 @@ class Typechecker extends TypeContext with TypeIO:
 
     val superCallIndex = indices.headOption.getOrElse(-1)
     if (superCalls.size > 1) {
-      error(s"Constructor '${classDef.name}' must not contain more than one supercall", superCalls: _*)
+      error(s"Constructor '${classDef.name}' must not contain more than one supercall", superCalls*)
     } else if (superCallIndex > 0) {
-      error(s"Super must be called first in constructor '${classDef.name}'", superCalls: _*)
+      error(s"Super must be called first in constructor '${classDef.name}'", superCalls*)
     }
 
     val beforeSuperBody = constructorDef.body.slice(0, superCallIndex + 1)
@@ -500,6 +500,8 @@ class Typechecker extends TypeContext with TypeIO:
           error(s"Name $elsName is not defined for VarPhiAssign", phiStmt)
       }
       bindVar(name, phiStmt, typ, immutable = true)
+    case _ =>
+      throw IllegalStateException()
   }
 
   /** Expressions */
@@ -756,7 +758,7 @@ class Typechecker extends TypeContext with TypeIO:
             case t@TName(name, _) => lookupClass(name) match
               case Some(clsDef) if clsDef.isMonoClass =>
                 // Get the result type of the nested mono.Type
-                val Seq(TName(_, Seq(_, _, resultTy))) = clsDef.parentCls
+                val Seq(TName(_, Seq(_, _, resultTy))) = clsDef.parentCls: @unchecked
                 resultTy
               case _ =>
                 error("Expected mono.Type as mono.Map result type.")
@@ -797,7 +799,7 @@ class Typechecker extends TypeContext with TypeIO:
             case t@TName(name, _) => lookupClass(name) match
               case Some(clsDef) if clsDef.isMonoClass =>
                 // Get the result type of the nested mono.Type
-                val Seq(TName(_, Seq(_, _, resultTy))) = clsDef.parentCls
+                val Seq(TName(_, Seq(_, _, resultTy))) = clsDef.parentCls: @unchecked
                 resultTy
               case _ =>
                 error("Expected mono.Type as mono.Map result type.")
@@ -812,11 +814,11 @@ class Typechecker extends TypeContext with TypeIO:
             case Some(cls: ClassDef) if cls.isMonoClass && cls.parentCls.nonEmpty =>
               fun match
                 case Name("+=") =>
-                  val Seq(TName(Name("mono.Type"), Seq(inTy, _, _))) = cls.parentCls
+                  val Seq(TName(Name("mono.Type"), Seq(inTy, _, _))) = cls.parentCls: @unchecked
                   assertSubtype(argTys.head, inTy, expression)
                   TUnit
                 case Name("result") =>
-                  val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls
+                  val Seq(TName(Name("mono.Type"), Seq(_, _, outTy))) = cls.parentCls: @unchecked
                   outTy
             case Some(cls: ClassDef) => lookupMethod(cls, fun, argTys) match
               case None => TAny
@@ -863,6 +865,8 @@ class Typechecker extends TypeContext with TypeIO:
           typecheckTy(clsTy)
           clsTy
         case None => TAny
+    case _ =>
+      throw IllegalStateException()
   }
 
   /** Types */
@@ -877,7 +881,7 @@ class Typechecker extends TypeContext with TypeIO:
 
   /** Resolve targets */
 
-  private def resolveTarget[T](term: Resolvable[T] with SourceLocation)(computeTarget: => T): T = {
+  private def resolveTarget[T](term: Resolvable[T] & SourceLocation)(computeTarget: => T): T = {
     val newTarget = computeTarget
     term.resolved(newTarget)
     newTarget

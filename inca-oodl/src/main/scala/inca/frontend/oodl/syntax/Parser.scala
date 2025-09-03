@@ -240,6 +240,8 @@ object Parser:
         InstanceOf(e, ty)
       case (name, None) =>
         Select(e, name)
+      case _ =>
+        throw IllegalStateException()
     }
     methodCall | asIsInstanceOfOrSelect
 
