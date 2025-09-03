@@ -3,9 +3,9 @@ package inca.ir.analysis
 import inca.ir.analysis.base.values.{FiniteAbstractRelation, Value}
 import inca.ir.extension.aggregate.{Aggregate, AggregateColumnArg}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator.MinInt
-import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, GT, IntNum, LE, Mul, Sub, TInt, IR as arithIR}
+import inca.ir.extension.arithmetic.{Add, ArithmeticAggregationOperator, GT, IntNum, LE, LT, Mul, Sub, TInt, IR as arithIR}
 import inca.ir.extension.string.analysis.interpreter.FiniteStringV
-import inca.ir.extension.string.{StringLit, TString, IR as stringIR}
+import inca.ir.extension.string.{StringConcat, StringLength, StringLit, Substring, TString, IR as stringIR}
 import inca.ir.hints.MainHint
 import inca.ir.typing.IRTypechecker
 import inca.ir.{BaseIR, Body, Call, Cast, Eq, ExtensionalCall, ExtensionalRelation, Module, Param, RefByName, Relation, TNothing, Var, WildcardArg, string2name, term2Arg, termList2ArgList}
@@ -218,6 +218,8 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
       )).addHint(MainHint)
     ))
 
+    println(mod)
+
     val res = interp(mod, Map(
       "DirectSuperclass" -> FiniteAbstractRelation.finiteNonEmpty(
         Seq("type", "supertype"),
@@ -285,4 +287,30 @@ class TerminationAnalysisTest extends AnyFunSuiteLike:
     assertResult(pathRel.rows(0).isFinite)
     assertResult(pathRel.rows(1).isFinite)
     assertResult(!pathRel.rows(2).isFinite)
+  }
+
+  test("Concat String") {
+    val mod = Module("ConcatTest", BaseIR.language + arithIR, Seq(
+      Relation("main", Seq(
+        Param("n", TString),
+      ), Seq(
+        Body(Seq(
+          Call("main", Seq(Var("m"))),
+          Eq(Var("o"), StringConcat(StringLit("a"), Var("m"))),
+          // Defensive programming to prevent infinite loop
+          Eq(Var("n"), Substring(Var("o"), IntNum(0), IntNum(100)))
+        )),
+        Body(Seq(
+          Eq(Var("n"), StringLit("b"))
+        ))
+      )).addHint(MainHint),
+    ))
+
+    val res = interp(mod)
+    println(res)
+    val mainRel = res("main")
+    // n in [1, 1000]
+    assert(mainRel.rows.head.isFinite)
+    assert(mainRel.finite.isActual && mainRel.finite.get)
+    //println(res)
   }

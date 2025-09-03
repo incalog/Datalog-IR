@@ -2,12 +2,12 @@ package inca.casestudy.doop
 
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
-import inca.ir.analysis.{IRConstantAbstractInterpreter, IRMeasureConstantAnalysis, IRMeasureInterpreter, IRTerminationAnalysis}
+import inca.ir.analysis.{IRConstantAbstractInterpreter, IRMeasureConstantAnalysis, IRMeasureInterpreter, IRMeasureTypeAnalysis, IRTerminationAnalysis}
 import inca.ir.{CompiledUnit, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
 import inca.ir.extension.{aggregategeneric, block, bool, disjunction, module, not}
-import inca.ir.optimize.{AbstractEdbConfig, AliasElimination, EdbConfig, IRConstantOptimizer, IdentityCastElimination}
+import inca.ir.optimize.{AliasElimination, IRConstantOptimizer, IdentityCastElimination}
 import inca.souffle.frontend.compile.CompiledSouffleProgram
 import inca.util.compileroptions.CompilerOptions
 import inca.viatra.backend
@@ -37,14 +37,14 @@ object Mirco:
         () => new module.Lowering {}
       ),
       optimizationPipeline = List(
-        //() => new IRMeasureConstantAnalysis
+        //() => new IRMeasureTypeAnalysis,
         () => new IRConstantOptimizer(false, false),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},
         () => new IRConstantOptimizer(false, true),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},
-        //() => new IRTerminationAnalysis {}
+        () => new IRTerminationAnalysis {}
       )
     )
 
@@ -64,13 +64,10 @@ object Mirco:
       println(res.name -> res.size)
       end - start
     }.sum
-
-    /*val start = System.currentTimeMillis()
-    engine.read(UnitRelation("VarPointsTo"))
-    val end = System.currentTimeMillis()
-    val execTime = end - start*/
-
     println(execTime / 1000.0)
+
+    //val execTime = engine.measure(UnitRelation("VarPointsTo"))
+    //println(execTime)
 
   @main
   def runMicroDlSouffleOriginal(): Unit = {
@@ -82,7 +79,9 @@ object Mirco:
 
   @main
   def runMicroDlSouffle(): Unit = {
-    runMicroDL(compiled => inca.souffle.backend.Executor(Fixed(1)).instantiate(compiled))
+    0.until(1).foreach { _ =>
+      runMicroDL(compiled => inca.souffle.backend.Executor(Fixed(1)).instantiate(compiled))
+    }
   }
 
   @main
@@ -94,12 +93,16 @@ object Mirco:
   def runMicroDlViatra(): Unit = {
     //backend.Executor.initializeLogging()
     //inca.viatra.Executor.enableDebugLogging()
-    runMicroDL(compiled => Executor().instantiate(compiled))
+     0.until(1).foreach { _ =>
+      runMicroDL(compiled => Executor().instantiate(compiled))
+    }
   }
 
   @main
   def runMicroDlAscent(): Unit = {
-    runMicroDL(compiled => inca.ascent.backend.Executor(Fixed(1)).instantiate(compiled))
+    0.until(1).foreach { _ =>
+      runMicroDL(compiled => inca.ascent.backend.Executor(Fixed(1)).instantiate(compiled))
+    }
   }
 
   @main

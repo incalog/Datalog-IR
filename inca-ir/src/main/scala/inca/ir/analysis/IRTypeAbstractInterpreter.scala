@@ -1,7 +1,7 @@
 package inca.ir.analysis
 
 import inca.ir
-import inca.ir.Type
+import inca.ir.{Name, Param, Type}
 import inca.ir.analysis.base.effect
 import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.interpreter.{AbstractSupplementaryTable, BaseGenericInterpreter, FixIn, FixOut, SupColumn, given}
@@ -11,6 +11,7 @@ import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
+import inca.ir.extension.tuple.analysis.EdbConfig
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.{EffectStack, TrySturdy}
@@ -51,11 +52,22 @@ case class TypeValue(ty: Type) extends Value:
   override def isConstant: Boolean = true
 
 /**
+ * Encode information we know about the EDB
+ */
+class TypeEdbConfig extends EdbConfig[AbstractRelation]:
+  override def abstractExtensionalRelation(n: Name, params: Seq[Param]): AbstractRelation =
+    val (aCols, aRows) = params.map(p => (p.name.name, TypeValue(p.ty))).unzip
+    AbstractRelation(aCols, aRows, Topped.Actual(false)) // assume non-empty edb
+
+object TypeEdbConfig:
+  val default: TypeEdbConfig = new TypeEdbConfig
+
+/**
  * Analyse the types of relations in a Datalog program.
  */
 class IRTypeAbstractInterpreter(
-     val enableLogging: Boolean = false,
-     override val interRelational: Boolean = false
+       val logTraversalTrace: Boolean = false,
+       override val interRelational: Boolean = false
   )
   extends BaseGenericInterpreter[Value, Topped[Boolean], AbstractRelation, Powerset[BaseIRException], WithJoin]
   with irarith.interpreter.TypeAbstractInterpreter
@@ -166,7 +178,7 @@ class IRTypeAbstractInterpreter(
 
     val analysisFixPt = fix.log(analysisAnnotator, fixPt)
 
-    if (enableLogging)
+    if (logTraversalTrace)
       fix.log(new PrintLogger, analysisFixPt).fixpoint
     else
       analysisFixPt.fixpoint

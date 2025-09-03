@@ -1934,7 +1934,8 @@ StaticMethodInvocation(?invocation,?signature,?inmethod) :-
    Instruction_Method(?invocation,?inmethod),
    MethodInvocation_Method(?invocation,?signature).
 
-Stats_Metrics("1.0","var points-to (INS)",c) :- 
+/*
+Stats_Metrics("1.0","var points-to (INS)",c) :-
    c = count : { Stats_Simple_InsensVarPointsTo(_,_) }.
 
 Stats_Metrics("1.5","var points-to (SENS)",c) :- 
@@ -2239,6 +2240,7 @@ Stats_Simple_VirtualCallGraphEdge(?from,?to) :-
 Stats_Simple_VirtualTargets(?from,?c) :- 
    Stats_Simple_VirtualCallGraphEdge(?from,_),
    ?c = count : { Stats_Simple_VirtualCallGraphEdge(?from,_) }.
+*/
 
 StoreArrayIndex(?from,?base,?inmethod) :- 
    isStoreArrayIndex_Insn(?insn),
@@ -2827,6 +2829,7 @@ basic__MethodLookup_WithLen(?simplename,?descriptor,?type,?method,(n+1)) :-
    DirectSuperinterface(?type,?supertype),
    ?c = count : { basic__transitiveSuperinterface(?type, _) },
    basic__MethodLookup_WithLen(?simplename,?descriptor,?supertype,?method,n),
+   // DEFENSIVE: put an upper bound on n
    n < ?c,
    !basic_MethodImplemented(?simplename,?descriptor,?type,_).
 
@@ -6106,9 +6109,11 @@ mainAnalysis_VarPointsTo(?hctx,cat("<adapter for ",cat(?mh,cat(" as ",?mt))),?ct
    _VirtualMethodInvocation(?invo,_,?sig,?base,?method),
    mainAnalysis_ReachableContext(?ctx,?method),
    ?sig = "<java.lang.invoke.MethodHandle: java.lang.invoke.MethodHandle asType(java.lang.invoke.MethodType)>",
-   mainAnalysis_VarPointsTo(?hctx,?mh,?ctx,?base),
+   mainAnalysis_VarPointsTo(?hctx,?mh_x,?ctx,?base),
+   ?mh = substr(?mh_x, 0, 10), // DEFENSIVE
    ActualParam(0,?invo,?arg),
-   mainAnalysis_VarPointsTo(_,?mt,?ctx,?arg),
+   mainAnalysis_VarPointsTo(_,?mt_x,?ctx,?arg),
+   ?mt = substr(?mt_x, 0, 10), // DEFENSIVE
    AssignReturnValue(?invo,?ret),
    mainAnalysis_MethodHandle_Method(?mh,?mhMethod),
    Method_ParamTypes(?mhMethod,_).

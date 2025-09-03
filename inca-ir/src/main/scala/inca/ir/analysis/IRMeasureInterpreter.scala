@@ -1,16 +1,18 @@
 package inca.ir.analysis
 
 import inca.ir
-import inca.ir.ExtensionalRelation
+import inca.ir.{ExtensionalRelation, Name, Param}
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
-import inca.ir.optimize.{AbstractEdbConfig, BaseIROptimizer, EdbConfig, Optimizer}
+import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
+import inca.ir.optimize.{BaseIROptimizer, Optimizer}
 import inca.ir.visitors.IRVisitor
+import inca.util.collectGarbage
 import sturdy.effect.failure.AFallible
 
 trait IRMeasureInterpreter[V, RV] extends IRVisitor with Optimizer:
-  val warmups: Int = 3
-  val runs: Int = 5
+  val warmups: Int = 10
+  val runs: Int = 10
 
   val edbConfig: EdbConfig[RV]
 
@@ -53,13 +55,16 @@ trait IRMeasureInterpreter[V, RV] extends IRVisitor with Optimizer:
       for (i <- 0 until warmups) {
         val t = measure(modules)
         println(s"Warmup: $i :: $t")
+        collectGarbage()
       }
       val execTimes = for (i <- 0 until runs) yield {
         val t = measure(modules)
         println(s"Run: $i :: $t")
+        collectGarbage()
         t
       }
       println(s"Analysis times: $execTimes")
+      System.exit(1)
 
 
 class IRMeasureConstantAnalysis extends IRMeasureInterpreter[Value, AbstractRelation]:
@@ -69,3 +74,10 @@ class IRMeasureConstantAnalysis extends IRMeasureInterpreter[Value, AbstractRela
 
   override def freshAbstractInterpreter(): BaseGenericInterpreter[Value, ?, AbstractRelation, ?, ?] =
     new IRConstantAbstractInterpreter(logTraversalTrace = false, logControlEvents = false, interRelational = true)
+
+
+class IRMeasureTypeAnalysis extends IRMeasureInterpreter[Value, AbstractRelation]:
+  override val edbConfig: EdbConfig[AbstractRelation] = TypeEdbConfig.default
+
+  override def freshAbstractInterpreter(): BaseGenericInterpreter[Value, ?, AbstractRelation, ?, ?] =
+    new IRTypeAbstractInterpreter(logTraversalTrace = false, interRelational = true)    

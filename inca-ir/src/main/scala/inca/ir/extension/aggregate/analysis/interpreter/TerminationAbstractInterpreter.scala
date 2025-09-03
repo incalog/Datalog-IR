@@ -5,7 +5,7 @@ import inca.ir.analysis.base.effect.BaseIRException
 import inca.ir.analysis.base.values.{FiniteAbstractRelation, FiniteAbstractRelationOps, Value}
 import inca.ir.extension.arithmetic.ArithmeticAggregationOperator
 import inca.ir.extension.aggregate.AggregationOperator
-import inca.ir.extension.arithmetic.analysis.interpreter.{IntOps, finiteUpperBound}
+import inca.ir.extension.arithmetic.analysis.interpreter.FiniteIntOps
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.values.booleans.BooleanBranching
 import sturdy.values.floating.FloatOps
@@ -13,7 +13,7 @@ import sturdy.values.{Powerset, Topped}
 
 
 trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], FiniteAbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntOps[Int, Value]
+  val intOps: FiniteIntOps[Int, Value]
   val doubleOps: FloatOps[Double, Value]
   val relationOps: FiniteAbstractRelationOps[Powerset[BaseIRException]]
   val branchOpsV: BooleanBranching[Topped[Boolean], Value]
@@ -39,7 +39,7 @@ trait TerminationAbstractInterpreter extends GenericInterpreter[Value, Topped[Bo
 
     override def count(rel: RelationBase, rv: FiniteAbstractRelation): Value =
       branchOpsV.boolBranch(relationOps.isFinite(rv)) {
-        intOps.integerLit(finiteUpperBound)
+        intOps.integerLit(5000) // TODO: This is wrong
       } {
         Value.Top
       }

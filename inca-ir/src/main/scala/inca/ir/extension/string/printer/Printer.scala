@@ -13,7 +13,7 @@ trait Printer extends BaseIRPrinter:
 
   override def prettyPrint(term: Term): String = term match
     case StringLit(value) => s"\"$value\""
-    case StringConcat(lhs, rhs) => s"${prettyPrint(lhs)} + ${prettyPrint(lhs)}"
+    case StringConcat(lhs, rhs) => s"${prettyPrint(lhs)} + ${prettyPrint(rhs)}"
     case ToString(t) => s"${prettyPrint(t)}.toString"
     case Substring(t, index, length) => s"${prettyPrint(t)}[${prettyPrint(index)}..<${prettyPrint(length)}]"
     case StringLength(t) => s"${prettyPrint(t)}.length"

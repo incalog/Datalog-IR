@@ -25,7 +25,7 @@ type DoubleInterval = NumericInterval[Double]
 val topIntInterval: IntInterval = NumericInterval.safe(scala.Int.MinValue, scala.Int.MaxValue)
 val topDoubleInterval: DoubleInterval = NumericInterval.safe(Double.MinValue, Double.MaxValue)
 
-val finiteUpperBound = scala.Int.MaxValue - 2
+val edbNumericUpperBound = 5000 //scala.Int.MaxValue - 2
 
 case class IntervalIntV(private val iv: IntInterval) extends Value:
   override def toString: String = iv.toString
@@ -40,7 +40,7 @@ case class IntervalIntV(private val iv: IntInterval) extends Value:
 
 object IntervalIntV:
   def constant(i: Int): IntervalIntV = new IntervalIntV(NumericInterval.constant(i))
-  def finite: IntervalIntV = new IntervalIntV(NumericInterval.constant(finiteUpperBound))
+  def finite: IntervalIntV = new IntervalIntV(NumericInterval.safe(0, edbNumericUpperBound))
   def apply(iv: IntInterval): Value =
     if (iv == topIntInterval)
       Value.Top
@@ -60,7 +60,7 @@ case class IntervalDoubleV(iv: DoubleInterval) extends Value:
 
 object IntervalDoubleV:
   def constant(d: Double): IntervalDoubleV = new IntervalDoubleV(NumericInterval.constant(d))
-  def finite: IntervalDoubleV = new IntervalDoubleV(NumericInterval.constant(finiteUpperBound))
+  def finite: IntervalDoubleV = new IntervalDoubleV(NumericInterval.safe(0, edbNumericUpperBound))
 
 trait IntervalEqOps extends BaseEqOps:
   val intIntervalOps = new NumericIntervalEqOps[Int]
@@ -98,9 +98,10 @@ private def valueAsNumericIntInterval(v: Value)(using except: Except[BaseIRExcep
 trait IntervalWidenV extends BaseWidenV:
   var intBounds: Set[Int] = Set()
   var doubleBounds: Set[Double] = Set()
-  lazy val intIntervalWiden = new NumericIntervalWiden[Int](intBounds + (finiteUpperBound + 1) + (finiteUpperBound - 1), scala.Int.MinValue, scala.Int.MaxValue)
+  lazy val intIntervalWiden = new NumericIntervalWiden[Int](intBounds + (edbNumericUpperBound + 1) + (edbNumericUpperBound - 1), scala.Int.MinValue, scala.Int.MaxValue)
   lazy val doubleIntervalWiden = new NumericIntervalWiden[Double](doubleBounds, Double.MinValue, Double.MaxValue)
 
+  // TODO: We should also widen, once the interval is bigger than Y, e.g. 10.000
   override def combine(lhs: Value, rhs: Value): Value = (lhs, rhs) match
     case (IntervalIntV(iv1), IntervalIntV(iv2)) =>
       //val iv1InIv2 = iv1.low >= iv2.low && iv1.high <= iv2.high
@@ -194,16 +195,22 @@ class IntervalArithmeticRefinementOps extends ArithmeticRefinementOps[Value]:
     case _ =>
       throw IllegalArgumentException(s"Can not refine non-interval values! $v1 :: $v2")
 
+trait FiniteIntOps[I, V] extends IntOps[I, V]:
+  def interval(l: I, h: I): V
 
 trait IntervalAbstractInterpreter extends GenericInterpreter[Value, Topped[Boolean], FiniteAbstractRelation, Powerset[BaseIRException], WithJoin]:
-  val intOps: IntOps[Int, Value] = new LiftedIntegerOps[Int, Value, IntInterval](valueAsNumericIntInterval(_)(using except), numericIntIntervalToValue) (
+  val intOps: FiniteIntOps[Int, Value] = new LiftedIntegerOps[Int, Value, IntInterval](valueAsNumericIntInterval(_)(using except), numericIntIntervalToValue) (
       using StandardIntervalIntegerOps
     )
-    with IntOps[Int, Value]:
+    with IntOps[Int, Value]
+    with FiniteIntOps[Int, Value]:
 
     override def integerValue(v: Value): Option[Int] = v match
       case IntervalIntV(iv) if iv.isConstant => Some(iv.low)
       case _ => None
+
+    override def interval(l: Int, h: Int): Value =
+      IntervalIntV(NumericInterval.safe(l, h))
 
   val doubleOps: FloatOps[Double, Value] = LiftedFloatOps[Double, Value, DoubleInterval](valueAsNumericDoubleInterval(_)(using except), numericDoubleIntervalToValue) (
     using new FloatOps[Double, DoubleInterval] {

@@ -688,6 +688,50 @@ class ConstantAnalysisTest extends AnyFunSuiteLike:
     assertResult(Topped.Actual(false))(edgeRelType.empty)
   }
 
+  /**
+   * This test demonstrates why the meet is used instead of a join in the natural join of 
+   * abstract relations.
+   */
+  test("EDB call - refine") {
+    val mod = Module("Test3", BaseIR.language + arithIR, Seq(
+      ExtensionalRelation("input_R", Seq(
+        Param("a", TInt),
+      )),
+      Relation("Q", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Eq(Var("x"), IntNum(1))
+        )),
+        Body(Seq(
+          Eq(Var("x"), IntNum(2))
+        )),
+      )),
+      Relation("R", Seq(
+        Param("x", TInt),
+      ), Seq(
+        Body(Seq(
+          Call("Q", Seq(Var("x"))),
+          ExtensionalCall("input_R", Seq(Var("x"))),
+        ))
+      )).addHint(MainHint),
+    ))
+
+    val constRes = interp(mod, Map(
+      "input_R" -> AbstractRelation(Seq("a"), Seq(ConstantIntV(1)), Topped.Actual(false))
+    ))
+    
+    val qRelType = constRes("Q")
+    assert(qRelType.cols == Seq("x"))
+    assert(qRelType.rows == Seq(Value.Top))
+    assertResult(Topped.Actual(false))(qRelType.empty)
+
+    val rRelType = constRes("R")
+    assert(rRelType.cols == Seq("x"))
+    assert(rRelType.rows == Seq(ConstantIntV(1)))
+    assertResult(Topped.Top)(rRelType.empty) // Could be empty
+  }
+
   test("EDB call - Args bound") {
     val mod = Module("Test3", BaseIR.language + arithIR, Seq(
       ExtensionalRelation("input_edge", Seq(

@@ -9,13 +9,14 @@ import inca.ir.analysis.base.logger.{BaseAnalysisAnnotator, ControlEventLogger, 
 import inca.ir.analysis.base.ordering.BaseEqOps
 import inca.ir.analysis.base.values.*
 import inca.ir.extension.aggregate.analysis as iragg
-import inca.ir.extension.arithmetic.analysis.interpreter.{IntervalDoubleV, IntervalIntV}
+import inca.ir.extension.arithmetic.analysis.interpreter.{IntOps, IntervalDoubleV, IntervalIntV}
 import inca.ir.extension.arithmetic.{DoubleNum, IntNum, TDouble, TInt, analysis as irarith}
 import inca.ir.extension.data.analysis.interpreter.{FiniteCaseV, FiniteDataV}
 import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference, TData, analysis as irdata}
 import inca.ir.extension.string.{TString, analysis as irstr}
 import inca.ir.extension.string.analysis.interpreter.FiniteStringV
-import inca.ir.optimize.{AbstractEdbConfig, EdbConfig, Optimizer}
+import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
+import inca.ir.optimize.Optimizer
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
 import sturdy.control.ControlEventGraphBuilder
@@ -39,6 +40,7 @@ import sturdy.data.given
 import sturdy.values.booleans.ConcreteBooleanBranching
 import sturdy.values.exceptions.PowersetExceptional
 import sturdy.values.given
+
 
 /**
  * An extensible termination analysis.
@@ -191,7 +193,7 @@ class IRTerminationAbstractInterpreter(
       fix.log(analysisAnnotator,
           fix.filter[FixIn, FixOut[Value, RV]]({case _: FixIn.EnterRelation => true; case _ => false},
           fix.notContextSensitive[FixIn, FixOut[Value, RV], fix.Combinator[FixIn, FixOut[Value, RV]]](
-              setLooper(fix.iter.topmost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
+              setLooper(fix.iter.innermost[FixIn, FixOut[Value, RV], Ctx](stackConfig))
             )
           )
       )
@@ -228,8 +230,6 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
         case _ => Value.Top
 
       val (aCols, aRows) = params.map(p => (p.name.name, abstractEDBValueForType(p.ty))).unzip
-      println(aCols)
-      println(aRows)
       FiniteAbstractRelation(aCols, aRows, Topped.Actual(false), Topped.Actual(true))
 
   val abstractInterpreter: BaseGenericInterpreter[Value, ?, FiniteAbstractRelation, ?, ?] =
@@ -238,46 +238,51 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
   private var analysisHasRun: Boolean = false
 
   override def analyzeProgram(modules: Seq[ir.Module]): Unit =
-    if (isClosedWorld)
-      analysisHasRun = true
+    if (analysisHasRun || !isClosedWorld)
+      return
 
-      var adts: Map[TData, Set[CaseDefinitionReference]] = Map()
-      modules.foreach { m =>
-        m.entries.foreach {
-          case (_, c: CaseDefinitionReference) =>
-            adts += c.data -> (adts.getOrElse(c.data, Set()) + c)
-          case _ => // nothing
-        }
-      }
+    println(s"Analyse now! ${modules.size}")
+    println(modules.head)
 
-      val edbConfig = FiniteEdbConfig(adts)
+    analysisHasRun = true
 
-      // Fill edb
-      modules.foreach { m =>
-        m.entries.foreach {
-          case (_, ir.ExtensionalRelation(n, params)) =>
-            val aRel = edbConfig.abstractExtensionalRelation(n, params)
-            abstractInterpreter.insertEDB(n.name, aRel)
-          case _ => // nothing
-        }
-      }
-
-      // Analyse
-      val analysisRes = abstractInterpreter.failure.fallible {
-        abstractInterpreter.evalProgram(modules)
-      }
-
-      // Interpret result
-      analysisRes match {
-        case AFallible.Failing(failures) =>
-          val msg = failures.map { (kind, message) =>
-            s"[$kind]: $message"
-          }.set.mkString("\n")
-          throw AnalysisFailed(msg)
-        case AFallible.Diverging(recur) =>
-          throw IllegalStateException()
+    var adts: Map[TData, Set[CaseDefinitionReference]] = Map()
+    modules.foreach { m =>
+      m.entries.foreach {
+        case (_, c: CaseDefinitionReference) =>
+          adts += c.data -> (adts.getOrElse(c.data, Set()) + c)
         case _ => // nothing
       }
+    }
+
+    val edbConfig = FiniteEdbConfig(adts)
+
+    // Fill edb
+    modules.foreach { m =>
+      m.entries.foreach {
+        case (_, ir.ExtensionalRelation(n, params)) =>
+          val aRel = edbConfig.abstractExtensionalRelation(n, params)
+          abstractInterpreter.insertEDB(n.name, aRel)
+        case _ => // nothing
+      }
+    }
+
+    // Analyse
+    val analysisRes = abstractInterpreter.failure.fallible {
+      abstractInterpreter.evalProgram(modules)
+    }
+
+    // Interpret result
+    analysisRes match {
+      case AFallible.Failing(failures) =>
+        val msg = failures.map { (kind, message) =>
+          s"[$kind]: $message"
+        }.set.mkString("\n")
+        throw AnalysisFailed(msg)
+      case AFallible.Diverging(recur) =>
+        throw IllegalStateException()
+      case _ => // nothing
+    }
 
     val idb = abstractInterpreter.getIDB
     val definitelyTerminates = idb.forall { case (_, rel) =>
@@ -291,6 +296,5 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
     System.exit(1)
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
-    if (!analysisHasRun && isClosedWorld)
-      analyzeProgram(modules)
+    analyzeProgram(modules)
     super.visitProgram(modules, dependencies)

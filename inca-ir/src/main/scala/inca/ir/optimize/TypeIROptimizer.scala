@@ -3,8 +3,9 @@ package inca.ir.optimize
 import inca.ir
 import inca.ir.Hint.preserveHints
 import inca.ir.{Body, ExtensionalRelation, Relation, Term}
-import inca.ir.analysis.{IRTypeAbstractInterpreter, TypeValue}
+import inca.ir.analysis.{IRTypeAbstractInterpreter, TypeEdbConfig, TypeValue}
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
+import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
 import sturdy.values.Topped
 
 /*
@@ -13,7 +14,7 @@ import sturdy.values.Topped
  */
 class TypeIROptimizer(
                        override val computeControlEvents: Boolean, 
-                       override val edbConfig: EdbConfig[AbstractRelation] = AbstractEdbConfig.default) 
+                       override val edbConfig: EdbConfig[AbstractRelation] = TypeEdbConfig.default) 
   extends BaseIROptimizer[Value, AbstractRelation, Value]:
   
   override def name: String = "Type Optimizer"

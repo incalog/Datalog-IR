@@ -12,10 +12,30 @@ import inca.ir.extension.data as irdata
 import inca.ir.extension.string as irstring
 import inca.ir.extension.data.analysis.interpreter.OODLClassV
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
+import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
 import inca.ir.hints.MainHint
 import inca.ir.visitors.IRVisitor
+import sturdy.values.Topped
 
 import scala.compiletime.uninitialized
+
+class OODLEdbConfig extends AbstractEdbConfig:
+  override def abstractExtensionalRelation(n: Name, params: Seq[Param]): AbstractRelation =
+    if (n.name == "ext_main$input")
+      // OODL specific
+      val (aCols, aRows) = params.map {
+        case p if p.name.name == "Alloc" => (p.name.name, ConstantIntV(1))
+        case p if p.name.name == "Mutation" => (p.name.name, ConstantIntV(1))
+        case p if p.name.name == "MonoImpurity" => (p.name.name, ConstantIntV(1))
+        case p => (p.name.name, Value.Top)
+      }.unzip
+      AbstractRelation(aCols, aRows, Topped.Actual(false))
+    else
+      super.abstractExtensionalRelation(n, params)
+
+object OODLEdbConfig:
+  val default: OODLEdbConfig = new OODLEdbConfig
+
 
 // TODO: Move this to the OODL package
 trait OODLClassBaseIROptimizer(val _superClassMap: Map[String, Set[String]], val _interRelational: Boolean)

@@ -3,6 +3,7 @@ package inca.ir.optimize
 import inca.ir.*
 import inca.ir.Hint.preserveHints
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
+import inca.ir.extension.tuple.analysis.EdbConfig
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
 import sturdy.effect.failure.AFallible

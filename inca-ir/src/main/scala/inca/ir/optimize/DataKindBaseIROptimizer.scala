@@ -19,6 +19,7 @@ import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.set as irset
 import inca.ir.extension.map as irmap
 import inca.ir.extension.disjunction as irdisjunction
+import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
 import inca.ir.hints.MainHint
 import sturdy.values.Topped
 
