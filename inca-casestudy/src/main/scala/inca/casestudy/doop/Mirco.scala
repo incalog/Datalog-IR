@@ -2,7 +2,7 @@ package inca.casestudy.doop
 
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
-import inca.ir.analysis.{IRConstantAbstractInterpreter, IRMeasureConstantAnalysis, IRMeasureInterpreter, IRMeasureTypeAnalysis, IRTerminationAnalysis}
+import inca.ir.analysis.{IRConstantAbstractInterpreter, IRMeasureConstantAnalysis, IRMeasureDataKindAnalysis, IRMeasureInterpreter, IRMeasureTypeAnalysis, IRTerminationAnalysis}
 import inca.ir.{CompiledUnit, string2name}
 import inca.ir.execution.{IRExecutor, ThreadCount, UnitRelation}
 import inca.ir.execution.ThreadCount.{Auto, Fixed}
@@ -38,6 +38,7 @@ object Mirco:
       ),
       optimizationPipeline = List(
         //() => new IRMeasureTypeAnalysis,
+        () => new IRMeasureDataKindAnalysis,
         () => new IRConstantOptimizer(false, false),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},

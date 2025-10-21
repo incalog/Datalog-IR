@@ -12,7 +12,7 @@ import inca.ir.extension.data as irdata
 import inca.ir.extension.string as irstring
 import inca.ir.extension.data.analysis.interpreter.OODLClassV
 import inca.ir.extension.string.analysis.interpreter.ConstantStringV
-import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
+import inca.ir.analysis.{AbstractEdbConfig, EdbConfig}
 import inca.ir.hints.MainHint
 import inca.ir.visitors.IRVisitor
 import sturdy.values.Topped

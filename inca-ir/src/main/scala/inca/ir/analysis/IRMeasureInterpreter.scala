@@ -4,7 +4,7 @@ import inca.ir
 import inca.ir.{ExtensionalRelation, Name, Param}
 import inca.ir.analysis.base.interpreter.BaseGenericInterpreter
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
-import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
+import inca.ir.analysis.{AbstractEdbConfig, EdbConfig}
 import inca.ir.optimize.{BaseIROptimizer, Optimizer}
 import inca.ir.visitors.IRVisitor
 import inca.util.collectGarbage
@@ -80,4 +80,13 @@ class IRMeasureTypeAnalysis extends IRMeasureInterpreter[Value, AbstractRelation
   override val edbConfig: EdbConfig[AbstractRelation] = TypeEdbConfig.default
 
   override def freshAbstractInterpreter(): BaseGenericInterpreter[Value, ?, AbstractRelation, ?, ?] =
-    new IRTypeAbstractInterpreter(logTraversalTrace = false, interRelational = true)    
+    new IRTypeAbstractInterpreter(logTraversalTrace = false, interRelational = true)
+    
+class IRMeasureDataKindAnalysis extends IRMeasureInterpreter[Value, AbstractRelation]:
+  override val edbConfig: EdbConfig[AbstractRelation] =
+    // Assume everything in the edb is top
+    AbstractEdbConfig.default
+
+  override def freshAbstractInterpreter(): BaseGenericInterpreter[Value, ?, AbstractRelation, ?, ?] =
+    new IRDataKindAbstractInterpreter(logTraversalTrace = false, logControlEvents = false, interRelational = true)
+  

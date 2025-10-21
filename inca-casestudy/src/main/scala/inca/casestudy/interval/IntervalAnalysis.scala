@@ -63,7 +63,7 @@ object IntervalAnalysis:
     CaseDefinition("BFalse", Seq(), TInterval),
   )
 
-  val dataModel: DataModel = DataModel.from(edb.allNodes: _*)
+  val dataModel: DataModel = DataModel.from(edb.allNodes*)
 
   def mkIv(l: Term, r: Term): Term = Construct("IV", Seq(l, r))
 

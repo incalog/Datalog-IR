@@ -1,7 +1,6 @@
-package inca.ir.extension.tuple.analysis
+package inca.ir.analysis
 
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
-import inca.ir.extension.arithmetic.analysis.interpreter.ConstantIntV
 import inca.ir.{Name, Param}
 import sturdy.values.Topped
 

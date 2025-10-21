@@ -16,7 +16,7 @@ val edbStringLengthUpperBound = 50
 // We need to provide an approximation for ordinal numbers. The smallest one is always 0, while the biggest one is:
 val maxOrdinalNumber = Int.MaxValue - 2
 // This is the maximum allowed Strings length. If a string gets larger than this, we widen.
-val maxStringLength = 500
+val maxStringLength = 65536*10
 
 
 trait Component
@@ -32,7 +32,7 @@ case class FiniteStringV(components: Seq[Component], length: Int) extends Value:
 
 object FiniteStringV:
   def apply(length: Int): FiniteStringV = new FiniteStringV(Seq(Unknown), length)
-  def edb(): FiniteStringV = new FiniteStringV(Seq(Unknown), edbStringLengthUpperBound)
+  def edb(maxLength: Int = edbStringLengthUpperBound): FiniteStringV = new FiniteStringV(Seq(Unknown), maxLength)
   def lit(s: String): FiniteStringV = new FiniteStringV(Seq(Str(s)), s.length)
 
 trait FiniteStringEqOps extends BaseEqOps:
@@ -108,7 +108,6 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
 
   override def stringLength(v: Value): Value = v match
     case f: FiniteStringV if f.isConstant =>
-      println(s"The string length $f: ${intOps.integerLit(f.toString.length)}")
       intOps.integerLit(f.toString.length)
     case f: FiniteStringV =>
       // Length of IDB strings is known. This is the lower bound for the length
@@ -116,7 +115,6 @@ class FiniteStringVOps(using failure: Failure, except: Except[BaseIRException, ?
         case Str(s) => s.length
         case _ => 0
       }.sum
-      println(s"The string length other $f: ${intOps.interval(lowerBound, f.length)}")
       intOps.interval(lowerBound, f.length)
     case Value.Top => Value.Top
     case _ => failure(InvalidStringValue, s"Can not get substring of $v")

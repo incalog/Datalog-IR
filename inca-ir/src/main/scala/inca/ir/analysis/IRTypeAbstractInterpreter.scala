@@ -11,7 +11,7 @@ import inca.ir.extension.arithmetic.analysis as irarith
 import inca.ir.extension.data.analysis as irdata
 import inca.ir.extension.string.analysis as irstr
 import inca.ir.extension.aggregate.analysis as iragg
-import inca.ir.extension.tuple.analysis.EdbConfig
+import inca.ir.analysis.EdbConfig
 import sturdy.data.MayJoin
 import sturdy.data.MayJoin.WithJoin
 import sturdy.effect.{EffectStack, TrySturdy}

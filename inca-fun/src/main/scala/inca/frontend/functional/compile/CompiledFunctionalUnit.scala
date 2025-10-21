@@ -3,7 +3,7 @@ package inca.frontend.functional.compile
 import inca.frontend.functional.foreign
 import inca.frontend.functional.syntax.Module
 import inca.frontend.functional.typechecker.Typechecker
-import inca.ir.analysis.{IRMeasureConstantAnalysis, IRMeasureTypeAnalysis, IRTerminationAnalysis}
+import inca.ir.analysis.{IRMeasureConstantAnalysis, IRMeasureDataKindAnalysis, IRMeasureTypeAnalysis, IRTerminationAnalysis}
 import inca.ir.extension.*
 import inca.ir.optimize.{IRDataKindOptimizer, Optimizer, ReplaceSingletonVariables}
 import inca.ir.util.SourceLocation
@@ -106,6 +106,7 @@ object CompiledFunctionalUnit:
   val optimizationPipeline: List[() => Optimizer] = List(
     //() => new IRMeasureTypeAnalysis(),
     //() => new IRMeasureConstantAnalysis(),
+    //() => new IRMeasureDataKindAnalysis(),
     () => new optimize.RemoveDuplicatedRelations {},
     () => new optimize.IRConstantOptimizer(computeControlEvents = false, interRelational = false) {},
     () => new optimize.IdentityCastElimination {},

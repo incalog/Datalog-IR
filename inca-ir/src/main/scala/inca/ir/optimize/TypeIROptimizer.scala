@@ -5,7 +5,7 @@ import inca.ir.Hint.preserveHints
 import inca.ir.{Body, ExtensionalRelation, Relation, Term}
 import inca.ir.analysis.{IRTypeAbstractInterpreter, TypeEdbConfig, TypeValue}
 import inca.ir.analysis.base.values.{AbstractRelation, Value}
-import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
+import inca.ir.analysis.{AbstractEdbConfig, EdbConfig}
 import sturdy.values.Topped
 
 /*

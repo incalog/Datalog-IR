@@ -41,6 +41,7 @@ case class IntervalIntV(private val iv: IntInterval) extends Value:
 object IntervalIntV:
   def constant(i: Int): IntervalIntV = new IntervalIntV(NumericInterval.constant(i))
   def finite: IntervalIntV = new IntervalIntV(NumericInterval.safe(0, edbNumericUpperBound))
+  def finite(l: Int, u: Int): IntervalIntV = new IntervalIntV(NumericInterval.safe(l, u))
   def apply(iv: IntInterval): Value =
     if (iv == topIntInterval)
       Value.Top

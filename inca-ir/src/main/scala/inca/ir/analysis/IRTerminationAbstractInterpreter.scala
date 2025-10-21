@@ -15,7 +15,7 @@ import inca.ir.extension.data.analysis.interpreter.{FiniteCaseV, FiniteDataV}
 import inca.ir.extension.data.{CaseDefinitionReference, DataDefinitionReference, TData, analysis as irdata}
 import inca.ir.extension.string.{TString, analysis as irstr}
 import inca.ir.extension.string.analysis.interpreter.FiniteStringV
-import inca.ir.extension.tuple.analysis.{AbstractEdbConfig, EdbConfig}
+import inca.ir.analysis.{AbstractEdbConfig, EdbConfig}
 import inca.ir.optimize.Optimizer
 import inca.ir.printer.IRDebugPrinter
 import inca.ir.visitors.IRVisitor
@@ -211,17 +211,17 @@ case class AnalysisFailed(msg: String) extends Exception:
 
 
 class IRTerminationAnalysis extends IRVisitor with Optimizer:
+  val abstractInterpreter: BaseGenericInterpreter[Value, ?, FiniteAbstractRelation, ?, ?] =
+    new IRTerminationAbstractInterpreter(false, false, true)
 
-  case class FiniteEdbConfig(data: Map[TData, Set[CaseDefinitionReference]])
-    extends EdbConfig[FiniteAbstractRelation]:
-
-    override def abstractExtensionalRelation(n: Name, params: Seq[Param]): FiniteAbstractRelation =
+  def newEdbConfig(dataTypes: Map[TData, Set[CaseDefinitionReference]]): EdbConfig[FiniteAbstractRelation] =
+    (n: Name, params: Seq[Param]) =>
       def abstractEDBValueForType(ty: Type): Value = ty match
         case TInt => IntervalIntV.finite
         case TDouble => IntervalDoubleV.finite
         case TString => FiniteStringV.edb()
         case d: TData =>
-          val cases = data(d)
+          val cases = dataTypes(d)
           val abstractCases = cases.map { c =>
             val nonRecursiveArgs = c.args.filterNot(_ == d).map(abstractEDBValueForType)
             FiniteCaseV(c, nonRecursiveArgs)
@@ -231,9 +231,6 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
 
       val (aCols, aRows) = params.map(p => (p.name.name, abstractEDBValueForType(p.ty))).unzip
       FiniteAbstractRelation(aCols, aRows, Topped.Actual(false), Topped.Actual(true))
-
-  val abstractInterpreter: BaseGenericInterpreter[Value, ?, FiniteAbstractRelation, ?, ?] =
-    new IRTerminationAbstractInterpreter(false, false, true)
 
   private var analysisHasRun: Boolean = false
 
@@ -255,7 +252,7 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
       }
     }
 
-    val edbConfig = FiniteEdbConfig(adts)
+    val edbConfig = newEdbConfig(adts)
 
     // Fill edb
     modules.foreach { m =>

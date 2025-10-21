@@ -64,6 +64,7 @@ class FunctionalViatraExecutorTest extends AnyFunSuite:
     compiled.setOptimizationPipeline(CompiledFunctionalUnit.optimizationPipeline)
 
     val prog = generateTypedProg(10)
+    //val prog = generateTypedProg(50)
 
     val loaded = exec.loadFunction(compiled)
     val res = loaded.execute("main", Seq(prog))

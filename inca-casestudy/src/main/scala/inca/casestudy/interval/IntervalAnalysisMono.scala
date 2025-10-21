@@ -75,7 +75,7 @@ object IntervalAnalysisMono:
     CaseDefinition("BFalse", Seq(), TInterval),
   )
 
-  val dataModel: DataModel = DataModel.from(edb.allNodes: _*)
+  val dataModel: DataModel = DataModel.from(edb.allNodes*)
 
   private val intervalMono = ScalaMonoDefinition(
     "IntervalMono",
@@ -119,7 +119,7 @@ object IntervalAnalysisMono:
   private def makeTp[T](K: Seq[T] => T, ts: T*): T =
     if ts.size == 1 then ts.head
     else if ts.size == 2 then K(ts.toSeq)
-    else K(Seq(ts.head, makeTp(K, ts.tail: _*)))
+    else K(Seq(ts.head, makeTp(K, ts.tail*)))
 
   def nmapLookUp(map: Term, keys: Seq[Term]): Term =
     if keys.size == 1 then MapLookUp(map, keys.head)

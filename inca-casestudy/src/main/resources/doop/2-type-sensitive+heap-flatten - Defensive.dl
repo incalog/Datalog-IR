@@ -2820,17 +2820,17 @@ basic__MethodLookup_WithLen(?simplename,?descriptor,?type,?method,(n+1)) :-
    n < ?c,
    !basic_MethodImplemented(?simplename,?descriptor,?type,_).
 
-.decl basic__transitiveSuperinterface(?ref:ReferenceType, ?interface:InterfaceType)
+/*.decl basic__transitiveSuperinterface(?ref:ReferenceType, ?interface:InterfaceType)
 basic__transitiveSuperinterface(?ref, ?interface) :-
    DirectSuperinterface(?ref, ?parent),
-   DirectSuperinterface(?parent, ?interface).
+   DirectSuperinterface(?parent, ?interface).*/
 
 basic__MethodLookup_WithLen(?simplename,?descriptor,?type,?method,(n+1)) :- 
    DirectSuperinterface(?type,?supertype),
-   ?c = count : { basic__transitiveSuperinterface(?type, _) },
+   //?c = count : { basic__transitiveSuperinterface(?type, _) },
    basic__MethodLookup_WithLen(?simplename,?descriptor,?supertype,?method,n),
    // DEFENSIVE: put an upper bound on n
-   n < ?c,
+   n < 65536, // 2^16 is the JVM limit here
    !basic_MethodImplemented(?simplename,?descriptor,?type,_).
 
 isAnnotation(?annotation) :- 
@@ -6105,16 +6105,28 @@ mainAnalysis_VarPointsTo(?hctx,"<mock string concatenation result>",?ctx,?ret) :
    mainAnalysis_isImmutableHContext(?hctx),
    AssignReturnValue(?insn,?ret).
 
-mainAnalysis_VarPointsTo(?hctx,cat("<adapter for ",cat(?mh,cat(" as ",?mt))),?ctx,?ret) :- 
-   _VirtualMethodInvocation(?invo,_,?sig,?base,?method),
-   mainAnalysis_ReachableContext(?ctx,?method),
+mainAnalysis_VarPointsTo(?hctx,cat("<adapter for ",cat(?mh,cat(" as ",?mt))),?ctx,?ret) :-
    ?sig = "<java.lang.invoke.MethodHandle: java.lang.invoke.MethodHandle asType(java.lang.invoke.MethodType)>",
+   /*
+   ?invo = the invocation identifier
+   ?base = the receiver (the object on which the virtual method is invoked)
+   ?method = the method being called at the call site
+   ?sig = only consider MethodHandle.asType(MethodType)
+   */
+   _VirtualMethodInvocation(?invo,_,?sig,?base,?method),
+   // Method must be reachable in the current context
+   mainAnalysis_ReachableContext(?ctx,?method),
+   // Find to what method handle the receiver points to and store it in ?mh
    mainAnalysis_VarPointsTo(?hctx,?mh_x,?ctx,?base),
-   ?mh = substr(?mh_x, 0, 10), // DEFENSIVE
-   ActualParam(0,?invo,?arg),
+   ?mh = substr(?mh_x, 0, 65536*2), // DEFENSIVE
+   // Get the first argument of asType and store it in ?arg
+   ActualParam(0,?invo,?arg), // ?arg = Var
+   // Find the MethodType that ?arg points to and store it in mt
    mainAnalysis_VarPointsTo(_,?mt_x,?ctx,?arg),
-   ?mt = substr(?mt_x, 0, 10), // DEFENSIVE
+   ?mt = substr(?mt_x, 0, 65536*2), // DEFENSIVE
+   // The adapted method handle points to the same thing as the invocation
    AssignReturnValue(?invo,?ret),
+   // Sanity check: make sure ?mh is indeed a method handle
    mainAnalysis_MethodHandle_Method(?mh,?mhMethod),
    Method_ParamTypes(?mhMethod,_).
 

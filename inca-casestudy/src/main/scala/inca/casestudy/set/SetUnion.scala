@@ -136,7 +136,7 @@ object SetUnion:
     res.foreach { case (name, r) =>
       val (x, y) = r.unzip
       val timeInMS = y.map(ns => ns / 1000000)
-      p += plot(DenseVector(x: _*), DenseVector(timeInMS: _*), name = name, shapes = true, colorcode = "167,209,182")
+      p += plot(DenseVector(x*), DenseVector(timeInMS*), name = name, shapes = true, colorcode = "167,209,182")
     }
 
     p.xlabel = "Number of Sets"
