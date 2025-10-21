@@ -6,7 +6,7 @@ import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps
 
 import scala.jdk.CollectionConverters.*
 
-class UnaryBagIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {
+class UnaryBagIndex[V](val key: IndexKey[?]) extends UnaryIndex[V] {
   protected val index: MutableObjectIntMap[V] = ObjectIntMaps.mutable.empty()
 
   override def entries: Iterable[V] = index.keySet().asScala

@@ -5,13 +5,15 @@ import org.eclipse.viatra.query.runtime.api.impl.{BaseMatcher, BasePatternMatch,
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
-import truechange.EditScript
+import truechange.{CoreEditScript, EditScript}
 
 import java.util
 import scala.jdk.CollectionConverters.*
 
 object Query:
   trait ChangeFeed:
+    def processCoreEditScript(edits: CoreEditScript): Unit
+
     def processEditScript(edits: EditScript): Unit
 
     def insertExtensionalTuple(relName: String, tuple: Tuple): Unit
@@ -23,7 +25,7 @@ object Query:
     def unloadPrimitive(a: Any): Unit
 
   class Specification(query: PQuery) extends BaseQuerySpecification[Matcher](query):
-    override def getPreferredScopeClass: Class[_ <: QueryScope] = classOf[context.QueryScope]
+    override def getPreferredScopeClass: Class[? <: QueryScope] = classOf[context.QueryScope]
 
     override def instantiate(): Matcher =
       new Matcher(this)

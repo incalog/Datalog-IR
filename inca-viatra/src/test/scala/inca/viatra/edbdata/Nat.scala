@@ -15,13 +15,13 @@ enum Nat:
     case Zero() => NamedTag("Zero")
     case Succ(_) => NamedTag("Succ")
 
-  def load(): EditScript =
-    val buf = new EditScriptBuffer
+  def load(): CoreEditScript =
+    val buf = new CoreEditScriptBuffer
     load(buf)
     buf += Attach(uri, tag, RootLink, null, RootTag)
     buf.toEditScript
 
-  def load(buf: EditScriptBuffer): Unit = this match
+  def load(buf: CoreEditScriptBuffer): Unit = this match
     case Zero() =>
       buf += Load(uri, tag, Seq(), Seq())
     case Succ(pred) =>

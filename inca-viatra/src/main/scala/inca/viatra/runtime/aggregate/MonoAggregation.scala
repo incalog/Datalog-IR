@@ -13,6 +13,6 @@ trait MonoAggregation[ST, In, Out] extends Aggregation[In, Out] {
 
   def combine(o1: Out, o2: Out): Out
 
-  def aggregator: IMultisetAggregationOperator[In, _, Out] =
+  def aggregator: IMultisetAggregationOperator[In, ?, Out] =
     new AggregatorMono(this)
 }

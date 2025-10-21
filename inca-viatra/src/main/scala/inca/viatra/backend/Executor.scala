@@ -63,7 +63,7 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
       // we assume all our ADTs only have a single constructor, the primary constructor
       val adtConstructor = adtClass.getDeclaredConstructors.head
       adtConstructor.setAccessible(true)
-      adtConstructor.newInstance((module +: args): _*)
+      adtConstructor.newInstance((module +: args)*)
 
     private def viatrafyTupleEntry(v: Any): Any =
       transformEDBInput(v)(identity, identity, identity, transformADT)
@@ -71,13 +71,13 @@ class Executor(backendFactory: IQueryBackendFactory = TimelyReteBackendFactory.F
     override def insert(edb: Relation): Unit =
       edb.entries.foreach { t =>
         val input = edb.flattenEntry(t).map(viatrafyTupleEntry)
-        feed.insertExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
+        feed.insertExtensionalTuple(edb.name, Tuples.flatTupleOf(input*))
       }
 
     override def remove(edb: Relation): Unit =
       edb.entries.foreach { t =>
         val input = edb.flattenEntry(t)
-        feed.deleteExtensionalTuple(edb.name, Tuples.flatTupleOf(input: _*))
+        feed.deleteExtensionalTuple(edb.name, Tuples.flatTupleOf(input*))
       }
 
     override def addUpdateListener(up: RelationUpdateListener): Unit =

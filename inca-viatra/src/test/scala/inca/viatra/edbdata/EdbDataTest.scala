@@ -61,7 +61,7 @@ class EdbDataTest extends AnyFunSuiteLike:
     import Nat.*
     val n = Succ(Succ(Zero()))
     val edits = n.load()
-    mod.engine.feed.processEditScript(edits)
+    mod.engine.feed.processCoreEditScript(edits)
 
     //edits.print()
 
@@ -91,7 +91,7 @@ class EdbDataTest extends AnyFunSuiteLike:
     import Nat.*
     val n = Succ(Succ(Zero()))
     val edits = n.load()
-    mod.engine.feed.processEditScript(edits)
+    mod.engine.feed.processCoreEditScript(edits)
 
     //edits.print()
 
@@ -124,7 +124,7 @@ class EdbDataTest extends AnyFunSuiteLike:
     import Nat.*
     val n = Succ(Succ(Zero()))
     val edits = n.load()
-    mod.engine.feed.processEditScript(edits)
+    mod.engine.feed.processCoreEditScript(edits)
 
     //edits.print()
 
@@ -157,7 +157,7 @@ class EdbDataTest extends AnyFunSuiteLike:
     import Nat.*
     val n = Succ(Succ(Zero()))
     val edits = n.load()
-    mod.engine.feed.processEditScript(edits)
+    mod.engine.feed.processCoreEditScript(edits)
 
     //edits.print()
 

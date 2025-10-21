@@ -643,11 +643,11 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
   private def makeTp[T](K: Seq[T] => T, ts: T*): T =
     if ts.size == 1 then ts.head
     else if ts.size == 2 then K(ts.toSeq)
-    else K(Seq(ts.head, makeTp(K, ts.tail: _*)))
+    else K(Seq(ts.head, makeTp(K, ts.tail*)))
 
   private def nmapLookUp(map: Term, keys: Term*): Term =
     if keys.size == 1 then MapLookUp(map, keys.head)
-    else if keys.size > 1 then MapLookUp(nmapLookUp(map, keys.dropRight(1): _*), keys.last)
+    else if keys.size > 1 then MapLookUp(nmapLookUp(map, keys.dropRight(1)*), keys.last)
     else throw IllegalAccessError(s"$keys is an empty list")
 
 
@@ -755,12 +755,12 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
 
     val tp1 = makeTp(
       TupleLit.apply,
-      key1 :+ Cast(StringLit("PL"), ScalaType.any): _*
+      key1 :+ Cast(StringLit("PL"), ScalaType.any)*
     )
 
     val tp2 = makeTp(
       TupleLit.apply,
-      key1 :+ Cast(StringLit("Algorithm"), ScalaType.any): _*
+      key1 :+ Cast(StringLit("Algorithm"), ScalaType.any)*
     )
 
 
@@ -771,7 +771,7 @@ class ScalaMapMonoOptTest extends AnyFunSuiteLike:
       WriteMono(Var("mono"), tp1),
       WriteMono(Var("mono"), tp2),
       Eq(Var("map"), ReadMono(Var("mono"))),
-      Eq(Var("size"), Cast(nmapLookUp(Var("map"), key1: _*), TInt))
+      Eq(Var("size"), Cast(nmapLookUp(Var("map"), key1*), TInt))
     )))).addHint(MainHint)
 
     val engine = compile(mainRelation)

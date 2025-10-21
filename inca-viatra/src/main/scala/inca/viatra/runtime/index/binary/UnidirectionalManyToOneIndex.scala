@@ -9,7 +9,7 @@ import scala.jdk.CollectionConverters.*
 /*
  * In a UnidirectionalManyToOneIndex, each key uniquely identifies the correponding value, but not vice versa.
  */
-class UnidirectionalManyToOneIndex[K, V](val key: IndexKey[_]) extends BinaryIndex[K, V] {
+class UnidirectionalManyToOneIndex[K, V](val key: IndexKey[?]) extends BinaryIndex[K, V] {
   protected val index: MutableMap[K, V] = Maps.mutable.empty()
 
   override def entries: Iterable[(K, V)] = index.entrySet().asScala.map(e => (e.getKey, e.getValue))

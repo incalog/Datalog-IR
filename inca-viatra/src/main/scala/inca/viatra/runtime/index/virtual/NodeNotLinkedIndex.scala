@@ -11,7 +11,7 @@ import truechange.URI
 
 
 object NodeNotLinkedIndex {
-  case class Key(nodeKey: IndexKey[_], linkKey: IndexKey[_], nodeIsSource: Boolean) extends VirtualKey {
+  case class Key(nodeKey: IndexKey[?], linkKey: IndexKey[?], nodeIsSource: Boolean) extends VirtualKey {
     override val getStringID: String = s"NodeNotLinked(${nodeKey.getStringID}, ${linkKey.getStringID}, nodeIsSource=$nodeIsSource)"
     override val getArity: Int = 1
 
@@ -33,7 +33,7 @@ object NodeNotLinkedIndex {
 }
 
 
-class NodeNotLinkedIndex(nodeKey: IndexKey[_], linkKey: IndexKey[_], nodeIsSource: Boolean) extends VirtualUnaryIndex[URI] {
+class NodeNotLinkedIndex(nodeKey: IndexKey[?], linkKey: IndexKey[?], nodeIsSource: Boolean) extends VirtualUnaryIndex[URI] {
 
   if (nodeKey.getArity != 1)
     throw new IllegalArgumentException(s"Node key must have arity 1")
@@ -41,7 +41,7 @@ class NodeNotLinkedIndex(nodeKey: IndexKey[_], linkKey: IndexKey[_], nodeIsSourc
     throw new IllegalArgumentException(s"Link key must have arity 2")
 
   /** The key of this index */
-  override val key: IndexKey[_] = NodeNotLinkedIndex.Key(nodeKey, linkKey, nodeIsSource)
+  override val key: IndexKey[?] = NodeNotLinkedIndex.Key(nodeKey, linkKey, nodeIsSource)
 
   lazy val parentIndex: ParentIndex = database.dynamicIndices.getOrElse(ParentIndex.Key, throw new IllegalStateException("Size index requires parent index to be present")).asInstanceOf[ParentIndex]
 

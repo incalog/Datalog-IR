@@ -4,11 +4,12 @@ import inca.viatra.runtime.db.Database
 import inca.viatra.runtime.index.Index
 import inca.viatra.runtime.index.binary.BinaryIndex
 import inca.viatra.runtime.index.unary.UnaryIndex
+import scala.compiletime.uninitialized
 
 /** A virtual index stores no data of its own but uses other indices to answer queries */
 trait VirtualIndex extends Index {
 
-  protected var database: Database = _
+  protected var database: Database = uninitialized
 
   private[virtual] def setDatabase(database: Database): Unit = {
     this.database = database

@@ -13,7 +13,7 @@ import truechange.{Link, Tag, URI}
  */
 trait Index {
   /** The key of this index */
-  def key: IndexKey[_]
+  def key: IndexKey[?]
 
   /** counts tuples of the associated virtual key contained in index based on provided mask and seed */
   def countTuples(mask: TupleMask, seed: ITuple): Int
@@ -22,7 +22,7 @@ trait Index {
   def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple]
 
   /** enumerate all values within index associated with virtual key based on provided mask and seed */
-  def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_]
+  def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[?]
 
   /** checks whether the provided tuple is contained in index */
   def containsTuple(tuple: ITuple): Boolean

@@ -23,7 +23,7 @@ trait JoinAggregation[V] extends Aggregation[V, V]:
 
   def unjoin(v1: V, v2: V): V = throw new UnsupportedOperationException
 
-  def aggregator: IMultisetAggregationOperator[V, _, V] =
+  def aggregator: IMultisetAggregationOperator[V, ?, V] =
     if (isAssociative && isCommutative && hasUnjoin)
       new AggregatorAssocCommInv[V](this)
     else if (isAssociative && isCommutative)

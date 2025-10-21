@@ -3,7 +3,7 @@ package inca.viatra.runtime.index.unary
 import inca.viatra.runtime.index.IndexKey
 import scala.collection.mutable
 
-class UnarySetIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {
+class UnarySetIndex[V](val key: IndexKey[?]) extends UnaryIndex[V] {
   // mutable.Set seems faster than Eclipse's MutableSet
   protected val index: mutable.Set[V] = mutable.Set()
 

@@ -221,7 +221,7 @@ class SetMonoOptTest extends AnyFunSuiteLike:
       )
     )
 
-    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs: _*)
+    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs*)
     engine.insert(edbEdge)
   //engine.readAll().foreach(res => println(res.asTable))
 

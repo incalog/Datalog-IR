@@ -11,7 +11,7 @@ import scala.jdk.CollectionConverters.*
 /*
  * In a BidirectionalManyToOneIndex, each key uniquely identifies the correponding value, but not vice versa.
  */
-class BidirectionalManyToOneIndex[K, V](val key: IndexKey[_]) extends BinaryMapIndex[K, V] {
+class BidirectionalManyToOneIndex[K, V](val key: IndexKey[?]) extends BinaryMapIndex[K, V] {
   protected val index: MutableMap[K, V] = Maps.mutable.empty()
   protected val indexInverted: MutableSetMultimap[V, K] = Multimaps.mutable.set.empty()
 

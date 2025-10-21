@@ -36,7 +36,7 @@ object NotNodeTypeIndex {
 class NotNodeTypeIndex(ty: Type) extends VirtualUnaryIndex[URI] {
 
   /** The key of this index */
-  override val key: IndexKey[_] = NotNodeTypeIndex.Key(ty)
+  override val key: IndexKey[?] = NotNodeTypeIndex.Key(ty)
 
   override def index(v: URI): Int = database.nodeInstances.get(ty) match {
     case Some(ix) =>

@@ -1,7 +1,9 @@
 package inca.viatra.runtime.aggregate
 
+import scala.compiletime.uninitialized
+
 class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]):
-  var root: AugmentedAVLNode[T] = _
+  var root: AugmentedAVLNode[T] = uninitialized
 
   def insert(value: T): AugmentedAVLTree[T] = {
     root = insert(root, value)
@@ -197,9 +199,9 @@ object AugmentedAVLTree:
 
 class AugmentedAVLNode[T](var value: T, op: (T, T) => T)(implicit ord: Ordering[T]):
 
-  var _parent: AugmentedAVLNode[T] = _
-  private var _lhs: AugmentedAVLNode[T] = _
-  private var _rhs: AugmentedAVLNode[T] = _
+  var _parent: AugmentedAVLNode[T] = uninitialized
+  private var _lhs: AugmentedAVLNode[T] = uninitialized
+  private var _rhs: AugmentedAVLNode[T] = uninitialized
 
   def parent: AugmentedAVLNode[T] = _parent
 

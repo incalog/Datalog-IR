@@ -99,7 +99,7 @@ class SetMonoTest extends AnyFunSuiteLike:
 
 
   private def compile(relations: ModuleEntry*): ExecutorEngine =
-    compile(TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL, relations: _*)
+    compile(TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL, relations*)
 
   private def compile(backendFactory: IQueryBackendFactory, relations: ModuleEntry*): ExecutorEngine =
     val mod = Module("M", langs, relations)
@@ -258,7 +258,7 @@ class SetMonoTest extends AnyFunSuiteLike:
       )
     )
 
-    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs: _*)
+    val engine = compile(mainRelation +: collRelation +: extEdge +: adtDefs*)
     engine.insert(edbEdge)
   //engine.readAll().foreach(res => println(res.asTable))
 

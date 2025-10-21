@@ -39,7 +39,7 @@ object NotNamedRelationIndex {
 class NotNamedRelationIndex(name: String, arity: Int) extends VirtualIndex {
 
   /** The key of this index */
-  override val key: IndexKey[_] = NotNamedRelationIndex.Key(name, arity)
+  override val key: IndexKey[?] = NotNamedRelationIndex.Key(name, arity)
 
   override def containsTuple(tuple: ITuple): Boolean = database.namedRelationInstances.get(name) match
     case Some(ix) => !ix.containsTuple(tuple)
@@ -49,7 +49,7 @@ class NotNamedRelationIndex(name: String, arity: Int) extends VirtualIndex {
 
   override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[tuple.Tuple] = throw new UnsupportedOperationException()
 
-  override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_] = throw new UnsupportedOperationException()
+  override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[?] = throw new UnsupportedOperationException()
 
   override def addListener(listener: IQueryRuntimeContextListener, seed: tuple.Tuple): Unit = throw new UnsupportedOperationException()
 

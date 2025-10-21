@@ -8,7 +8,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 
-class BagIndex(val key: IndexKey[_]) extends Index {
+class BagIndex(val key: IndexKey[?]) extends Index {
 
   protected val index: MutableObjectIntMap[Tuple] = ObjectIntMaps.mutable.empty()
 
@@ -71,7 +71,7 @@ class BagIndex(val key: IndexKey[_]) extends Index {
   }
 
   /** enumerate all values within index associated with virtual key based on provided mask and seed */
-  override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_] = {
+  override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[?] = {
     // TODO what should we enumerate here? All values of the specified columns?
     val maskLength = mask.indices.length
     if (maskLength == 0) {

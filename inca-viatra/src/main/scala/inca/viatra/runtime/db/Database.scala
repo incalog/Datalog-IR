@@ -119,17 +119,21 @@ class Database(
 
   // process coreedits to so that first dynamic indicies are modified and then the core indicies
   // we want to avoid interleaving this
-  override def processEditScript(edits: EditScript): Unit = {
+  def processCoreEditScript(edits: CoreEditScript): Unit = {
     dynamicIndices.values.foreach(_.startProcessEditScript())
     updater.startProcessEditScript()
 
-    edits.coreEdits.foreach { edit =>
+    edits.foreach { edit =>
       dynamicIndices.values.foreach(_.processEdit(edit))
       updater.processEdit(edit)
     }
 
     dynamicIndices.values.foreach(_.endProcessEditScript())
     updater.endProcessEditScript()
+  }
+  
+  override def processEditScript(edits: EditScript): Unit = {
+    processCoreEditScript(edits.coreEdits)
   }
 
   override def insertExtensionalTuple(relName: String, tuple: Tuple): Unit =
@@ -198,7 +202,7 @@ class Database(
     case None => util.Collections.emptyList()
   }
 
-  override def enumerateValues(key: IInputKey, mask: TupleMask, seed: ITuple): lang.Iterable[_] = getIndex(key) match {
+  override def enumerateValues(key: IInputKey, mask: TupleMask, seed: ITuple): lang.Iterable[?] = getIndex(key) match {
     case Some(ix) => ix.enumerateValues(mask, seed).asJava
     case None => util.Collections.emptyList()
   }

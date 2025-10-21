@@ -32,7 +32,7 @@ object SizeIndex {
 class SizeIndex extends VirtualBinaryIndex[URI, Int] {
 
   /** The key of this index */
-  override val key: IndexKey[_] = SizeIndex.Key
+  override val key: IndexKey[?] = SizeIndex.Key
 
   lazy val parentIndex: ParentIndex = database.dynamicIndices.getOrElse(ParentIndex.Key, throw new IllegalStateException("Size index requires parent index to be present")).asInstanceOf[ParentIndex]
 
