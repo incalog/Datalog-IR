@@ -21,51 +21,28 @@ val scalaTestVersionString = "3.2.16"
 
 val groupURL = "https://gitlab.rlp.net/api/v4/groups/plmz/-/packages/maven"
 val truediffVersion = "0.2.0-SNAPSHOT"
+val benchmarkVersion = "0.1"
+val sturdyCoreVersion = "0.1-SNAPSHOT"
 
 // Use for local debugging
 //val sturdy = uri(s"file:///Users/David/Desktop/sturdy.scala")
 
-val sturdyCommit = "b6b47d5db28dc9f049f2ef21dbc996bf9e7b80c3"
-val sturdy = uri(s"https://gitlab.rlp.net/plmz/sturdy.scala.git#$sturdyCommit")
-
-val libDeps = Seq(
-    ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
-     "de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1",
-     "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
-     "org.typelevel" %% "cats-parse" % "0.3.9",
-     "org.typelevel" %% "cats-core" % "2.9.0",
-     //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
-  )
-val ciDeps =
-  if (isCI)
-    Seq(
-      "de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
-    )
-  else
-    Seq()
-
 lazy val inca_ir = {
-  // To not run out of memory and speedup compilation,
-  // we use locally published dependencies in the CI pipeline.
-  if (isCI) {
-    (project in file("inca-ir"))
-      .settings(
-        scalaVersion := scalaVersionString,
-        resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-        resolvers += "GitLab" at groupURL,
-        libraryDependencies ++= libDeps ++ ciDeps
+  (project in file("inca-ir"))
+    .settings(
+      scalaVersion := scalaVersionString,
+      resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
+      resolvers += "GitLab" at groupURL,
+      libraryDependencies ++= Seq(
+        ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
+        "de.uni-mainz.informatik.pl" %% "benchmark-scala" % benchmarkVersion,
+        "de.uni-mainz.informatik.pl" %% "sturdy_core" % sturdyCoreVersion,
+        "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
+        "org.typelevel" %% "cats-parse" % "0.3.9",
+        "org.typelevel" %% "cats-core" % "2.9.0",
+        //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
       )
-  } else {
-    (project in file("inca-ir"))
-      .settings(
-        scalaVersion := scalaVersionString,
-        resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-        resolvers += "GitLab" at groupURL,
-        libraryDependencies ++= libDeps
-      )
-      .dependsOn(ProjectRef(sturdy, "sturdy_core") % "compile->compile;test->test")
-      //.dependsOn(RootProject(benchmarking) % "compile->compile;test->test")
-  }
+    )
 }
 
 

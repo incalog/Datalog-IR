@@ -24,8 +24,8 @@ RUN sbt sbtVersion && \
  	sbt update
  	
 # Install and publish sturdy locally
-RUN git clone https://gitlab.rlp.net/plmz/sturdy.scala.git
-RUN cd sturdy.scala && sbt sturdy_core/publishLocal
+#RUN git clone https://gitlab.rlp.net/plmz/sturdy.scala.git
+#RUN cd sturdy.scala && sbt sturdy_core/publishLocal
 
 # Install and publish scala-benchmark locally
 #RUN git clone https://gitlab.rlp.net/plmz/benchmark-scala.git
