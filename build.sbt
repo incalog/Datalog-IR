@@ -1,7 +1,4 @@
-
 name := "inca"
-
-val isCI = sys.env.get("CI").contains("true")
 
 ThisBuild / organization := "de.uni-mainz.informatik.pl"
 ThisBuild / version := "0.1"
@@ -18,7 +15,9 @@ ThisBuild / fork := true
 val scalaVersionString = "3.5.2"
 val scalaTestVersionString = "3.2.16"
 
-
+// You don't have to use the projectURL which is used for publishing.
+// Instead, you can use the group URL that aggregates all packages.
+// To view them in the webinterface go to: https://gitlab.rlp.net/groups/plmz/-/packages
 val groupURL = "https://gitlab.rlp.net/api/v4/groups/plmz/-/packages/maven"
 val truediffVersion = "0.2.0-SNAPSHOT"
 val benchmarkVersion = "0.1"
