@@ -659,7 +659,7 @@ object MarkedLambda extends App:
   println("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nLowered:")
   println(unit.compiled)
 
-  val dataModel = DataModel.from(edb.allNodes: _*)
+  val dataModel = DataModel.from(edb.allNodes*)
 
   val exec = new Executor()
   val engine = exec.instantiate(unit, dataModel)

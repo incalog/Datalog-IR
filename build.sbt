@@ -19,8 +19,8 @@ val scalaVersionString = "3.5.2"
 val scalaTestVersionString = "3.2.16"
 
 
+val groupURL = "https://gitlab.rlp.net/api/v4/groups/plmz/-/packages/maven"
 val truediffVersion = "0.2.0-SNAPSHOT"
-val truediffProjectURL = "https://gitlab.rlp.net/api/v4/projects/11680/packages/maven"
 
 // Use for local debugging
 //val sturdy = uri(s"file:///Users/David/Desktop/sturdy.scala")
@@ -55,7 +55,7 @@ lazy val inca_ir = {
       .settings(
         scalaVersion := scalaVersionString,
         resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-        resolvers += "GitLab" at truediffProjectURL,
+        resolvers += "GitLab" at groupURL,
         libraryDependencies ++= libDeps ++ ciDeps
       )
   } else {
@@ -63,7 +63,7 @@ lazy val inca_ir = {
       .settings(
         scalaVersion := scalaVersionString,
         resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-        resolvers += "GitLab" at truediffProjectURL,
+        resolvers += "GitLab" at groupURL,
         libraryDependencies ++= libDeps
       )
       .dependsOn(ProjectRef(sturdy, "sturdy_core") % "compile->compile;test->test")
@@ -147,7 +147,7 @@ lazy val inca_viatra = (project in file("inca-viatra"))
     //resolvers += "Eclipse Releases" at "https://download.eclipse.org/viatra/updates/release",
     resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/repositories/releases/",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-    resolvers += "GitLab" at truediffProjectURL,
+    resolvers += "GitLab" at groupURL,
 
     libraryDependencies ++= Seq(
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
@@ -211,7 +211,7 @@ lazy val hazel_typing_diffable = (project in file("hazel-typing-diffable"))
     scalacOptions += "-Ymacro-annotations",
     //resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-    resolvers += "GitLab" at truediffProjectURL,
+    resolvers += "GitLab" at groupURL,
 
     libraryDependencies ++= Seq(
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
@@ -245,7 +245,7 @@ lazy val inca_casestudy_diffable = (project in file("inca-casestudy-diffable"))
     scalacOptions += "-Ymacro-annotations",
     //resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
     resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
-    resolvers += "GitLab" at truediffProjectURL,
+    resolvers += "GitLab" at groupURL,
 
     libraryDependencies ++= Seq(
       ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
