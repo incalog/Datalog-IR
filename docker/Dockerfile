@@ -28,8 +28,8 @@ RUN git clone https://gitlab.rlp.net/plmz/sturdy.scala.git
 RUN cd sturdy.scala && sbt sturdy_core/publishLocal
 
 # Install and publish scala-benchmark locally
-RUN git clone https://gitlab.rlp.net/plmz/benchmark-scala.git
-RUN cd benchmark-scala && sbt publishLocal
+#RUN git clone https://gitlab.rlp.net/plmz/benchmark-scala.git
+#RUN cd benchmark-scala && sbt publishLocal
 
 # Install DDLog
 #RUN apt-get update -y && \ 

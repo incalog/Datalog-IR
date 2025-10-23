@@ -25,24 +25,21 @@ val truediffVersion = "0.2.0-SNAPSHOT"
 // Use for local debugging
 //val sturdy = uri(s"file:///Users/David/Desktop/sturdy.scala")
 
-val benchmarkingCommit = "9d15aaab433db34a029770fe5e7d6698f179595e"
-val benchmarking = uri(s"https://gitlab.rlp.net/plmz/benchmark-scala.git#$benchmarkingCommit")
-
 val sturdyCommit = "b6b47d5db28dc9f049f2ef21dbc996bf9e7b80c3"
 val sturdy = uri(s"https://gitlab.rlp.net/plmz/sturdy.scala.git#$sturdyCommit")
 
 val libDeps = Seq(
     ("de.uni-mainz.informatik.pl" %% "truechange" % truediffVersion).cross(CrossVersion.for3Use2_13),
-    "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
-    "org.typelevel" %% "cats-parse" % "0.3.9",
-    "org.typelevel" %% "cats-core" % "2.9.0",
-    //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
+     "de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1",
+     "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
+     "org.typelevel" %% "cats-parse" % "0.3.9",
+     "org.typelevel" %% "cats-core" % "2.9.0",
+     //("com.regblanc" %% "scala-smtlib" % "0.2.1-42-gc68dbaa").cross(CrossVersion.for3Use2_13),
   )
 val ciDeps =
   if (isCI)
     Seq(
       "de.uni-mainz.informatik.pl" %% "sturdy_core" % "0.1",
-      "de.uni-mainz.informatik.pl" %% "benchmark-scala" % "0.1"
     )
   else
     Seq()
@@ -67,7 +64,7 @@ lazy val inca_ir = {
         libraryDependencies ++= libDeps
       )
       .dependsOn(ProjectRef(sturdy, "sturdy_core") % "compile->compile;test->test")
-      .dependsOn(RootProject(benchmarking) % "compile->compile;test->test")
+      //.dependsOn(RootProject(benchmarking) % "compile->compile;test->test")
   }
 }
 
