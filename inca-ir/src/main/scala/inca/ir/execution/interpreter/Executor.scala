@@ -70,16 +70,16 @@ class Executor extends IRExecutor:
       case Some(rel) =>
         val matches = rel.entries.flatMap { el =>
           val flatEl = rel.flattenEntry(el)
-          val matches = query.entries.exists { qt =>
+          val isMatch = query.entries.exists { qt =>
             val flatQuery = query.flattenEntry(qt)
             flatEl.zipAll(flatQuery, null, null).forall {
               case (e, null) => true
               case (e, q) => e == q
             }
           }
-          if (matches) Some(flatEl) else None
+          if (isMatch) Some(flatEl) else None
         }
-        Relation.from(query.name, query.parameterNames, matches)
+        Relation.from(query.name, rel.parameterNames, matches)
       case _ => throw IllegalArgumentException(s"Can not find relation ${query.name}")
 
     override def measure(rel: Relation): Long =
