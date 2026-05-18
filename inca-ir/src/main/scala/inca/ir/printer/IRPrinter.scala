@@ -25,6 +25,7 @@ trait IRPrinter extends BaseIRPrinter
   with set.printer.Printer
   with string.printer.Printer
   with tuple.printer.Printer
+  with locals.printer.Printer
   with typeparam.printer.Printer:
 
   override val name: String = "IRPrinter"

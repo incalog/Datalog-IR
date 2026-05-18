@@ -4,6 +4,7 @@ import inca.ir
 import inca.ir.{Atom, BaseIR, Body, Eq, Name, Relation, Term, Var}
 import inca.ir.util.{BodyAwareVisitor, SourceLocation}
 import inca.ir.extension.locals.IR
+import inca.ir.extension.locals.VersionedVarRewriter.decompileName
 import inca.ir.lowering.BaseLowering
 
 import scala.compiletime.uninitialized
@@ -12,10 +13,10 @@ import scala.compiletime.uninitialized
  * Inspired by an SSA transformation, we introduce versioned variables for mutation.
  * For example, the following Datalog code:
  *
- * var a = 4
- * val b = a + 1 // 5
+ * a == 4
+ * b == a + 1 // 5
  * a = a + 5
- * val c = a + 1 // 10
+ * c == a + 1 // 10
  *
  * lowers to:
  *
@@ -71,10 +72,14 @@ class VersionedVarRewriter:
   def lastName(name: Name): Name =
     val base = VersionedVarRewriter.baseName(name)
     used.get(base) match
-      case Some(count) => Name(base.name + count)
+      case Some(count) => Name(base.name + (count-1))
       case None => Name(base.name + 0)
 
   def isRegistered(name: Name): Boolean = used.contains(VersionedVarRewriter.baseName(name))
+
+  def register(name: Name): Unit =
+    val (base, idx) = decompileName(name)
+    used += base -> (idx.getOrElse(0) + 1)
 
   def scoped[A](f: => A): A =
     val oldused = this.used
@@ -99,7 +104,9 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
   type Enclosure = SourceLocation
   private var maxBodyVars: Map[(Enclosure, Body, BaseName), Name] = Map()
 
-  private def freshVersionedName(name: Name, enclosure: SourceLocation): Name = varRewriter.freshName(name)
+  private def freshVersionedName(name: Name): Name = varRewriter.freshName(name)
+
+  private def registerVersionedName(name: Name): Unit = varRewriter.register(name)
 
   private def getCurrentVersionedName(name: Name): Name = varRewriter.lastName(name)
 
@@ -111,59 +118,75 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
     phase = Rewrite
     super.visitModule(module)
 
-  // When exiting a body we need to reset the variables. For example, each disjunctive body can use the same variable
-  // name again.
-  override def visitBody(body: Body, enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Seq[Body] =
-    val newBodies = varRewriter.scoped(super.visitBody(body, enclosure, parentEnclosureOption))
+  def exitEnclosure(enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Unit =
+    // After exiting an enclosure, e.g. a disjunction we must register the greatest version of a variable.
+    // That way, all successor atoms use the correct latest version of the variable.
+    val maxBodyVarsByEnclosure = maxBodyVars.groupBy {
+      case ((enclosure, _, baseName), _) => (enclosure, baseName)
+    }.view.mapValues { v =>
+      VersionedVarRewriter.max(v.values.toSeq)
+    }
 
+    maxBodyVarsByEnclosure.foreach {
+      case ((`enclosure`, baseName), _) =>
+        val maxName = maxBodyVarsByEnclosure((enclosure, baseName))
+        registerVersionedName(maxName)
+      case _ => // nothing
+    }
+
+  override def visitBody(body: Body, enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Seq[Body] = {
     phase match
       case Collect =>
         // Store the last variable for each body
-        maxBodyVars ++= body.vars
-          .filter(v => isMutable(v.name))
-          .map { v =>
-            val baseName = VersionedVarRewriter.baseName(v.name)
-            val key = (enclosure, body, baseName)
-            key -> getCurrentVersionedName(baseName)
-          }
-        newBodies
+        varRewriter.scoped {
+          val newBodies = super.visitBody(body, enclosure, parentEnclosureOption)
+          maxBodyVars ++= body.vars
+            .filter(v => isMutable(v.name))
+            .map { v =>
+              val baseName = VersionedVarRewriter.baseName(v.name)
+              val key = (enclosure, body, baseName)
+              key -> getCurrentVersionedName(baseName)
+            }
+          newBodies
+        }
+
       case Rewrite =>
+        val newBodies = varRewriter.scoped(super.visitBody(body, enclosure, parentEnclosureOption))
         newBodies.map { b =>
           val ats = b.atoms
+
           val maxBodyVarsByEnclosure = maxBodyVars.groupBy {
-            case ((enclose, _, baseName), _) => (enclose, baseName)
+            case ((enclosure, _, baseName), _) => (enclosure, baseName)
           }.view.mapValues { v =>
             VersionedVarRewriter.max(v.values.toSeq)
           }
 
           val maxVarConstraints = maxBodyVars.flatMap {
-            case ((`enclosure`, `body`, baseName), newName) =>
+            case ((`enclosure`, `body`, baseName), newName) if parentEnclosureOption.nonEmpty =>
               val maxName = maxBodyVarsByEnclosure((enclosure, baseName))
-              Some(Eq(Var(maxName), Var(newName)))
+              if (maxName != newName) Some(Eq(Var(maxName), Var(newName)))
+              else None
             case _ =>
               None
           }
+
           Body(ats ++ maxVarConstraints)
         }
+  }
 
   override def visitAtom(atom: Atom, enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Seq[Atom] =
-    def eqConstraint(lhsName: Name, rhs: Term): Seq[Atom] =
-      val Seq(assign) = visitTerm(rhs)
-      Seq(Eq(Var(lhsName), assign))
+    atom match
+      case Assign(v@Var(ref), t) =>
+        val Seq(assign) = visitTerm(t)
+        val newName = freshVersionedName(ref.name)
+        Seq(Eq(Var(newName), assign))
+      case _ => super.visitAtom(atom, enclosure, parentEnclosureOption)
 
-    phase match
-      case Collect =>
-        super.visitAtom(atom, enclosure, parentEnclosureOption)
-      case Rewrite => atom match
-        case DeclVal(v@Var(ref), t) => eqConstraint(ref.name, t)
-        case DeclVar(v@Var(ref), t) => eqConstraint(freshVersionedName(ref.name, enclosure), t)
-        case Assign(v@Var(ref), t) => eqConstraint(getCurrentVersionedName(ref.name), t)
-        case _ => super.visitAtom(atom, enclosure, parentEnclosureOption)
 
   override def visitTerm(term: Term): Seq[Term] =
-    phase match
-      case Collect =>
-        super.visitTerm(term)
-      case Rewrite => term match
-        case v@Var(ref) if isMutable(ref.name) => Seq(Var(getCurrentVersionedName(ref.name)))
-        case _ => super.visitTerm(term)
+      phase match
+        case Rewrite => term match
+          case v@Var(ref) if isMutable(ref.name) => Seq(Var(getCurrentVersionedName(ref.name)))
+          case _ => super.visitTerm(term)
+        case Collect =>
+          super.visitTerm(term)

@@ -23,4 +23,5 @@ trait IRVisitor extends BaseIRVisitor
   with mono.Visitor
   with typeparam.Visitor
   with edbdata.Visitor
+  with locals.Visitor
 
