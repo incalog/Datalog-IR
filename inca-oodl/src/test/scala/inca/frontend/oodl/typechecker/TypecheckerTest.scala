@@ -1,6 +1,5 @@
 package inca.frontend.oodl.typechecker
 
-import inca.frontend.oodl.compile.SSA
 import inca.frontend.oodl.syntax.*
 import inca.ir.extension.block
 import inca.ir.typing.IRTypechecker

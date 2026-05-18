@@ -488,18 +488,6 @@ class Typechecker extends TypeContext with TypeIO:
             case Some(trg) => error(s"Operator '+=' not applicable to $recv", recv, statement)
             case _ => error(s"Unresolved target for receiver $recv", recv, statement)
         case ty => error(s"Unexpected receiver target '$recv' of type '$ty' for operator '+='", recv, statement)
-    case phiStmt@VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
-      scopedTypeContext {
-        typecheck(ifStmt.thn, rt)
-        if (lookupVar(thnName).isEmpty)
-          error(s"Name $thnName is not defined for VarPhiAssign", phiStmt)
-      }
-      scopedTypeContext {
-        typecheck(ifStmt.els, rt)
-        if (lookupVar(elsName).isEmpty)
-          error(s"Name $elsName is not defined for VarPhiAssign", phiStmt)
-      }
-      bindVar(name, phiStmt, typ, immutable = true)
     case _ =>
       throw IllegalStateException()
   }

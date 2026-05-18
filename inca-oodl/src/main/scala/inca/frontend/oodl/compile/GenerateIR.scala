@@ -26,6 +26,7 @@ import inca.ir.extension.tuple as irtuple
 import inca.ir.extension.impure as irimpure
 import inca.ir.extension.mono as irmono
 import inca.ir.extension.impure
+import inca.ir.extension.locals as irlocals
 import inca.util.Gensym
 import inca.frontend.oodl.syntax.Type.signatureString
 import inca.ir.extension.mono.{MonoDefinition, MonoTypes, UserDefinedMonoDefinition}
@@ -67,6 +68,7 @@ class GenerateIR:
                                       + irarith.IR + block.IR + bool.IR + irdata.IR + irmatch.IR
                                       + demand.IR + disjunction.IR + irnot.IR + irset.IR + irstring.IR + irtuple.IR
                                       + iragg.IR + iraggset.IR + irimpure.IR + irmono.IR + irmap.IR
+                                      + irlocals.IR
   )
 
   val gensym: Gensym = new Gensym()
@@ -399,32 +401,36 @@ class GenerateIR:
 
   /** Statement */
 
-  def compileStatements(stmts: Seq[Statement], resultVar: Name): Seq[ir.Atom] = stmts match
-    case Nil => Seq()
-    case (stm@Return(_)) :: _ => Seq(compileStatement(stm, resultVar))
-    case (stm@If(cnd, thn, els)) :: rest =>
-      // Note: This assumes, that all VarPhiAssigns directly follow an if stmt
-      val (varPhiAssigns, remainingStmts) = rest.span {
-        case VarPhiAssign(name, typ, ifStmt, _, _) => stm == ifStmt
-        case _ => false
-      }
-      // Merge all VarPhiAssigns into the thn and els branch
-      val (thnDeclarations, elsDeclarations) = varPhiAssigns.map {
-        case VarPhiAssign(name, typ, _, thnName, elsName) =>
-          val thnDecl = VarDeclare(name, Some(typ), Some(Var(thnName)), true)
-          val elsDecl = VarDeclare(name, Some(typ), Some(Var(elsName)), true)
-          (thnDecl, elsDecl)
-        case _ =>
-          throw IllegalStateException("Not a phi node!")
-      }.unzip
-      // Merge remaining stmts to correctly handle return
-      // Note: This generates a lot of duplicated atoms
-      val thnStmts = thn ++ thnDeclarations ++ remainingStmts
-      val elsStmts = els ++ elsDeclarations ++ remainingStmts
-      val ifAtom = compileStatement(If(cnd, thnStmts, elsStmts), resultVar)
-      Seq(ifAtom)
+  def compileStatements(stmts: Seq[Statement], resultVar: Name, cont: Seq[ir.Atom] = Seq()): Seq[ir.Atom] = stmts match
+    case Nil =>
+      cont
+    case (stm@Return(_)) :: _ =>
+      Seq(compileStatement(stm, resultVar))
+    case If(cnd, thenStmts, elseStmts) :: rest =>
+      // Carefully compile if statements to correctly, handle return
+      // E.g.
+      // if (con) 
+      //    return a
+      // return b
+      // 
+      // Should compile to:
+      //    {cond == 1, main_result$0 == a} or {cond == 0, main_result$0 == b}
+      // It should not compile to:
+      //    {cond == 1, main_result$0 == a} or {cond == 0}, main_result$0 == b
+      val restCont = compileStatements(rest, resultVar, cont)
+      val cndTerm = compileExpression(cnd)
+      Seq(
+        disjunction.Disjunction(Seq(
+          DisjunctionAlternative(
+            ir.Eq(cndTerm, bool.BoolTrue) +: compileStatements(thenStmts, resultVar, restCont)
+          ),
+          DisjunctionAlternative(
+            ir.Eq(cndTerm, bool.BoolFalse) +: compileStatements(elseStmts, resultVar, restCont)
+          )
+        ))
+      )
     case stm :: rest =>
-      compileStatement(stm, resultVar) +: compileStatements(rest, resultVar)
+      compileStatement(stm, resultVar) +: compileStatements(rest, resultVar, cont)
     case _ =>
       throw IllegalStateException("Unexpected statement")
 
@@ -453,27 +459,15 @@ class GenerateIR:
         val fieldSetter = ir.Call(qualifiedName, Seq(recvTerm.arg, rhsTerm.arg, ir.Var(mutVar).arg))
         irimpure.Impure(mutVar, fieldSetter, irarith.Add(ir.Var(mutVar), irarith.IntNum(1)), MutationImpurityKind)
     case Assign(lhs, Name("="), rhs) =>
-      ir.Eq(compileExpression(lhs), compileExpression(rhs))
+      compileExpression(lhs) match
+        case v: ir.Var => irlocals.Assign(v, compileExpression(rhs))
+        case _ => throw IllegalStateException(s"Unexpected assign of non-variable type $lhs")
     case Assign(lhs, Name("+="), rhs) =>
       irmono.WriteMono(compileExpression(lhs), compileExpression(rhs), Seq())
     case VarDeclare(name, typ, None, immutable) =>
       throw IllegalStateException(s"Can not compile variable declaration '$name' without a value")
-    case VarDeclare(name, typ, _, false) =>
-      throw IllegalStateException(s"Can not compile mutable variable '$name'")
-    case VarDeclare(name, _, Some(expr), true) =>
+    case VarDeclare(name, _, Some(expr), _) =>
       ir.Eq(ir.Var(name), compileExpression(expr))
-    case If(cnd, thn, els) =>
-      val cndTerm = compileExpression(cnd)
-      disjunction.Disjunction(Seq(
-        DisjunctionAlternative(
-          ir.Eq(cndTerm, bool.BoolTrue) +: compileStatements(thn, resultVar)
-        ),
-        DisjunctionAlternative(
-          ir.Eq(cndTerm, bool.BoolFalse) +: compileStatements(els, resultVar)
-        )
-      ))
-    case VarPhiAssign(name, typ, If(cnd, _, _), thnName, elsName) =>
-      throw IllegalStateException(s"Encountered unexpected VarPhiAssign for name: '$name'")
     case _ =>
       throw IllegalStateException()
 

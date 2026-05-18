@@ -206,8 +206,6 @@ class GenerateScala:
       val thnCode = transStatements(thn).indent(4)
       val elsCode = transStatements(els).indent(4)
       s"if ($cndCode) {\n$thnCode} else {\n$elsCode}"
-    case VarPhiAssign(name, typ, ifStmt, thnName, elsName) =>
-      throw IllegalStateException("Can not translate SSA transformed OODL program to Scala.")
 
   def transExpression(expr: Expression): Code = expr match
     case Var(Name("this")) =>

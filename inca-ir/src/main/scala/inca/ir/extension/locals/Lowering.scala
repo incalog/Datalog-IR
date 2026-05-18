@@ -73,7 +73,7 @@ class VersionedVarRewriter:
     val base = VersionedVarRewriter.baseName(name)
     used.get(base) match
       case Some(count) => Name(base.name + (count-1))
-      case None => Name(base.name + 0)
+      case None => Name(base.name.dropRight(VersionedVarRewriter.sepSymbol.length))
 
   def isRegistered(name: Name): Boolean = used.contains(VersionedVarRewriter.baseName(name))
 
@@ -98,7 +98,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
   override val requiredIRs: Set[BaseIR] = Set()
 
   private var phase: Phase = Collect
-  private val varRewriter = new VersionedVarRewriter
+  private var varRewriter: VersionedVarRewriter = uninitialized
 
   type BaseName = Name
   type Enclosure = SourceLocation
@@ -114,12 +114,17 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
 
   override def visitModule(module: ir.Module): ir.Module =
     phase = Collect
-    super.visitModule(module)
-    phase = Rewrite
+    varRewriter = new VersionedVarRewriter
     super.visitModule(module)
 
+    phase = Rewrite
+    varRewriter = new VersionedVarRewriter
+    val res = super.visitModule(module)
+    println(res)
+    res
+
   def exitEnclosure(enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Unit =
-    // After exiting an enclosure, e.g. a disjunction we must register the greatest version of a variable.
+    // After exiting an enclosure, e.g. a disjunction we must register the greatest version of each variable.
     // That way, all successor atoms use the correct latest version of the variable.
     val maxBodyVarsByEnclosure = maxBodyVars.groupBy {
       case ((enclosure, _, baseName), _) => (enclosure, baseName)
@@ -161,12 +166,34 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
             VersionedVarRewriter.max(v.values.toSeq)
           }
 
-          val maxVarConstraints = maxBodyVars.flatMap {
-            case ((`enclosure`, `body`, baseName), newName) if parentEnclosureOption.nonEmpty =>
-              val maxName = maxBodyVarsByEnclosure((enclosure, baseName))
-              if (maxName != newName) Some(Eq(Var(maxName), Var(newName)))
-              else None
-            case _ =>
+          val maxVarUsedInEnclosure = maxBodyVarsByEnclosure.flatMap {
+            case ((`enclosure`, baseName), name) => Some((baseName, name))
+            case _ => None
+          }
+
+          val varsUsedInBody = maxBodyVars.flatMap {
+            case ((`enclosure`, `body`, baseName), lastName) => Some((baseName, lastName))
+            case _ => None
+          }
+
+          val maxVarConstraints = maxVarUsedInEnclosure.flatMap { (baseName, maxName) =>
+            // Either get the last versioned name inside this body, or if the variable is not used
+            // inside the body, use the last version from the parent enclosure.
+            val lastNameInParentEnclosure = getCurrentVersionedName(baseName)
+            val lastName = varsUsedInBody.getOrElse(baseName, lastNameInParentEnclosure)
+
+            if (parentEnclosureOption.nonEmpty) {
+              println("-----------")
+              println(body)
+              println(lastNameInParentEnclosure)
+              println(maxName)
+              println(lastName)
+              println("-----------")
+            }
+
+            if (parentEnclosureOption.nonEmpty && (maxName != lastName))
+              Some(Eq(Var(maxName), Var(lastName)))
+            else
               None
           }
 

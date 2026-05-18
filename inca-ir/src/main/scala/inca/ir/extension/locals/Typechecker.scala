@@ -12,6 +12,7 @@ trait Typechecker extends BaseIRTypechecker:
       val ty = inferTerm(t, Mode.Bound).ty
       lookupVar(ref) match
         case Some(varInfo) =>
+          v.typed(TermType(varInfo.ty, Mode.Bound), force = true)
           assertComparable(varInfo.ty, ty, atom)
         case None =>
           error(s"Can not assign unbound variable $v", v, atom)

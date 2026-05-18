@@ -4,7 +4,7 @@ import inca.frontend.oodl.syntax.{Module, TName}
 import inca.frontend.oodl.typechecker.Typechecker
 import inca.ir.util.SourceLocation
 import inca.ir.{BaseIR, CompiledUnit, Name, Module as IRModule}
-import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, map, mono, not, set, tuple}
+import inca.ir.extension.{aggregateset, block, bool, datamatch, demand, disjunction, impure, map, mono, not, set, tuple, locals}
 import inca.ir.visitors.BaseIRVisitor
 import inca.frontend.oodl.foreign
 import inca.foreign.scala.ir.mono.MonoLowering as MonoScalaLowering
@@ -50,32 +50,13 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
     stopIfNeeded()
     fun
 
-  lazy val ssa: Module =
-    val compiler = new SSA
-    val module = compiler.compileModule(typed)
-
-    val logSSA = oodlLogging.logSSAModule
-    if (logSSA && !logTyped)
-      printStep("SSA", fun.toString)
-
-    val typer: Typechecker = new Typechecker
-    typer.typecheck(module)
-
-    if (logSSA && logTyped)
-      printStep("SSA", fun.toString)
-
-    messages ++= typer.getErrors
-    messages ++= typer.getWarnings
-    stopIfNeeded()
-    module
-
   val isClosedWorld = true
 
   def otherUnits: Seq[CompiledUnit] = Seq()
 
   lazy val irModules: Seq[IRModule] =
     val compiler = new GenerateIR
-    val module = compiler.compileModule(ssa)
+    val module = compiler.compileModule(typed)
     Seq(module)
 
   val pipeline: List[() => BaseIRVisitor] = createPipeline(false)
@@ -110,7 +91,7 @@ case class CompiledOODLUnit(fun: Module, override val compilerOptions: OODLCompi
       //() => new optimize.TypeIROptimizer {},
       () => new iroptimize.IRConstantOptimizer(computeControlEvents, false, edbConfig),
       () => new iroptimize.IdentityCastElimination {},
-      () => new IROODLClassOptimizer(superClassMap, computeControlEvents, true, edbConfig),
+      //() => new IROODLClassOptimizer(superClassMap, computeControlEvents, true, edbConfig),
       //() => new optimize.IdentityCastElimination {},
       //() => new optimize.AliasElimination {},
       () => new iroptimize.IRConstantOptimizer(computeControlEvents, true, edbConfig),
@@ -140,6 +121,7 @@ object CompiledOODLUnit:
       () => new datamatch.Lowering {},
       () => new not.Lowering {},
       () => new block.Lowering {},
+      () => new locals.Lowering {},
       () => new impure.Lowering {},
       () => new disjunction.Lowering {},
       () => new not.Lowering {},

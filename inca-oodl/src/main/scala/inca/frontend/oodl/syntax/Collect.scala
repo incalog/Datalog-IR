@@ -42,7 +42,6 @@ trait Collect[R]:
     case VarDeclare(name, typ, maybeExpression, immutable) => maybeExpression.flatMap(collectExpression).toSeq
     case Super(args) => args.flatMap(collectExpression)
     case If(cnd, thn, els) => collectExpression(cnd) ++ thn.flatMap(collectStatement) ++ els.flatMap(collectStatement)
-    case VarPhiAssign(name, typ, ifStmt, thnName, elsName) => Seq()
 
   def collectExpression(expr: Expression): Seq[R] = expr match
     case Var(name) => Seq()
