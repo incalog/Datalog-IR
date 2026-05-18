@@ -20,12 +20,10 @@ import scala.compiletime.uninitialized
  *
  * lowers to:
  *
- * a$0 == 4
- * b == a$0 + 1 // 5
- * a$1 == a$0 + 5
- * c == a$1 + 1 // 10
- *
- * Note that vals are never changes, and only vars are mutated.
+ * a == 4
+ * b == a + 1 // 5
+ * a$0 == a + 5
+ * c == a$0 + 1 // 10
  */
 object VersionedVarRewriter:
   private val sepSymbol = "_"
