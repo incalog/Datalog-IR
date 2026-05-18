@@ -119,9 +119,7 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
 
     phase = Rewrite
     varRewriter = new VersionedVarRewriter
-    val res = super.visitModule(module)
-    println(res)
-    res
+    super.visitModule(module)
 
   def exitEnclosure(enclosure: SourceLocation, parentEnclosureOption: Option[SourceLocation]): Unit =
     // After exiting an enclosure, e.g. a disjunction we must register the greatest version of each variable.
@@ -181,15 +179,6 @@ trait Lowering extends BaseLowering with BodyAwareVisitor:
             // inside the body, use the last version from the parent enclosure.
             val lastNameInParentEnclosure = getCurrentVersionedName(baseName)
             val lastName = varsUsedInBody.getOrElse(baseName, lastNameInParentEnclosure)
-
-            if (parentEnclosureOption.nonEmpty) {
-              println("-----------")
-              println(body)
-              println(lastNameInParentEnclosure)
-              println(maxName)
-              println(lastName)
-              println("-----------")
-            }
 
             if (parentEnclosureOption.nonEmpty && (maxName != lastName))
               Some(Eq(Var(maxName), Var(lastName)))

@@ -26,31 +26,31 @@ class LocalsLoweringTest extends AnyFunSuiteLike:
     lowering.isClosedWorld = true
 
     val mod = Module("M", localsIR.language, relations)
-    var printedMod = false
+    //var printedMod = false
     var lowered: Module = null
     try {
       typecheckerBefore.checkProgram(Seq(mod))
-      println(mod)
-      printedMod = true
+      //println(mod)
+      //printedMod = true
       lowered = lowering.visitProgram(Seq(mod)).head
       typecheckerAfter.checkProgram(Seq(lowered))
       lowered = disjunctionLowering.visitProgram(Seq(lowered)).head
       typecheckerAfter.checkProgram(Seq(lowered))
       lowered
     } finally {
-      if (!printedMod)
-        println(mod)
-      println(lowered)
+      //if (!printedMod)
+      //  println(mod)
+      //println(lowered)
       val errorsBefore = typecheckerBefore.getErrors
       val errorsAfter = typecheckerAfter.getErrors
-      if (errorsBefore.nonEmpty) {
-        println("Type errors in original code:")
-        errorsBefore.foreach(println)
-      }
-      if (errorsAfter.nonEmpty) {
-        println("Type errors in lowered code:")
-        errorsAfter.foreach(println)
-      }
+      //if (errorsBefore.nonEmpty) {
+        //println("Type errors in original code:")
+        //errorsBefore.foreach(println)
+      //}
+      //if (errorsAfter.nonEmpty) {
+        //println("Type errors in lowered code:")
+        //errorsAfter.foreach(println)
+      //}
     }
 
   test("Simple lower to BaseIR") {
@@ -68,8 +68,8 @@ class LocalsLoweringTest extends AnyFunSuiteLike:
         )
       )
     )
-    //val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
-    //assert((1 until 4).forall(i => vars.contains(s"alloc$$$i")))
+    val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
+    assert((0 until 1).forall(i => vars.contains(s"a_$i")))
   }
 
   test("Lower two bodies") {
@@ -93,8 +93,10 @@ class LocalsLoweringTest extends AnyFunSuiteLike:
         )
       )
     )
-    //val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
-    //assert((1 until 4).forall(i => vars.contains(s"alloc$$$i")))
+    val varsInBody1 = m.relations("R").bodies.head.atoms.flatMap(_.vars).map(_.ref.name.name)
+    assert((0 until 1).forall(i => varsInBody1.contains(s"a_$i")))
+    val varsInBody2 = m.relations("R").bodies.last.atoms.flatMap(_.vars).map(_.ref.name.name)
+    assert((0 until 2).forall(i => varsInBody2.contains(s"a_$i")))
   }
 
   test("Lower Disjunction") {
@@ -122,6 +124,6 @@ class LocalsLoweringTest extends AnyFunSuiteLike:
         )
       )
     )
-    //val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
-    //assert((1 until 4).forall(i => vars.contains(s"alloc$$$i")))
+    val vars = m.relations("R").bodies.flatMap(_.atoms.flatMap(_.vars)).map(_.ref.name.name)
+    assert((1 until 3).forall(i => vars.contains(s"a_$i")))
   }
