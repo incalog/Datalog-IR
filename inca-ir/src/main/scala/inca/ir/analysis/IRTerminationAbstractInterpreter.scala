@@ -18,7 +18,7 @@ import inca.ir.extension.string.analysis.interpreter.FiniteStringV
 import inca.ir.analysis.{AbstractEdbConfig, EdbConfig}
 import inca.ir.optimize.Optimizer
 import inca.ir.printer.IRDebugPrinter
-import inca.ir.visitors.IRVisitor
+import inca.ir.visitors.{IRVisitor, StatisticsCollector}
 import sturdy.control.ControlEventGraphBuilder
 import sturdy.data.{MayJoin, WithJoin}
 import sturdy.effect.except.{Except, JoinedExcept}
@@ -238,8 +238,10 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
     if (analysisHasRun || !isClosedWorld)
       return
 
-    println(s"Analyse now! ${modules.size}")
-    println(modules.head)
+    //println(s"Analyse now! ${modules.size}")
+    //println(modules.head)
+
+    //val start = System.nanoTime()
 
     analysisHasRun = true
 
@@ -286,11 +288,16 @@ class IRTerminationAnalysis extends IRVisitor with Optimizer:
       rel.finite.isActual && rel.finite.get && rel.rowsAreFinite
     }
 
+    //val end = System.nanoTime()
+    //val elapsedSeconds = (end - start) / 1e9
+    //println(elapsedSeconds)
+    //modules.foreach(m => println(StatisticsCollector.collect(m)))
+
     // TODO: Remove me after debugging
-    println(new IRDebugPrinter{}.prettyPrint(modules))
-    println(s"Definitely terminates: $definitelyTerminates")
-    println(abstractInterpreter.getIDB)
-    System.exit(1)
+    //println(new IRDebugPrinter{}.prettyPrint(modules))
+    //println(s"Definitely terminates: $definitelyTerminates")
+    //println(abstractInterpreter.getIDB)
+    //System.exit(1)
 
   override def visitProgram(modules: Seq[ir.Module], dependencies: Seq[ir.Module]): Seq[ir.Module] =
     analyzeProgram(modules)

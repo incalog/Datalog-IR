@@ -16,7 +16,7 @@ import scala.collection.mutable
  An analysis logger is used to annotate Datalog AST notes with the computed analysis results.
  Extensions may choose to override this class to guarantee that all AST nodes are annotated.
  */
-trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV], meetTV: Meet[TV])
+trait BaseAnalysisAnnotator[V, RV, TV](using joinTV: Join[TV], joinRV: Join[RV])
   extends Logger[FixIn, FixOut[V, RV]]:
 
   def extractColumns(rv: RV): Seq[String]

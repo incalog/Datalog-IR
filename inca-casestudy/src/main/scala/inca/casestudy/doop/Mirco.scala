@@ -38,7 +38,7 @@ object Mirco:
       ),
       optimizationPipeline = List(
         //() => new IRMeasureTypeAnalysis,
-        () => new IRMeasureDataKindAnalysis,
+        //() => new IRMeasureDataKindAnalysis,
         () => new IRConstantOptimizer(false, false),
         () => new IdentityCastElimination {},
         () => new AliasElimination {},

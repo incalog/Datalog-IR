@@ -407,12 +407,11 @@ class GenerateIR:
     case (stm@Return(_)) :: _ =>
       Seq(compileStatement(stm, resultVar))
     case If(cnd, thenStmts, elseStmts) :: rest =>
-      // Carefully compile if statements to correctly, handle return
+      // Carefully compile if statements to correctly handle Return statements
       // E.g.
-      // if (con) 
-      //    return a
-      // return b
-      // 
+      //   if (con) return a
+      //   return b
+      //
       // Should compile to:
       //    {cond == 1, main_result$0 == a} or {cond == 0, main_result$0 == b}
       // It should not compile to:
