@@ -13,8 +13,10 @@ RUN wget https://souffle-lang.github.io/ppa/souffle-key.public -O /usr/share/key
 	apt-get install -y souffle && \
     rm -rf /var/lib/apt/lists/*
     
-# Install Rust for Ascent
+# Install Rust for Ascent and DDLog
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup component add rustfmt clippy
 
 # Install z3
 #RUN apt-get update && apt-get install -y z3
@@ -32,24 +34,39 @@ RUN sbt sbtVersion && \
 #RUN cd benchmark-scala && sbt publishLocal
 
 # Install DDLog
-#RUN apt-get update -y && \ 
-#	apt-get install -y 	\
-#	make 				\
-#	gnupg 				\
-#	build-essential 	\
-#	libtinfo-dev 		\
-#	zlib1g-dev 			\
-#	libc6-dev 			\
-#	libgmp-dev 			\
-#	curl 				\
-#	libffi-dev 			\
-#	libncurses-dev 		\
-#    cmake               \
-#    subversion          \
-#    autoconf            \
-#    libtool             \
-#    libssl-dev          \
-#    pkg-config
-#RUN wget -qO- https://get.haskellstack.org/ | sh
-#RUN git clone https://github.com/BonoboBoss/DDlog
-#RUN export DDLOG_HOME="$HOME/DDlog" && cd DDlog && stack --install-ghc --only-dependencies installji
+ARG DDLOG_REPOSITORY=https://github.com/Schlaubischlump/DDlog.git
+ARG DDLOG_REF=master
+ENV DDLOG_HOME=/opt/ddlog
+ENV CLASSPATH="${DDLOG_HOME}/flatbuffers/java"
+ENV PATH="${DDLOG_HOME}/flatbuffers:${PATH}"
+
+RUN apt-get update -y && \
+	apt-get install -y --no-install-recommends \
+	autoconf \
+	build-essential \
+	cmake \
+	git \
+	gnupg \
+	libc6-dev \
+	libffi-dev \
+	libgmp-dev \
+	libncurses-dev \
+	libssl-dev \
+	libtinfo-dev \
+	libtool \
+	make \
+	pkg-config \
+	subversion \
+	unzip \
+	zlib1g-dev && \
+	rm -rf /var/lib/apt/lists/*
+
+RUN wget -qO- https://get.haskellstack.org/ | sh
+
+RUN git clone "${DDLOG_REPOSITORY}" "${DDLOG_HOME}" && \
+	cd "${DDLOG_HOME}" && \
+	git checkout "${DDLOG_REF}" && \
+	./tools/install-flatbuf.sh && \
+	stack --install-ghc build && \
+	stack install --local-bin-path /usr/local/bin && \
+	ddlog --version

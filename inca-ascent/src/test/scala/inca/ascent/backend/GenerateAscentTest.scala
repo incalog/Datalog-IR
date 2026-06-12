@@ -17,8 +17,22 @@ import inca.ir.*
 import inca.ir.term2Arg
 
 import scala.collection.immutable.Seq
+import scala.sys.process.Process
 
 class GenerateAscentTest extends AnyFunSuite:
+
+  test("executor captures process errors") {
+    val executor = Executor()
+    val process = Process(Seq("/bin/sh", "-c", "echo 'ascent process failed' >&2; exit 23"))
+    val engine = executor.Engine(process, Map.empty)
+
+    val error = intercept[AscentProcessException](engine.readAll())
+
+    assertResult("Ascent execution")(error.stage)
+    assertResult(23)(error.exitCode)
+    assert(error.stderr.contains("ascent process failed"))
+    assert(error.getMessage.contains("ascent process failed"))
+  }
 
   val pipeline: List[() => BaseIRVisitor] = List(
     () => new aggregateset.Lowering {},

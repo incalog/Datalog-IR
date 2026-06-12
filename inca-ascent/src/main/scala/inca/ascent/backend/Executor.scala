@@ -17,6 +17,28 @@ import scala.sys.process.ProcessBuilder
 import scala.language.implicitConversions
 import scala.jdk.OptionConverters.*
 
+final case class AscentProcessException(stage: String, exitCode: Int, stderr: String)
+  extends RuntimeException({
+    val details = stderr.trim
+    if details.isEmpty then s"$stage failed with exit code $exitCode"
+    else s"$stage failed with exit code $exitCode:\n$details"
+  })
+
+private object AscentProcessRunner:
+  def run(process: ProcessBuilder, stage: String): String =
+    val stdout = StringBuilder()
+    val stderr = StringBuilder()
+    val logger = ProcessLogger(
+      line => stdout.append(line).append(System.lineSeparator()),
+      line => stderr.append(line).append(System.lineSeparator())
+    )
+
+    val exitCode = process.!(logger)
+    if exitCode != 0 then
+      throw AscentProcessException(stage, exitCode, stderr.result())
+
+    stdout.result()
+
 object Executor:
   private lazy val ascentProjectPath = Files.createTempDirectory("ascent-project")
 
@@ -27,10 +49,10 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
     var inputDirty = true
     var cachedResult: Option[Seq[Relation]] = None
 
-    private def execute(): String = executable.!!
+    private def execute(): String = AscentProcessRunner.run(executable, "Ascent execution")
 
     override def measure(rel: Relation): Long =
-      executable.!!.lines().findFirst().toScala match
+      execute().lines().findFirst().toScala match
         case Some(l) => l.toLong
         case _ => throw IllegalStateException("Could not read execution time!")
 
@@ -150,10 +172,7 @@ class Executor(numThreads: ThreadCount = Auto) extends IRExecutor:
 
     // build the rust project
     val buildProcess = stringToProcess(s"cargo build --manifest-path $rustProjectDir/Cargo.toml --release")
-    buildProcess.! match {
-      case 0 => // ok
-      case _ => throw IllegalStateException("Failed to build rust project")
-    }
+    AscentProcessRunner.run(buildProcess, "Ascent Cargo build")
 
     // create the engine
     val env = numThreads match
