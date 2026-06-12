@@ -548,6 +548,28 @@ trait BaseGenericInterpreter[V, B, RV,  ExcV, J[_] <: MayJoin[?]]:
       val relRes = evalRelationEntry(r, params, adornment, evalContext)
       val callRes = renameRelationResult(relRes, params, argBindingInfo)
       if (neg)
+        // TODO: I think we might have a bug here.
+        //  E.g.
+        //    node(1).
+        //    color(red).
+        //    color(blue).
+        //    edge(1, red).
+        //    p(x, y) :- node(x), not edge(x, y), color(y).
+        //  Here we get the following supplementary:
+        //    node(x) -> {x: 1}
+        //    edge(1, y) -> {x: 1, y: red}
+        //    not edge(1, y) -> {x: 1} antijoin {x: 1, y: red} -> {}
+        //    Empty table, so we are done.
+        //  However, reordering the atoms clearly shows that this solution is incorrect:
+        //    p(x, y) :- node(x), color(y), not edge(x, y).
+        //    ----
+        //    node(x) -> {x: 1}
+        //    color(y) -> {y: red} or {y: blue} --join-->  {x: 1, y: red} or {x: 1, y: blue}
+        //    edge(1, red) -> {x: 1, y: red}
+        //    not edge(1, red) --anitjoin--> {x: 1, y: blue}
+        //  The best solutions for this problem is:
+        //    Delay negation until all of the variables in the negative call that can be bound are actually bound.
+
         // Project everything away that was freshly bound.
         // This is safe, since a negative call does not bind variables
         val colsBefore = relationOps.columns(beforeCall)
