@@ -101,6 +101,18 @@ lazy val inca_datalog = (project in file("inca-datalog"))
     )
   )
 
+lazy val inca_codeql = (project in file("inca-codeql"))
+  .dependsOn(inca_ir % "compile->compile")
+  .settings(
+    scalaVersion := scalaVersionString,
+
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
+      "org.typelevel" %% "cats-parse" % "0.3.9",
+      "org.typelevel" %% "cats-core" % "2.9.0",
+    )
+  )
+
 lazy val inca_foreign_scala = (project in file("inca-foreign-scala"))
   .dependsOn(inca_ir % "compile->compile")
   .settings(
