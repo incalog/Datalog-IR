@@ -28,3 +28,22 @@ class CodeQlJavaEdbDumperTest extends AnyFunSuite:
 
     assert(csvByRelation.contains("files"))
     assert(csvByRelation.contains("arrays"))
+
+  test("dump all CodeQL Java EDB relations"):
+    val javaCode =
+      """
+        |public class GeneratedClass {
+        |  public static void main(String[] args) {
+        |    int[] xs = new int[10];
+        |    System.out.println(xs.length);
+        |  }
+        |}
+        |""".stripMargin
+
+    val dumped =
+      CodeQlJavaEdbDumper.dumpAllAndPrint(
+        javaCode,
+        printEmptyRelations = false
+      )
+
+    assert(dumped.nonEmpty)

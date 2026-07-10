@@ -13,6 +13,111 @@ object CodeQlJavaEdbDumper:
   final case class Column(storageType: String, qlType: String)
   final case class RelationSchema(name: String, columns: Vector[Column])
 
+  private def relationNamesWithRelFiles(databaseDir: Path): Set[String] = {
+    val a = findFiles(
+      databaseDir,
+      p => p.getFileName.toString.endsWith(".rel")
+    ).map { path =>
+      path.getFileName.toString.stripSuffix(".rel")
+    }.toSet
+    a
+  }
+
+
+  def dumpAllMaterialized(
+                           javaCode: String,
+                           keepTempDirectory: Boolean = false,
+                           continueOnError: Boolean = true
+                         ): Map[String, Either[String, String]] =
+    val workDir = Files.createTempDirectory("codeql-java-edb-")
+    try
+      val sourceFile = workDir.resolve("GeneratedClass.java")
+      val databaseDir = workDir.resolve("database-test")
+
+      Files.writeString(sourceFile, javaCode, StandardCharsets.UTF_8)
+
+      runOrFail(
+        Seq(
+          "codeql",
+          "database",
+          "create",
+          databaseDir.toString,
+          "--no-cleanup",
+          "--language=java",
+          "--overwrite",
+          "--command",
+          "javac GeneratedClass.java"
+        ),
+        cwd = Some(workDir)
+      )
+
+      val dbscheme = locateJavaDbscheme(databaseDir)
+      val schemas = parseDbscheme(dbscheme)
+
+      val materializedNames =
+        relationNamesWithRelFiles(databaseDir)
+
+      val materializedSchemas =
+        schemas.values
+          .filter(schema => materializedNames.contains(schema.name))
+          .toSeq
+          .sortBy(_.name)
+
+      materializedSchemas.map { schema =>
+        try
+          val csv =
+            dumpSingleRelation(
+              databaseDir = databaseDir,
+              workDir = workDir,
+              schema = schema
+            )
+
+          schema.name -> Right(csv)
+        catch
+          case t: Throwable =>
+            if continueOnError then
+              schema.name -> Left(t.getMessage)
+            else
+              throw t
+      }.toMap
+    finally
+      if !keepTempDirectory then
+        deleteRecursively(workDir)
+
+
+  def dumpAllAndPrint(
+                       javaCode: String,
+                       keepTempDirectory: Boolean = false,
+                       continueOnError: Boolean = true,
+                       printEmptyRelations: Boolean = false
+                     ): Map[String, Either[String, String]] =
+    val result =
+      dumpAllMaterialized(
+        javaCode = javaCode,
+        keepTempDirectory = keepTempDirectory,
+        continueOnError = continueOnError
+      )
+
+    result.toSeq.sortBy(_._1).foreach {
+      case (name, Right(csv)) =>
+        val isEmptyCsv =
+          csv.trim.isEmpty ||
+            csv.linesIterator.toSeq.length <= 1
+
+        if printEmptyRelations || !isEmptyCsv then
+          println()
+          println(s"===== $name =====")
+          print(csv)
+          if !csv.endsWith("\n") then println()
+
+      case (name, Left(error)) =>
+        println()
+        println(s"===== $name FAILED =====")
+        println(error)
+    }
+
+    result
+
   /** Runs CodeQL on the given Java source string and dumps the requested raw EDB relations as CSV.
    *
    * The source is written to `GeneratedClass.java`, so if it contains a public top-level class,
