@@ -25,7 +25,8 @@ object Parser:
 
   def parseProgram(source: String): Program =
     program.parseAll(source) match
-      case Right(value) => value
+      case Right(value) =>
+        value
       case Left(error) =>
         val near = source.slice(error.failedAtOffset, (error.failedAtOffset + 30).min(source.length))
         throw IllegalArgumentException(s"CodeQL parse error near '$near': $error")
@@ -41,6 +42,8 @@ object Parser:
   private val letter: P[Unit] = P.ignoreCaseCharIn('a' to 'z').void
   private val letterDigit: P[Unit] = P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ Seq('_')).void
 
+  // TODO: Does contain keywords that are not part of the language and other keywords are missing
+  //  https://codeql.github.com/docs/ql-language-reference/ql-language-specification/#keywords
   private val keywords = Set(
     "abstract", "and", "as", "boolean", "class", "date", "exists", "extends", "external", "false",
     "final", "float", "from", "in", "instanceof", "int", "not", "or", "override", "predicate", "query",

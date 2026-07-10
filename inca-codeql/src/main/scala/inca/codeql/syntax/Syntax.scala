@@ -75,6 +75,7 @@ enum Expr extends Typeable[QlType] with SourceLocation:
   case Binary(lhs: Expr, op: String, rhs: Expr)
   case Unary(op: String, expr: Expr)
 
+// TODO: Compare to https://codeql.github.com/docs/ql-language-reference/ql-language-specification/#formulas
 enum Formula extends SourceLocation:
   case And(parts: Seq[Formula])
   case Or(parts: Seq[Formula])
