@@ -110,6 +110,7 @@ lazy val inca_codeql = (project in file("inca-codeql"))
       "org.scalatest" %% "scalatest" % scalaTestVersionString % "test",
       "org.typelevel" %% "cats-parse" % "0.3.9",
       "org.typelevel" %% "cats-core" % "2.9.0",
+      "com.github.tototoshi" %% "scala-csv" % "2.0.0",
     )
   )
 

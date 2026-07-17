@@ -1,10 +1,10 @@
-package inca.codeql.executor
+package inca.codeql.edb
 
 import org.scalatest.funsuite.AnyFunSuite
 
 class CodeQlJavaEdbDumperTest extends AnyFunSuite:
 
-  test("dump raw CodeQL Java EDB relations"):
+  /*test("dump raw CodeQL Java EDB relations"):
     val javaCode =
       """
         |public class GeneratedClass {
@@ -22,12 +22,13 @@ class CodeQlJavaEdbDumperTest extends AnyFunSuite:
           "classes_or_interfaces",
           "arrays",
           "exprs",
-          "callableEnclosingExpr"
+          "callableEnclosingExpr",
+          "files"
         )
       )
 
     assert(csvByRelation.contains("files"))
-    assert(csvByRelation.contains("arrays"))
+    assert(csvByRelation.contains("arrays"))*/
 
   test("dump all CodeQL Java EDB relations"):
     val javaCode =
@@ -40,10 +41,9 @@ class CodeQlJavaEdbDumperTest extends AnyFunSuite:
         |}
         |""".stripMargin
 
-    val dumped =
-      CodeQlJavaEdbDumper.dumpAllAndPrint(
-        javaCode,
-        printEmptyRelations = false
+    val dumpedEDB =
+      CodeQlJavaEdbDumper.dumpAllMaterialized(
+        javaCode
       )
 
-    assert(dumped.nonEmpty)
+    assert(dumpedEDB.nonEmpty)

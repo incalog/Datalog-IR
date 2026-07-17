@@ -1,11 +1,14 @@
-package inca.codeql.executor
+package inca.codeql.edb
 
-import java.io._
+import inca.ir.execution.Relation
+
+import java.io.*
 import java.nio.charset.StandardCharsets
-import java.nio.file._
+import java.nio.file.*
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 import scala.util.matching.Regex
+import com.github.tototoshi.csv._
 
 object CodeQlJavaEdbDumper:
 
@@ -27,8 +30,8 @@ object CodeQlJavaEdbDumper:
   def dumpAllMaterialized(
                            javaCode: String,
                            keepTempDirectory: Boolean = false,
-                           continueOnError: Boolean = true
-                         ): Map[String, Either[String, String]] =
+                           continueOnError: Boolean = false
+                         ): Map[String, Relation] =
     val workDir = Files.createTempDirectory("codeql-java-edb-")
     try
       val sourceFile = workDir.resolve("GeneratedClass.java")
@@ -64,28 +67,22 @@ object CodeQlJavaEdbDumper:
           .sortBy(_.name)
 
       materializedSchemas.map { schema =>
-        try
-          val csv =
+
+        val rel =
             dumpSingleRelation(
               databaseDir = databaseDir,
               workDir = workDir,
               schema = schema
             )
 
-          schema.name -> Right(csv)
-        catch
-          case t: Throwable =>
-            if continueOnError then
-              schema.name -> Left(t.getMessage)
-            else
-              throw t
-      }.toMap
+          schema.name -> rel
+        }.toMap
     finally
       if !keepTempDirectory then
         deleteRecursively(workDir)
 
 
-  def dumpAllAndPrint(
+  /*def dumpAllAndPrint(
                        javaCode: String,
                        keepTempDirectory: Boolean = false,
                        continueOnError: Boolean = true,
@@ -117,13 +114,13 @@ object CodeQlJavaEdbDumper:
     }
 
     result
-
+*/
   /** Runs CodeQL on the given Java source string and dumps the requested raw EDB relations as CSV.
    *
    * The source is written to `GeneratedClass.java`, so if it contains a public top-level class,
    * that class should be named `GeneratedClass`.
    */
-  def dump(
+  /*def dump(
             javaCode: String,
             relationNames: Seq[String],
             keepTempDirectory: Boolean = false
@@ -171,8 +168,8 @@ object CodeQlJavaEdbDumper:
     finally
       if !keepTempDirectory then
         deleteRecursively(workDir)
-
-  def dumpAndPrint(
+*/
+  /*def dumpAndPrint(
                     javaCode: String,
                     relationNames: Seq[String],
                     keepTempDirectory: Boolean = false
@@ -186,13 +183,13 @@ object CodeQlJavaEdbDumper:
       if !csv.endsWith("\n") then println()
     }
 
-    result
+    result*/
 
   private def dumpSingleRelation(
                                   databaseDir: Path,
                                   workDir: Path,
                                   schema: RelationSchema
-                                ): String =
+                                ): Relation =
     val queryFile = workDir.resolve(s"dump_${schema.name}.ql")
     val queryText = generateQuery(schema)
 
@@ -237,7 +234,41 @@ object CodeQlJavaEdbDumper:
       cwd = Some(workDir)
     )
 
-    Files.readString(csvFile, StandardCharsets.UTF_8)
+    // Helper to parse value based on CodeQL
+    def parseValue(value: String, qlType: String): Any = {
+      // Strip quotes if present (CSV strings may be quoted)
+      val unquoted = value.stripPrefix("\"").stripSuffix("\"")
+
+      qlType.toLowerCase match {
+        case t if t.startsWith("@") => unquoted
+        case "int" | "integer" => unquoted.toInt
+        case "long" => unquoted.toLong
+        case "boolean" | "bool" => unquoted.toBoolean
+        case "double" => unquoted.toDouble
+        case "float" => unquoted.toFloat
+        // Entity types come back as IDs (numeric) when using --entities=id
+//        case t if t.startsWith("@") => unquoted.toLong
+        // Default to String for unknown types
+        case _ => unquoted
+      }
+    }
+
+
+    val reader = CSVReader.open(csvFile.toFile)
+    val csvRows = reader.all()
+
+    val columnNames = csvRows.head
+    val rows = csvRows.tail
+
+    val columnTypes = schema.columns.map(_.qlType)
+    val typedRows = rows.map { row =>
+      row.zip(columnTypes).map { case (value, qlType) =>
+        parseValue(value, qlType)
+      }
+    }
+
+    Relation.from(schema.name, columnNames, typedRows.map(_.toSeq))
+
 
   private def generateQuery(schema: RelationSchema): String =
     def isEntityType(tpe: String): Boolean =
