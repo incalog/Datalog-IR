@@ -82,109 +82,6 @@ object CodeQlJavaEdbDumper:
         deleteRecursively(workDir)
 
 
-  /*def dumpAllAndPrint(
-                       javaCode: String,
-                       keepTempDirectory: Boolean = false,
-                       continueOnError: Boolean = true,
-                       printEmptyRelations: Boolean = false
-                     ): Map[String, Either[String, String]] =
-    val result =
-      dumpAllMaterialized(
-        javaCode = javaCode,
-        keepTempDirectory = keepTempDirectory,
-        continueOnError = continueOnError
-      )
-
-    result.toSeq.sortBy(_._1).foreach {
-      case (name, Right(csv)) =>
-        val isEmptyCsv =
-          csv.trim.isEmpty ||
-            csv.linesIterator.toSeq.length <= 1
-
-        if printEmptyRelations || !isEmptyCsv then
-          println()
-          println(s"===== $name =====")
-          print(csv)
-          if !csv.endsWith("\n") then println()
-
-      case (name, Left(error)) =>
-        println()
-        println(s"===== $name FAILED =====")
-        println(error)
-    }
-
-    result
-*/
-  /** Runs CodeQL on the given Java source string and dumps the requested raw EDB relations as CSV.
-   *
-   * The source is written to `GeneratedClass.java`, so if it contains a public top-level class,
-   * that class should be named `GeneratedClass`.
-   */
-  /*def dump(
-            javaCode: String,
-            relationNames: Seq[String],
-            keepTempDirectory: Boolean = false
-          ): Map[String, String] =
-    val workDir = Files.createTempDirectory("codeql-java-edb-")
-    try
-      val sourceFile = workDir.resolve("GeneratedClass.java")
-      val databaseDir = workDir.resolve("database-test")
-
-      Files.writeString(sourceFile, javaCode, StandardCharsets.UTF_8)
-
-      runOrFail(
-        Seq(
-          "codeql",
-          "database",
-          "create",
-          databaseDir.toString,
-          "--no-cleanup",
-          "--language=java",
-          "--overwrite",
-          "--command",
-          "javac GeneratedClass.java"
-        ),
-        cwd = Some(workDir)
-      )
-
-      val dbscheme = locateJavaDbscheme(databaseDir)
-      val schemas = parseDbscheme(dbscheme)
-
-      relationNames.map { relationName =>
-        val schema =
-          schemas.getOrElse(
-            relationName,
-            throw RuntimeException(
-              s"Relation '$relationName' not found in dbscheme: $dbscheme"
-            )
-          )
-
-        relationName -> dumpSingleRelation(
-          databaseDir = databaseDir,
-          workDir = workDir,
-          schema = schema
-        )
-      }.toMap
-    finally
-      if !keepTempDirectory then
-        deleteRecursively(workDir)
-*/
-  /*def dumpAndPrint(
-                    javaCode: String,
-                    relationNames: Seq[String],
-                    keepTempDirectory: Boolean = false
-                  ): Map[String, String] =
-    val result = dump(javaCode, relationNames, keepTempDirectory)
-
-    result.foreach { case (name, csv) =>
-      println()
-      println(s"===== $name =====")
-      print(csv)
-      if !csv.endsWith("\n") then println()
-    }
-
-    result*/
-
   private def dumpSingleRelation(
                                   databaseDir: Path,
                                   workDir: Path,
@@ -240,7 +137,7 @@ object CodeQlJavaEdbDumper:
       val unquoted = value.stripPrefix("\"").stripSuffix("\"")
 
       qlType.toLowerCase match {
-        case t if t.startsWith("@") => unquoted
+        //case t if t.startsWith("@") => unquoted
         case "int" | "integer" => unquoted.toInt
         case "long" => unquoted.toLong
         case "boolean" | "bool" => unquoted.toBoolean
