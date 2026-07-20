@@ -1,13 +1,14 @@
 package inca.codeql.compile
 
-import inca.codeql.syntax.{Parser, PredicateDecl, Program}
+import inca.codeql.syntax.{CodeQLPreprocessor, Parser, PredicateDecl, Program}
 import inca.codeql.typecheck.Typechecker
 import _root_.inca.ir.extension.*
 import _root_.inca.ir.optimize
 import _root_.inca.ir.optimize.Optimizer
 import _root_.inca.ir.util.SourceLocation
 import _root_.inca.ir.visitors.BaseIRVisitor
-import _root_.inca.ir.{CompiledUnit, Module as IRModule, Name}
+import _root_.inca.ir.{CompiledUnit, Name, Module as IRModule}
+import inca.codeql.syntax.CodeQLPreprocessor.*
 
 case class CompiledCodeQlUnit(program: Program, override val compilerOptions: CodeQlCompilerOptions) extends CompiledUnit:
   override val name: Name = Name("CodeQL")
@@ -31,7 +32,9 @@ object CompiledCodeQlUnit:
   val SelectRelationName: Name = Name("__codeql_select")
 
   def fromSource(source: String, options: CodeQlCompilerOptions = CodeQlCompilerOptions.default): CompiledCodeQlUnit =
-    val compiled = CompiledCodeQlUnit(Parser.parseProgram(source), options)
+    val preprocessor = new CodeQLPreprocessor()
+    val preprocessedSource = preprocessor.preprocess(source)
+    val compiled = CompiledCodeQlUnit(Parser.parseProgram(preprocessedSource), options)
     compiled.setPipeline(pipeline)
     compiled.setOptimizationPipeline(optimizationPipeline)
     compiled
