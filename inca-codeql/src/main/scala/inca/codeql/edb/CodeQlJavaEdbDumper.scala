@@ -31,7 +31,7 @@ object CodeQlJavaEdbDumper:
                            javaCode: String,
                            keepTempDirectory: Boolean = false,
                            continueOnError: Boolean = false
-                         ): Map[String, Relation] =
+                         ): Seq[Relation] =
     val workDir = Files.createTempDirectory("codeql-java-edb-")
     try
       val sourceFile = workDir.resolve("GeneratedClass.java")
@@ -75,8 +75,8 @@ object CodeQlJavaEdbDumper:
               schema = schema
             )
 
-          schema.name -> rel
-        }.toMap
+           rel
+        }
     finally
       if !keepTempDirectory then
         deleteRecursively(workDir)
@@ -142,7 +142,9 @@ object CodeQlJavaEdbDumper:
         case "long" => unquoted.toLong
         case "boolean" | "bool" => unquoted.toBoolean
         case "double" => unquoted.toDouble
-        case "float" => unquoted.toFloat
+        //TODO: Check IR float support
+//        case "float" =>
+//          unquoted.toFloat
         // Entity types come back as IDs (numeric) when using --entities=id
 //        case t if t.startsWith("@") => unquoted.toLong
         // Default to String for unknown types
